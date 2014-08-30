@@ -1,0 +1,108 @@
+# Details for the Dynamixel controllers
+# TODO: Remove post Morganboard?
+reflex_f1:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: f0
+    joint_speed: 10
+    motor:
+        id: 1
+        init: 0
+        min: 0
+        max: 1023
+reflex_f2:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: f1
+    joint_speed: 10
+    motor:
+        id: 2
+        init: 0
+        min: 0
+        max: 1023
+
+reflex_f3:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: f3
+    joint_speed: 10
+    motor:
+        id: 3
+        init: 0
+        min: 0
+        max: 1023
+
+reflex_preshape:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: preshape
+    joint_speed: 10
+    motor:
+        id: 4
+        init: 0
+        min: 0
+        max: 1023
+
+# Mapping and ordering of fingers/preshape
+servomap:
+    motor_order: [f1, f2, f3, preshape]
+    f1:
+        invert: 0
+        reference: 0
+    f2:
+        invert: 1
+        reference: 5.236
+    f3:
+        invert: 0
+        reference: 0
+    preshape: 
+        invert: 1
+        reference: 5.0
+        ratio: 1.5
+
+# Geometry for tf
+tf_geometry:
+    base_link:                                  # parent: world
+        origin: [0.0, 0.0, 0.0]
+        rotation: [0.0, 0.0, 0.0]
+
+    swivel_1:                                   # parent: base_link
+        origin: [0.0504, 0.026, 0.0631]         # origin is at the base face of the swivel, in the center of the circle
+
+    swivel_2:                                   # parent: base_link
+        origin: [0.0504, -0.026, 0.0631]
+
+    proximal_1:                                 # parent: swivel_1
+        origin: [0.01, 0.0, 0.0186]             # origin is at the center of the proximal axle
+        rotation: [0.0, 0.0, 0.0]
+
+    proximal_2:                                 # parent: swivel_2
+        origin: [0.01, 0.0, 0.0186]
+        rotation: [0.0, 0.0, 0.0]
+
+    proximal_3:                                 # parent: base_link
+        origin: [-0.03, 0.0, 0.0817]
+        rotation: [0.0, 0.0, 3.14159]
+
+    distal:                                     # parent: proximal_1
+        origin: [0.068, 0.0, 0.0025]             # distal origin is given to the center of the distal joint.
+                                                #In the tf broadcaster, the distal origin traces a circle around this central point
+
+    proximal_sensors:                                           # parent: each proximal link is identical
+        origin_x: [0.0189, 0.02681, 0.03473, 0.04264, 0.05055]  # there are 5 sensors on a proximal link, and the y deviation is 0 (sensors lined up on center of finger)
+        origin_z: [0.0154, 0.0154, 0.0154, 0.0154, 0.0154]
+# back edge of board: 0.01505i, pad surface: 0.0154k, first sensor is 0.00385i off back, 0.03165i from first to last, 0.007913i between each sensor
+
+    distal_sensors:                                             # parent: each distal link is identical
+        origin_x: [0.0114, 0.01931, 0.02723, 0.0375]            # there are 5 sensors on a proximal link, and the y deviation is 0 (sensors lined up on center of finger)
+        origin_z: [0.0129, 0.0129, 0.0129, 0.00727]
+        rotation: [0.0, 0.0, 0.0, 0.5236]                       # rotation is included for the distal sensors because the fingertip sensor is tilted
+# back edge of board: 0.0073i, pad surface: 0.0129 up, first sensor is 0.0041i off back, assuming 0.007913i between each sensor

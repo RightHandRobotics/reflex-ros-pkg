@@ -1,0 +1,13 @@
+# Various sensors might respond differently to heat. Linear coefficients recording responnse to heat is stored here
+takktile_cal:
+    finger_1:
+        proximal: [1.0, 1.0, 1.0, 1.0, 1.0]
+        distal: [1.0, 1.0, 1.0, 1.0]
+
+    finger_2:
+        proximal: [1.0, 1.0, 1.0, 1.0, 1.0]
+        distal: [1.0, 1.0, 1.0, 1.0]
+
+    finger_3:
+        proximal: [1.0, 1.0, 1.0, 1.0, 1.0]
+        distal: [1.0, 1.0, 1.0, 1.0]

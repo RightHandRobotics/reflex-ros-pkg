@@ -1,0 +1,6 @@
+# message for calling preshape
+float32 goal_pos
+float32 speed
+---
+int32 result
+duration elapsed_time

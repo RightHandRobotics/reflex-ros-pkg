@@ -1,0 +1,44 @@
+## ReFlex Codebase
+
+This is the main repo for the ReFlex Hand by RightHand Robotics
+
+It focuses on the code needed to connect from raw sensor information to hand operation.  It might one day include a visuzlizer too.
+
+# Sensor values come from:
+* joint encoders (x3)
+* dynamixel motors (x4)
+* takktile boards (3 fingers with 2 each, plus one palm)
+
+motor commands go out to the four motors
+
+# takktile parameters:
+* mapping from sensor index to hand location
+* contact threshold
+* zero point (set live)
+
+# encoder parameters:
+* zero point (proximal encoder)
+* zero point (tendon length)
+* radians to tendon (motor spool)
+* radians to tendon (proximal joint)
+* tendon to radians (distal joint)
+
+# motor parameters:
+* zero point
+* inversion
+* tics or tendon lenght scale factor?
+
+
+each finger of the hand can be put in several states:
+* position control (move to position)
+* guarded move (move till contact)
+* gentle touch (avoid contact)
+
+the hand overall can receive several further commands:
+* cylinder
+* sphere
+* pinch
+* guarded
+* probe
+* grasp
+
