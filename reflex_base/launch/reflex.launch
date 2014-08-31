@@ -2,8 +2,6 @@
 <launch>
 
   <param name="contact_threshold" value="5" />
-  <arg name="hand_0" default="0"/>
-
   <rosparam file="$(find reflex_base)/yaml/reflex.yaml" command="load"/>
   <rosparam file="$(find reflex_base)/yaml/takktile_cal.yaml" command="load"/>
 
@@ -19,19 +17,19 @@
                     update_rate: 20
         </rosparam>
   </node> -->
-  <node name="reflex_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
+<!--   <node name="reflex_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
           args="--manager=dxl_manager
                 --port reflex_port
                 reflex_f1
                 reflex_f2
                 reflex_f3
                 reflex_preshape"
-          output="screen"/>
+          output="screen"/> -->
 
-  <!-- <node name="reflex_base"            pkg="reflex_base"       type="reflex_base.py"         args="$(arg hand_0)"       output="screen"/> -->
-  <node name="reflex_smarts"          pkg="reflex_base"       type="reflex_smarts.py"       args="$(arg hand_0)"       output="screen"/>
+  <node name="reflex_base"            pkg="reflex_base"       type="reflex_base.py"         output="screen"/>
+  <!-- <node name="reflex_smarts"          pkg="reflex_base"       type="reflex_smarts.py"       output="screen"/> -->
 
-  <node name="reflex_tf_broadcaster"  pkg="reflex_base"       type="reflex_tf_broadcaster"  output="screen"/>
+  <!-- <node name="reflex_tf_broadcaster"  pkg="reflex_base"       type="reflex_tf_broadcaster"  output="screen"/> -->
   <!-- <node name="spoof_rhr_data"         pkg="rhr_visualization" type="spoof_rhr_data.py"/> -->
   <!-- <node name="rviz"                   pkg="rviz" type="rviz"  args="-d $(find reflex_base)/urdf.rviz"  output="screen"/> -->
 </launch>

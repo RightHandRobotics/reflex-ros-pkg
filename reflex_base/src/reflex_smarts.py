@@ -8,6 +8,7 @@
 # Eric Schneider
 # 
 ########################################################## 
+# TODO: Setting servo speed is implemented here but not in firmware. Waiting on that
 
 import rospy
 from math import floor

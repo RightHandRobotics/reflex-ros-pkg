@@ -7,6 +7,8 @@
 # Eric Schneider
 # 
 ###########################################################
+# TODO: Setting servo speed is implemented here but not in firmware.
+# Uncomment speed code here and in srv message when implemented
 
 import rospy
 
@@ -30,7 +32,8 @@ class CommandHandService:
 			self.locked = True
 			rospy.loginfo("reflex_base:CommandHandService: The requested action %s is about to run", req.action)
 			start_time = rospy.Time.now()
-			self.obj.command_base(req.speed, *req.action.split(' '))
+			# self.obj.command_base(req.speed, *req.action.split(' '))
+			self.obj.command_base(1.0, *req.action.split(' '))
 			end_time = rospy.Time.now()
 			self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
@@ -50,7 +53,8 @@ class MoveFingerService:
 			self.locked = True
 			rospy.loginfo("reflex_base:MoveFingerService: reflex_f%d is about to try to move to %f radians", req.finger_index+1, req.goal_pos)
 			start_time = rospy.Time.now()
-			self.obj.move_finger(req.finger_index, req.goal_pos, req.speed)
+			# self.obj.move_finger(req.finger_index, req.goal_pos, req.speed)
+			self.obj.move_finger(req.finger_index, req.goal_pos, 1.0)
 			end_time = rospy.Time.now()
 			self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
@@ -70,7 +74,8 @@ class MovePreshapeService:
 			self.locked = True
 			rospy.loginfo("reflex_base:MovePreshapeService: preshape is about to try to move to %f radians", req.goal_pos)
 			start_time = rospy.Time.now()
-			self.obj.move_preshape(req.goal_pos, req.speed)
+			# self.obj.move_preshape(req.goal_pos, req.speed)
+			self.obj.move_preshape(req.goal_pos, 1.0)
 			end_time = rospy.Time.now()
 			self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
@@ -108,7 +113,8 @@ class CommandSmartService:
 			self.locked = True
 			rospy.loginfo("reflex_base:CommandSmartService: The requested action %s is about to run", req.action)
 			start_time = rospy.Time.now()
-			self.obj.command_smarts(req.speed, *req.action.split(' '))
+			# self.obj.command_smarts(req.speed, *req.action.split(' '))
+			self.obj.command_smarts(1.0, *req.action.split(' '))
 			end_time = rospy.Time.now()
 			self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
