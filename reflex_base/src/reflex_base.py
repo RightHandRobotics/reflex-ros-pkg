@@ -34,7 +34,7 @@ class ReFlex(object):
 		self.FINGER_MAP = {'f1':0,'f2':1,'f3':2}
 
 		# motion parameters
-		self.FINGER_STEP = 0.01 						# radians / 0.01 second
+		self.FINGER_STEP = 0.05 						# radians / 0.01 second
 		self.SERVO_SPEED_MIN = 0.0 						# radians / second
 		self.SERVO_SPEED_MAX = 3.0 						# radians / second
 		self.TENDON_MIN = 0.0							# max opening (radians)
@@ -43,8 +43,22 @@ class ReFlex(object):
 		self.PRESHAPE_MAX = 1.6							# max closure (radians)
 
 		# control loop logic parameters
-		self.ARRIVAL_ERROR = 0.03						# error at which the control loop considers position control finished
+		self.ARRIVAL_ERROR = 0.06						# error at which the control loop considers position control finished
 		self.BLOCKED_ERROR = 0.1 						# if the finger hasn't moved this far in hand_hist steps, it's blocked
+
+		# Initialize logic variables
+		self.control_mode = ['goto', 'goto', 'goto']		# control mode for each finger
+		self.working = [False, False, False]				# completion criteria (service returns when all false)
+		topic = "/reflex/finger_events"						# used to publish self.working events
+		rospy.loginfo("ReFlex class is publishing the %s topic", topic)
+		self.event_pub = rospy.Publisher(topic, Event, queue_size = 10)
+		self.event_reason = [-1, -1, -1];
+		self.cmd_spool = np.array([-1.0, -1.0, -1.0]) 		# finger commanded position, radians spool rotation
+		self.cmd_spool_old = deepcopy(self.cmd_spool)		# Previous cmd position. If current cmd position matches, give no command
+		self.servo_speed = np.array([-1.0, -1.0, -1.0]) 		# finger commanded position, radians spool rotation
+
+		# Set up motor publishers
+		self.actuator_pub = rospy.Publisher('/set_reflex_hand', RadianServoPositions)
 
 		# Subscribe to sensor information
 		self.hand_publishing = True
@@ -60,20 +74,6 @@ class ReFlex(object):
 			rospy.sleep(0.01)
 			time_waiting += 0.01
 		self.hand_publishing = did_subscribe_succeed(time_waiting, topic)
-
-		# Set up motor publishers
-		self.actuator_pub = rospy.Publisher('/set_reflex_hand', RadianServoPositions)
-
-		# Initialize logic variables
-		self.control_mode = ['goto', 'goto', 'goto']		# control mode for each finger
-		self.working = [False, False, False]				# completion criteria (service returns when all false)
-		topic = "/reflex/finger_events"						# used to publish self.working events
-		rospy.loginfo("ReFlex class is publishing the %s topic", topic)
-		self.event_pub = rospy.Publisher(topic, Event, queue_size = 10)
-		self.event_reason = [-1, -1, -1];
-		self.cmd_spool = np.array([-1.0, -1.0, -1.0]) 		# finger commanded position, radians spool rotation
-		self.cmd_spool_old = deepcopy(self.cmd_spool)		# Previous cmd position. If current cmd position matches, give no command
-		self.servo_speed = np.array([-1.0, -1.0, -1.0]) 		# finger commanded position, radians spool rotation
 
 		rospy.loginfo("Reflex class is initialized\n...running...")
 
@@ -104,6 +104,7 @@ class ReFlex(object):
 		self.event_reason = [-1, -1, -1];
 
 		# each finger has a control mode, which corresponds to some basic logic
+		cmd_change = []
 		for i in range(3):
 			# position control mode
 			if self.control_mode[i] == 'goto':
@@ -184,22 +185,20 @@ class ReFlex(object):
 			# execute finger control 
 			self.cmd_spool[i] = min(max(self.cmd_spool[i], self.TENDON_MIN), self.TENDON_MAX)
 			self.servo_speed[i] = min(max(self.servo_speed[i], self.SERVO_SPEED_MIN), self.SERVO_SPEED_MAX)
+			cmd_change.append(self.cmd_spool[i] != self.cmd_spool_old[i])
 			self.cmd_spool_old[i] = deepcopy(self.cmd_spool[i])
 
-		if self.cmd_spool[0] != self.cmd_spool_old[0] or\
-				self.cmd_spool[1] != self.cmd_spool_old[1] or\
-				self.cmd_spool[2] != self.cmd_spool_old[2]:
-			rospy.logwarn("cmd_spool different than before!");
-			pos_list = [self.cmd_spool[0], self.cmd_spool[1], self.cmd_spool[2], self.hand.palm.preshape]
+		if sum(cmd_change):
+# Get rid of min-max when publisghing is fixed
+			pos_list = [self.cmd_spool[0], self.cmd_spool[1], self.cmd_spool[2], min(max(self.hand.palm.preshape, self.PRESHAPE_MIN), self.PRESHAPE_MAX)]
 			self.actuator_pub.publish(RadianServoPositions(pos_list))
 
 	# Commands the preshape joint to move to a certain position
 	def move_preshape(self, goal_pos, speed):
 		if not self.hand.palm.preshape == goal_pos:
 			cmd = min(max(goal_pos, self.PRESHAPE_MIN), self.PRESHAPE_MAX)
-			rospy.loginfo("reflex_base:move_preshape: Preshape joint is being commanded as %f", cmd)
 			speed = min(max(speed, self.SERVO_SPEED_MIN), self.SERVO_SPEED_MAX)
-			pos_list = [self.hand.finger[0].spool, self.hand.finger[1].spool, self.hand.finger[2].spool, self.hand.palm.preshape]
+			pos_list = [self.hand.finger[0].spool, self.hand.finger[1].spool, self.hand.finger[2].spool, cmd]
 			self.actuator_pub.publish(RadianServoPositions(pos_list))
 
 			motor_error = goal_pos - self.hand.palm.preshape
@@ -207,7 +206,7 @@ class ReFlex(object):
 				return
 			else:
 				while (abs(motor_error) > self.ARRIVAL_ERROR)\
-						and (abs(self.hand.palm.preshape_hist[0] - self.hand.palm.preshape_hist[-1]) > self.BLOCKED_ERROR)\
+						and (abs(self.hand_hist[0].palm.preshape - self.hand_hist[-1].palm.preshape) > self.BLOCKED_ERROR)\
 							and not rospy.is_shutdown():
 					motor_error = goal_pos - self.hand.palm.preshape
 					rospy.sleep(0.01)
@@ -218,7 +217,6 @@ class ReFlex(object):
 		self.control_mode[finger_index] = 'goto'
 		self.working[finger_index] = True
 		self.cmd_spool[finger_index] = goal_pos
-		rospy.logwarn("cmd_spool set to %f", self.cmd_spool[finger_index])
 		self.servo_speed[finger_index] = speed
 		while self.working[finger_index] and not rospy.is_shutdown():
 			rospy.sleep(0.01)
@@ -295,13 +293,13 @@ class ReFlex(object):
 
 	# Has the finger made contact?
 	def finger_in_contact(self, finger_index):
-		return (sum(self.hand.finger[finger_index].contact) > 0) or (self.hand.finger[finger_index].distal > distal_joint_contact(finger_index))
+		return sum(self.hand.finger[finger_index].contact) or (self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
 
 	# Are both links in contact?
 	def full_contact(self, finger_index):
-		return sum(self.hand.finger[finger_index].contact[0:5] > 0)\
-					and (sum(self.hand.finger[finger_index].contact[5:9] > 0)\
-						or self.hand.finger[finger_index].distal > distal_joint_contact(finger_index))
+		return sum(self.hand.finger[finger_index].contact[0:5])\
+					and (sum(self.hand.finger[finger_index].contact[5:9])\
+						or self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
 
 	def distal_joint_contact(self, finger_index):
 		spool_level = [self.TENDON_MIN, self.TENDON_MAX]
@@ -346,8 +344,9 @@ def did_subscribe_succeed(time_waiting, topic):
 
 
 if __name__ == '__main__':
-	reflex_hand = ReFlex()
 	rospy.init_node('ReflexServiceNode')
+	rospy.sleep(0.5)
+	reflex_hand = ReFlex()
 
 	sh1 = CommandHandService(reflex_hand)
 	s1  = "/reflex/command_base"

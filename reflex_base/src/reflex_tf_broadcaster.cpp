@@ -12,8 +12,6 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
   tf::Transform proximal_sensor_tf[3][5];
   tf::Transform distal_sensor_tf[3][5];
 
-
-
   // Collect the geometry from reflex.yaml
   base_link_tf.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
   base_link_tf.setRotation( tf::Quaternion(0.0, 0.0, 0.0) );
@@ -115,7 +113,8 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "reflex_tf_broadcaster");
 
   ros::NodeHandle node;
-  ros::Subscriber sub = node.subscribe("/spoof_hand_data", 10, &poseCallback);
+  // ros::Subscriber sub = node.subscribe("/spoof_hand_data", 10, &poseCallback);
+  ros::Subscriber sub = node.subscribe("/reflex_hand", 10, &poseCallback);
 
   ros::spin();
   return 0;

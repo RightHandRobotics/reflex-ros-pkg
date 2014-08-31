@@ -97,7 +97,7 @@ class KillService:
 	def __call__(self, req):
 		rospy.loginfo("reflex_base:KillService: Setting all fingers to working = False and commanding 'hold'")
 		self.obj.working = [False, False, False]
-		self.obj.command_hand('hold')
+		self.obj.command_base(1.0, 'hold')
 
 class CommandSmartService:
 	def __init__(self, obj):

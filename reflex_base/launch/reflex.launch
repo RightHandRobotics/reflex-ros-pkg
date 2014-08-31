@@ -1,15 +1,17 @@
 <!-- nodes and parameters for reflex -->
 <launch>
 
+  <include file="$(find reflex_hand)/launch/reflex_hand_node.launch"/>
+
   <param name="contact_threshold" value="5" />
   <rosparam file="$(find reflex_base)/yaml/reflex.yaml" command="load"/>
   <rosparam file="$(find reflex_base)/yaml/takktile_cal.yaml" command="load"/>
 
-  <node name="reflex_base"            pkg="reflex_base"       type="reflex_base.py"         output="screen"/>
-  <!-- <node name="reflex_smarts"          pkg="reflex_base"       type="reflex_smarts.py"       output="screen"/> -->
+  <!-- <node name="reflex_base"            pkg="reflex_base"       type="reflex_base.py"         output="screen"/> -->
+  <node name="reflex_smarts"          pkg="reflex_base"       type="reflex_smarts.py"       output="screen"/>
 
-  <!-- <node name="reflex_tf_broadcaster"  pkg="reflex_base"       type="reflex_tf_broadcaster"  output="screen"/> -->
+  <node name="reflex_tf_broadcaster"  pkg="reflex_base"       type="reflex_tf_broadcaster"  output="screen"/>
   <!-- <node name="spoof_rhr_data"         pkg="rhr_visualization" type="spoof_rhr_data.py"/> -->
-  <!-- <node name="rviz"                   pkg="rviz" type="rviz"  args="-d $(find reflex_base)/urdf.rviz"  output="screen"/> -->
+  <node name="rviz"                   pkg="rviz" type="rviz"  args="-d $(find reflex_base)/urdf.rviz"  output="screen"/>
 </launch>
 
