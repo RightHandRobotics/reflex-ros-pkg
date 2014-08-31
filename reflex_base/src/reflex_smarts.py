@@ -135,10 +135,8 @@ class ReFlex_Smarts(ReFlex):
 		self.move_preshape(ROT_CYL, speed)
 		for i in range(3):
 			self.move_finger(i, DOF_POS, speed)
-			# while any(self.working) and not rospy.is_shutdown():	rospy.sleep(0.01)
-			rospy.sleep(1)
+			rospy.sleep(1.5)
 			self.open(i, speed)
-			# while any(self.working) and not rospy.is_shutdown():	rospy.sleep(0.01)
 			rospy.sleep(1)
 		for pos in [ROT_CYL, ROT_SPH, ROT_PINCH, ROT_CYL]:
 			self.move_preshape(pos, speed)
