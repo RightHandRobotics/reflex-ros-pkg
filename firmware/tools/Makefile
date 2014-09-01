@@ -14,6 +14,5 @@ openocd-source:
 	git clone git://git.code.sf.net/p/openocd/code openocd-source
 
 openocd: openocd-source
-	sudo apt-get install automake
-	sudo apt-get install texinfo
+	sudo apt-get install automake texinfo libusb-1.0-0-dev texi2html
 	cd openocd-source && ./bootstrap && ./configure --prefix=$(shell pwd)/openocd --enable-ftdi && make && make install
