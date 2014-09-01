@@ -6,7 +6,7 @@
   <rosparam file="$(find reflex_base)/yaml/takktile_cal.yaml" command="load"/>
 
   <!-- A) Uncomment reflex_hand_node.launch to start reading the hand data from ethernet and commanding motors (DEFAULT) -->
-  <include file="$(find reflex_hand)/launch/reflex_hand_node.launch"/>
+  <include file="$(find reflex_driver)/launch/reflex_driver.launch"/>
   <!-- B) Uncomment spoof_rhr_data . Choose this or reflex_hand_node -->
   <node name="spoof_rhr_data" pkg="rhr_visualization" type="spoof_rhr_data.py"/>
 

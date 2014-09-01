@@ -96,7 +96,7 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RawSer
 
 // Commands the motors from radians, using the zero references from
 // yaml/finger_calibrate.yaml to translate into the raw Dyanmixel values
-void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RadianServoPositions::ConstPtr &msg)
+void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RadianServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
   for (int i = 0; i < 4; i++) {
