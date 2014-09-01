@@ -1,4 +1,4 @@
-reflex
+reflex-ros-pkg
 ======
 
 Electronics, Firmware, and Software for the Reflex Hand controller
