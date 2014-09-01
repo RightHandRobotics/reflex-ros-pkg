@@ -66,7 +66,6 @@ class ReFlex(object):
 		self.latching = False
 		self.hand_hist = []								# history of incoming hand data, bounded in __hand_callback
 		topic = "/reflex_hand"
-		# topic = "/spoof_hand_data"
 		rospy.loginfo("ReFlex class is subscribing to topic %s", topic)
 		rospy.Subscriber(topic, Hand, self.__hand_callback)
 		time_waiting = 0.0

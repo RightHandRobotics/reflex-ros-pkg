@@ -79,7 +79,7 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
   }
 
   for (int i=0; i<3; i++) {
-    if (i==2)   {sprintf(s1, "Base_Link", (i+1));}
+    if (i==2)   {sprintf(s1, "Base_Link");}
     else        {sprintf(s1, "Swivel_%d", (i+1));}
     sprintf(s2, "Proximal_%d", (i+1));
     br.sendTransform(tf::StampedTransform(proximal_tf[i], ros::Time::now(), s1, s2));
@@ -113,7 +113,6 @@ int main(int argc, char** argv){
   ros::init(argc, argv, "reflex_tf_broadcaster");
 
   ros::NodeHandle node;
-  // ros::Subscriber sub = node.subscribe("/spoof_hand_data", 10, &poseCallback);
   ros::Subscriber sub = node.subscribe("/reflex_hand", 10, &poseCallback);
 
   ros::spin();

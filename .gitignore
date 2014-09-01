@@ -1,0 +1,9 @@
+firmware/tools/openocd
+firmware/tools/openocd-source
+firmware/tools/gccarm.installed
+bin/
+build/
+devel/
+*calibrate.yaml
+*~
+*.pyc
