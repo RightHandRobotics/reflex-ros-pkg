@@ -50,6 +50,8 @@ add_message_files(
   Palm.msg
   Finger.msg
   Event.msg
+  RawServoPositions.msg
+  RadianServoPositions.msg
 )
 
 ## Generate services in the 'srv' folder

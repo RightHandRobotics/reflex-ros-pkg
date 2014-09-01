@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(reflex_driver)
 find_package(catkin REQUIRED COMPONENTS roscpp message_generation)
-add_message_files(FILES RawServoPositions.msg RadianServoPositions.msg)
 generate_messages()
 catkin_package( CATKIN_DEPENDS roscpp message_runtime )
 add_library(reflex_hand reflex_hand.cpp)
