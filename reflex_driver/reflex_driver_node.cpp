@@ -57,6 +57,7 @@ void signal_handler(int signum)
 }
 
 
+// Loads necessary parameters
 void load_params(ros::NodeHandle nh)
 {
   string topic = "no error";
@@ -83,6 +84,7 @@ void load_params(ros::NodeHandle nh)
 }
 
 
+// Takes raw Dynamixel values (0-4095) and writes them directly to the motors
 void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RawServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
@@ -92,6 +94,8 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RawSer
 }
 
 
+// Commands the motors from radians, using the zero references from
+// yaml/finger_calibrate.yaml to translate into the raw Dyanmixel values
 void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RadianServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
@@ -104,6 +108,158 @@ void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::Rad
 
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
 {
+  // Sets and publishes the reflex_msgs/Hand message
+  reflex_msgs::Hand hand_msg;
+  int pressure_offset;
+  // The dynamixel for Finger 1 has index 0, Finger 2 has index 1, Finger 3 has index 3
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
+  {
+    const int tactile_base_idx = i * 9;
+    hand_msg.finger[i].proximal = ((state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE) - enc_zero[i]);
+    hand_msg.finger[i].spool = motor_inversion[i]*((state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
+    hand_msg.finger[i].distal = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
+
+    for (int j=0; j < 9; j++)
+    {
+      // This if statement is really messy, but I couldn't find a way to read the pressure
+      // offset values in as a 3D vector. Probably possible, skipped for now
+      if (i == 0)
+        pressure_offset = tactile_offset_f1[j];
+      else if (i == 1)
+        pressure_offset = tactile_offset_f2[j];
+      else
+        pressure_offset = tactile_offset_f3[j];
+      hand_msg.finger[i].pressure[j] = state->tactile_pressures_[tactile_base_idx + j] - pressure_offset;
+      hand_msg.finger[i].contact[j] = false;
+      if (hand_msg.finger[i].pressure[j] > contact_threshold)
+        hand_msg.finger[i].contact[j] = true;
+    }
+  }
+  // hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[2] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
+  hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
+  const int palm_tactile_base_idx = reflex_hand::ReflexHandState::NUM_FINGERS * 9;
+  for (int i=0; i < 11; i++)
+  {
+      hand_msg.palm.pressure[i] = state->tactile_pressures_[palm_tactile_base_idx + i] - tactile_offset_palm[i];
+      hand_msg.palm.contact[i] = false;
+      if (state->tactile_pressures_[palm_tactile_base_idx + i] > contact_threshold)
+        hand_msg.palm.contact[i] = true;
+  }
+  hand_msg.joints_publishing = true;
+  hand_msg.tactile_publishing = true;
+  
+  hand_pub.publish(hand_msg);
+
+  // Capture the current tactile data and save it as a zero reference
+  if (aqcuire_tactile)
+  {
+    tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
+    tactile_file << "# Captured sensor values from unloaded state, used for calibration \n";
+    for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
+    {
+      const int tactile_base_idx = i * 9;
+      // Write to variable
+      for (int j = 0; j < 9; j++)
+      {
+        if (i == 0)
+          tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx + j];
+        else if (i == 1)
+          tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx + j];
+        else
+          tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx + j];
+      }
+
+      // Write to file
+      tactile_file << "tactile_offset_f" << i+1 << ": ["
+                          << state->tactile_pressures_[tactile_base_idx + 0] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 1] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 2] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 3] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 4] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 5] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 6] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 7] << ", "
+                          << state->tactile_pressures_[tactile_base_idx + 8] << "]\n";
+    }
+    // Write to variable
+    for (int j = 0; j < 11; j++)
+      tactile_offset_palm[j] = state->tactile_pressures_[palm_tactile_base_idx + j];
+
+    // Write to file
+    tactile_file << "tactile_offset_palm: ["
+                          << state->tactile_pressures_[palm_tactile_base_idx + 0]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 1]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 2]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 3]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 4]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 5]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 6]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 7]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 8]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 9]<< ", "
+                          << state->tactile_pressures_[palm_tactile_base_idx + 10] << "]\n";
+
+    aqcuire_tactile = false;
+    tactile_file.close();
+  }
+
+  if (aqcuire_fingers)
+  {
+    // Open the parameter file and capture the current encoder position
+    if (first_capture)
+    {
+      finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
+      ROS_INFO("Capturing starter encoder positions");
+      // Write to variable
+      for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
+        enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
+
+      // Write to file
+      finger_file << "# Calbration constants for joints [f1, f2, f3, preshape]\n";
+      finger_file << "encoder_zero_reference: ["
+                            << enc_zero[0] << ", "
+                            << enc_zero[1] << ", "
+                            << enc_zero[2] << "]\n";
+      first_capture = false;
+    }
+
+    // Check whether the fingers have moved and set the next movement if they haven't
+    uint16_t increase[] = {10, 10, 10, 0};
+    last_capture = true;
+    for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
+    {
+      if (abs(enc_zero[i] - state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE) > 0.1)
+        increase[i] = 0;
+      else
+        last_capture = false;
+    }
+
+    // Move the fingers in
+    ROS_INFO("Stepping the fingers inwards:\t%d\t%d\t%d\t%d", increase[0], increase[1], increase[2], increase[3]);
+    reflex_hand::RawServoPositions servo_pos;
+    for (int i=0; i<4; i++)
+      servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_inversion[i]*increase[i];
+    raw_pub.publish(servo_pos);
+
+    // If all fingers have moved, capture their position and write it to file
+    if (last_capture)
+    {
+      ROS_INFO("Finger movement detected, zeroing motors");
+      // Write to variable
+      for (int i = 0; i<4; i++)
+        dyn_zero[i] = state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+      // Write to file
+      finger_file << "motor_zero_reference: ["
+                            << state->dynamixel_angles_[0] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[0] << ", "
+                            << state->dynamixel_angles_[1] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[1] << ", "
+                            << state->dynamixel_angles_[2] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[2] << ", "
+                            << state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3] << "]\n";
+      aqcuire_fingers = false;
+      finger_file.close();
+    }
+  }
+
+  // These commented print statement can be saved for debugging  
   // ROS_INFO("rx time: %d", state->systime_us_);
   // ROS_INFO("encoders: %6u %6u %6u", 
   //          state->encoders_[0],
@@ -145,11 +301,11 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   //          state->dynamixel_error_states_[1],
   //          state->dynamixel_error_states_[2],
   //          state->dynamixel_error_states_[3]);
-    // ROS_INFO("dynamixel angles: %6u %6u %6u %6u",
-    //          state->dynamixel_angles_[0],
-    //          state->dynamixel_angles_[1],
-    //          state->dynamixel_angles_[2],
-    //          state->dynamixel_angles_[3]);
+  //   ROS_INFO("dynamixel angles: %6u %6u %6u %6u",
+  //            state->dynamixel_angles_[0],
+  //            state->dynamixel_angles_[1],
+  //            state->dynamixel_angles_[2],
+  //            state->dynamixel_angles_[3]);
   // ROS_INFO("dynamixel speeds: %6u %6u %6u %6u",
   //          state->dynamixel_speeds_[0],
   //          state->dynamixel_speeds_[1],
@@ -171,160 +327,12 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   //          state->dynamixel_temperatures_[2],
   //          state->dynamixel_temperatures_[3]);
 
-
-  // Sets and publishes the reflex_msgs/Hand message
-  reflex_msgs::Hand hand_msg;
-  int pressure_offset;
-  // The dynamixel for Finger 1 has index 0, Finger 2 has index 1, Finger 3 has index 3
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-  {
-    const int tactile_base_idx = i * 9;
-    hand_msg.finger[i].proximal = ((state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE) - enc_zero[i]);
-// TODO: take this out when the motor order is switched
-    // if (i == 2)
-    //   hand_msg.finger[i].spool = motor_inversion[i]*((state->dynamixel_angles_[i+1] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
-    // ENC_SCALE
-    hand_msg.finger[i].spool = motor_inversion[i]*((state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
-    hand_msg.finger[i].distal = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
-
-    for (int j=0; j < 9; j++)
-    {
-      // This if statement is really messy, but I couldn't find a way to read the pressure
-      // offset values in as a 3D vector. Probably possible, skipped for now
-      if (i == 0)
-        pressure_offset = tactile_offset_f1[j];
-      else if (i == 1)
-        pressure_offset = tactile_offset_f2[j];
-      else
-        pressure_offset = tactile_offset_f3[j];
-      hand_msg.finger[i].pressure[j] = state->tactile_pressures_[tactile_base_idx + j] - pressure_offset;
-      hand_msg.finger[i].contact[j] = false;
-      if (hand_msg.finger[i].pressure[j] > contact_threshold)
-        hand_msg.finger[i].contact[j] = true;
-    }
-  }
-// TODO: Switch this 2 to a 3 when the dynamixel order is corrected
-  // hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[2] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
-  hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
-  const int palm_tactile_base_idx = reflex_hand::ReflexHandState::NUM_FINGERS * 9;
-  for (int i=0; i < 11; i++)
-  {
-      hand_msg.palm.pressure[i] = state->tactile_pressures_[palm_tactile_base_idx + i] - tactile_offset_palm[i];
-      hand_msg.palm.contact[i] = false;
-      if (state->tactile_pressures_[palm_tactile_base_idx + i] > contact_threshold)
-        hand_msg.palm.contact[i] = true;
-  }
-  hand_msg.joints_publishing = true;
-  hand_msg.tactile_publishing = true;
-  
-  hand_pub.publish(hand_msg);
-
-  if (aqcuire_tactile)
-  {
-    tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
-    tactile_file << "# Captured sensor values from unloaded state, used for calibration \n";
-    for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-    {
-      const int tactile_base_idx = i * 9;
-      // Write to variable
-      for (int j = 0; j < 9; j++)
-      {
-        // This if statement is really messy, but I couldn't find a way to read the pressure
-        // offset values in as a 3D vector. Probably possible, skipped for now
-        if (i == 0)
-          tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx + j];
-        else if (i == 1)
-          tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx + j];
-        else
-          tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx + j];
-      }
-
-      // Write to file
-      tactile_file << "tactile_offset_f" << i+1 << ": ["
-                          << state->tactile_pressures_[tactile_base_idx + 0] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 1] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 2] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 3] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 4] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 5] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 6] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 7] << ", "
-                          << state->tactile_pressures_[tactile_base_idx + 8] << "]\n";
-    }
-    for (int j = 0; j < 11; j++)
-      tactile_offset_palm[j] = state->tactile_pressures_[palm_tactile_base_idx + j];
-    tactile_file << "tactile_offset_palm: ["
-                          << state->tactile_pressures_[palm_tactile_base_idx + 0]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 1]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 2]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 3]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 4]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 5]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 6]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 7]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 8]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 9]<< ", "
-                          << state->tactile_pressures_[palm_tactile_base_idx + 10] << "]\n";
-
-    aqcuire_tactile = false;
-    tactile_file.close();
-  }
-  if (aqcuire_fingers)
-  {
-    if (first_capture)
-    {
-      finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
-      ROS_INFO("Capturing starter encoder positions");
-      // Write to variable
-      for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-        enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
-
-      // Write to file
-      finger_file << "# Calbration constants for joints [f1, f2, f3, preshape]\n";
-      finger_file << "encoder_zero_reference: ["
-                            << enc_zero[0] << ", "
-                            << enc_zero[1] << ", "
-                            << enc_zero[2] << "]\n";
-      first_capture = false;
-    }
-
-    uint16_t increase[] = {10, 10, 10, 0};
-    last_capture = true;
-    for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-    {
-      if (abs(enc_zero[i] - state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE) > 0.1)
-        increase[i] = 0;
-      else
-        last_capture = false;
-    }
-
-    ROS_INFO("Stepping the fingers inwards:\t%d\t%d\t%d\t%d", increase[0], increase[1], increase[2], increase[3]);
-    reflex_hand::RawServoPositions servo_pos;
-    for (int i=0; i<4; i++)
-      servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_inversion[i]*increase[i];
-    raw_pub.publish(servo_pos);
-
-    if (last_capture)
-    {
-      ROS_INFO("Finger movement detected, zeroing motors");
-      // Write to variable
-      for (int i = 0; i<4; i++)
-        dyn_zero[i] = state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
-      // Write to file
-      finger_file << "motor_zero_reference: ["
-                            << state->dynamixel_angles_[0] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[0] << ", "
-                            << state->dynamixel_angles_[1] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[1] << ", "
-                            << state->dynamixel_angles_[2] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[2] << ", "
-                            << state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3] << "]\n";
-      aqcuire_fingers = false;
-      finger_file.close();
-    }
-  }
-
   return;
 }
 
 
+// Sets the procedure to calibrate the tactile values in motion
+// Actual capturing is done in reflex_hand_state_cb
 bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
   aqcuire_tactile = true;
@@ -334,6 +342,8 @@ bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 }
 
 
+// Sets the procedure to calibrate the fingers in motion
+// Actual capturing is done in reflex_hand_state_cb
 bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
   aqcuire_fingers = true;
@@ -351,18 +361,20 @@ bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 
 int main(int argc, char **argv)
 {
+  // Initialize ROS node 
   ros::init(argc, argv, "reflex_hand_driver");
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
+
+  // Advertising necessary topics
   hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_hand", 10);
   ROS_INFO("Advertising the /reflex_hand topic");
-  raw_pub = nh.advertise<reflex_hand::RawServoPositions>("set_reflex_raw", 1);
+  raw_pub = nh.advertise<reflex_hand::RawServoPositions>("/set_reflex_raw", 1);
 
+  // Intializes the reflex_hand object
   string network_interface;
-  nh_private.param<string>("network_interface", 
-                                network_interface, "eth0");
-  ROS_INFO("starting reflex_hand_driver on network interface %s", 
-           network_interface.c_str());
+  nh_private.param<string>("network_interface", network_interface, "eth0");
+  ROS_INFO("starting reflex_hand_driver on network interface %s", network_interface.c_str());
   reflex_hand::ReflexHand rh(network_interface);
   if (!rh.happy())
   {
@@ -374,8 +386,13 @@ int main(int argc, char **argv)
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
   
-  ros::Subscriber raw_positions_sub = nh.subscribe<reflex_hand::RawServoPositions>("set_reflex_raw", 1, boost::bind(set_raw_positions_cb, &rh, _1));
-  ros::Subscriber radian_positions_sub = nh.subscribe<reflex_hand::RadianServoPositions>("set_reflex_hand", 1, boost::bind(set_radian_positions_cb, &rh, _1));
+  // Subscribing to the hand command topics
+  ros::Subscriber raw_positions_sub = nh.subscribe<reflex_hand::RawServoPositions>("set_reflex_raw",
+                    1, boost::bind(set_raw_positions_cb, &rh, _1));
+  ros::Subscriber radian_positions_sub = nh.subscribe<reflex_hand::RadianServoPositions>("set_reflex_hand",
+                    1, boost::bind(set_radian_positions_cb, &rh, _1));
+  
+  // Initializing the /zero_tactile and /zero_finger services
   string buffer;
   nh.getParam("yaml_dir", buffer);
   tactile_file_address = buffer + "/tactile_calibrate.yaml";

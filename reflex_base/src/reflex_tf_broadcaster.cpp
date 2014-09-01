@@ -1,3 +1,12 @@
+/* ##########################################################
+# 
+# This subscribres to the /reflex_hand topic and uses the joint
+# angles found there to publish the hand tf transforms
+# 
+# Eric Schneider
+# 
+########################################################## */
+
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <reflex_msgs/Hand.h>
@@ -67,8 +76,6 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
       distal_sensor_tf[i][j].setRotation( tf::Quaternion(rotation_param[j], 0.0, 0.0) );
     }
   }
-
-
 
   // Broadcast the transforms
   br.sendTransform(tf::StampedTransform(base_link_tf, ros::Time::now(), "base_link", "Base_Link"));

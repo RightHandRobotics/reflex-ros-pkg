@@ -1,6 +1,4 @@
 default: gccarm.installed openocd
-	sudo apt-get install automake
-	sudo apt-get install texinfo
 
 # potentially this could be smarter if it detects the OS/distro or whatever.
 dfu:
@@ -16,4 +14,6 @@ openocd-source:
 	git clone git://git.code.sf.net/p/openocd/code openocd-source
 
 openocd: openocd-source
+	sudo apt-get install automake
+	sudo apt-get install texinfo
 	cd openocd-source && ./bootstrap && ./configure --prefix=$(shell pwd)/openocd --enable-ftdi && make && make install

@@ -188,7 +188,6 @@ class ReFlex(object):
 			self.cmd_spool_old[i] = deepcopy(self.cmd_spool[i])
 
 		if sum(cmd_change):
-# Get rid of min-max when publisghing is fixed
 			pos_list = [self.cmd_spool[0], self.cmd_spool[1], self.cmd_spool[2], min(max(self.hand.palm.preshape, self.PRESHAPE_MIN), self.PRESHAPE_MAX)]
 			self.actuator_pub.publish(RadianServoPositions(pos_list))
 

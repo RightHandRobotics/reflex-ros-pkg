@@ -189,45 +189,6 @@ class ReFlex_Smarts(ReFlex):
 
 
 
-
-
-# --------------------------------------------------------------------------------------------------------------------------------
-# I don't know what these are or if they're still desired - Eric
-
-	def register_alignment_z(self):
-		diff = self.proximal_joints[0] - self.proximal_joints[1]
-		i = (diff < 0) + 1
-		tooltip = unpack_point(self.kinematics['f%i_distal_tactile_3'%i])
-		axis = unpack_point(self.kinematics['f%i_proximal_tangent'%i])
-		
-		direction = -np.sign(diff)
-		if abs(diff) < 0.04:
-			direction = 0
-		
-		#self.sign_z = np.sign(self.proximal_joints[0] - self.proximal_joints[1])
-		#self.sign_y = np.sign(0.5*(self.proximal_joints[0] + self.proximal_joints[1]) - self.proximal_joints[2])
-		return tooltip, axis, direction
-	
-	def aligned_zaxis(self):
-		#print self.proximal_joints[0] - self.proximal_joints[1]
-		return abs(self.proximal_joints[0] - self.proximal_joints[1]) < 0.05
-	
-	def register_alignment_y(self):
-		self.sign_y = np.sign( 0.5*(self.proximal_joints[0] + self.proximal_joints[1]) - self.proximal_joints[2])
-		return -np.sign( 0.5*(self.proximal_joints[0] + self.proximal_joints[1]) - self.proximal_joints[2])
-
-	def aligned_yaxis(self):
-		return self.sign_y == -1 * np.sign(0.5*(self.proximal_joints[0] + self.proximal_joints[1]) - self.proximal_joints[2])
-	
-def unpack_point(point):
-	return [point.x, point.y, point.z]
-
-# --------------------------------------------------------------------------------------------------------------------------------
-
-
-
-
-
 if __name__ == '__main__':
 	rospy.init_node('ReflexServiceNode')
 	reflex_hand = ReFlex_Smarts()
