@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "pin.h"
 #include "state.h"
+#include "systime.h"
 
 /////////////////////////////////////////////////////////////////////
 // encoder daisy-chain setup
@@ -16,6 +17,8 @@
 #define PORTE_ENC_SCLK 12
 #define PORTE_ENC_MISO 13
 #define PORTE_ENC_MOSI 14
+
+enc_async_poll_state_t enc_poll_state = { EPS_DONE };
 
 void enc_init()
 {
@@ -63,5 +66,52 @@ void enc_poll()
          g_state.encoders[1],
          g_state.encoders[2]);
   */
+}
+
+static uint32_t enc_poll_state_start_time_us = 0;
+static uint_fast8_t enc_poll_state_word_idx = 0;
+
+void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
+{
+  switch(enc_poll_state)
+  {
+    case EPS_DONE: // this is the start state
+      GPIOE->BSRRH = 1 << PORTE_ENC_CS; // assert (pull down) CS
+      enc_poll_state_start_time_us = SYSTIME;
+      enc_poll_state = EPS_CS_ASSERTED;
+      break;
+    case EPS_CS_ASSERTED:
+      if (SYSTIME - enc_poll_state_start_time_us > 2)
+      {
+        SPI4->DR; // clear the rx data register in case it has some garbage
+        enc_poll_state_word_idx = 0;
+        SPI4->DR = 0xffff; 
+        enc_poll_state = EPS_SPI_TXRX;
+      }
+      break;
+    case EPS_SPI_TXRX:
+      if ((SPI4->SR & SPI_SR_TXE) && (SPI4->SR & SPI_SR_RXNE))
+      {
+        g_state.encoders[enc_poll_state_word_idx++] = SPI4->DR & 0x3fff;
+        if (enc_poll_state_word_idx >= NUM_ENC)
+        {
+          enc_poll_state = EPS_SPI_TXRX_DONE;
+          enc_poll_state_start_time_us = SYSTIME;
+        }
+        else
+          SPI4->DR = 0xffff; 
+      }
+      break;
+    case EPS_SPI_TXRX_DONE:
+      if (SYSTIME - enc_poll_state_start_time_us > 2)
+      {
+        GPIOE->BSRRL = 1 << PORTE_ENC_CS; // de-assert (pull up) CS
+        enc_poll_state = EPS_DONE;
+      }
+      break;
+    default:
+      enc_poll_state = EPS_DONE; // shouldn't get here
+      break;
+  }
 }
 

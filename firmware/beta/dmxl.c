@@ -48,6 +48,9 @@ static volatile uint16_t g_dmxl_ring_rpos[NUM_DMXL] = {0};
 static volatile uint16_t g_dmxl_ring_wpos[NUM_DMXL] = {0};
 static volatile uint8_t  g_dmxl_rx_pkt[NUM_DMXL][256];
 
+dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL] = 
+  { DPS_DONE, DPS_DONE, DPS_DONE, DPS_DONE };
+
 // put in ramfunc sector ?
 static inline void dmxl_push_byte(const uint8_t dmxl_port, const uint8_t byte) 
 {
@@ -211,95 +214,99 @@ static void dmxl_read_data(const uint8_t port_idx, const uint8_t dmxl_id,
   dmxl_tx(port_idx, pkt, 5);
 }
 
-void dmxl_process_rings()
+void dmxl_process_ring(const uint_fast8_t dmxl_id)
 {
-  for (int i = 0; i < NUM_DMXL; i++)
+  const uint_fast8_t i = dmxl_id; // save typing...
+  while (g_dmxl_ring_rpos[i] != g_dmxl_ring_wpos[i])
   {
-    while (g_dmxl_ring_rpos[i] != g_dmxl_ring_wpos[i])
+    const uint8_t b = g_dmxl_ring[i][g_dmxl_ring_rpos[i]];
+    //printf("dmxl %d received 0x%02x\r\n", i, b);
+    if (++g_dmxl_ring_rpos[i] >= DMXL_RING_LEN)
+      g_dmxl_ring_rpos[i] = 0; // wrap around
+    dmxl_port_t *port = &g_dmxl_ports[i]; // save typing
+    switch (port->parser_state)
     {
-      const uint8_t b = g_dmxl_ring[i][g_dmxl_ring_rpos[i]];
-      //printf("dmxl %d received 0x%02x\r\n", i, b);
-      if (++g_dmxl_ring_rpos[i] >= DMXL_RING_LEN)
-        g_dmxl_ring_rpos[i] = 0; // wrap around
-      dmxl_port_t *port = &g_dmxl_ports[i]; // save typing
-      switch (port->parser_state)
-      {
-        case DMXL_PS_PREAMBLE_0:
-          if (b == 0xff)
-            port->parser_state = DMXL_PS_PREAMBLE_1;
-          break;
-        case DMXL_PS_PREAMBLE_1:
-          if (b == 0xff)
-            port->parser_state = DMXL_PS_ID;
-          else
-            port->parser_state = DMXL_PS_PREAMBLE_0;
-          break;
-        case DMXL_PS_ID:
-          port->rx_checksum = b;
-          port->parser_state = DMXL_PS_LENGTH; // ignore ID (all the same)
-          break;
-        case DMXL_PS_LENGTH:
-          port->rx_pkt_len = b - 2;
-          port->rx_checksum += b;
-          port->parser_state = DMXL_PS_ERROR;
-          break;
-        case DMXL_PS_ERROR:
-          g_state.dynamixel_error_status[i] = b; // save for global state
-          port->rx_checksum += b;
-          port->rx_pkt_writepos = 0;
-          if (port->rx_pkt_len)
-            port->parser_state = DMXL_PS_PARAMETER;
-          else
-            port->parser_state = DMXL_PS_CHECKSUM;
-          break;
-        case DMXL_PS_PARAMETER:
-          port->rx_checksum += b;
-          g_dmxl_rx_pkt[i][port->rx_pkt_writepos] = b;
-          if (port->rx_pkt_writepos == port->rx_pkt_len - 1)
-            port->parser_state = DMXL_PS_CHECKSUM;
-          port->rx_pkt_writepos++;
-          break;
-        case DMXL_PS_CHECKSUM:
-          if (((uint8_t)(~port->rx_checksum)) == b)
+      case DMXL_PS_PREAMBLE_0:
+        if (b == 0xff)
+          port->parser_state = DMXL_PS_PREAMBLE_1;
+        break;
+      case DMXL_PS_PREAMBLE_1:
+        if (b == 0xff)
+          port->parser_state = DMXL_PS_ID;
+        else
+          port->parser_state = DMXL_PS_PREAMBLE_0;
+        break;
+      case DMXL_PS_ID:
+        port->rx_checksum = b;
+        port->parser_state = DMXL_PS_LENGTH; // ignore ID (all the same)
+        break;
+      case DMXL_PS_LENGTH:
+        port->rx_pkt_len = b - 2;
+        port->rx_checksum += b;
+        port->parser_state = DMXL_PS_ERROR;
+        break;
+      case DMXL_PS_ERROR:
+        g_state.dynamixel_error_status[i] = b; // save for global state
+        port->rx_checksum += b;
+        port->rx_pkt_writepos = 0;
+        if (port->rx_pkt_len)
+          port->parser_state = DMXL_PS_PARAMETER;
+        else
+          port->parser_state = DMXL_PS_CHECKSUM;
+        break;
+      case DMXL_PS_PARAMETER:
+        port->rx_checksum += b;
+        g_dmxl_rx_pkt[i][port->rx_pkt_writepos] = b;
+        if (port->rx_pkt_writepos == port->rx_pkt_len - 1)
+          port->parser_state = DMXL_PS_CHECKSUM;
+        port->rx_pkt_writepos++;
+        break;
+      case DMXL_PS_CHECKSUM:
+        if (((uint8_t)(~port->rx_checksum)) == b)
+        {
+          /*
+             printf("checksum passed. received %d bytes\r\n", port->rx_pkt_len);
+             for (int j = 0; j < port->rx_pkt_len; j++)
+             printf("  0x%02x\r\n", g_dmxl_rx_pkt[i][j]);
+           */
+          switch (port->comms_state)
           {
-            /*
-            printf("checksum passed. received %d bytes\r\n", port->rx_pkt_len);
-            for (int j = 0; j < port->rx_pkt_len; j++)
-              printf("  0x%02x\r\n", g_dmxl_rx_pkt[i][j]);
-            */
-            switch (port->comms_state)
-            {
-              case DMXL_CS_POLL_STATE:
-                g_state.dynamixel_angles[i] = 
-                  (((uint16_t)g_dmxl_rx_pkt[i][1]) << 8) |
-                  (((uint16_t)g_dmxl_rx_pkt[i][0])     ) ;
-                //printf("dmxl %d angle = %d\r\n", (int)i, (int)g_state.dynamixel_angles[i]);
-                g_state.dynamixel_speeds[i] =
-                  (((uint16_t)g_dmxl_rx_pkt[i][3]) << 8) |
-                  (((uint16_t)g_dmxl_rx_pkt[i][2])     ) ;
-                g_state.dynamixel_loads[i] =
-                  (((uint16_t)g_dmxl_rx_pkt[i][5]) << 8) |
-                  (((uint16_t)g_dmxl_rx_pkt[i][4])     ) ;
-                g_state.dynamixel_voltages[i]     = g_dmxl_rx_pkt[i][6];
-                g_state.dynamixel_temperatures[i] = g_dmxl_rx_pkt[i][7];
-                break;
-              default:
-                break;
-            }
+            case DMXL_CS_POLL_STATE:
+              g_state.dynamixel_angles[i] = 
+                (((uint16_t)g_dmxl_rx_pkt[i][1]) << 8) |
+                (((uint16_t)g_dmxl_rx_pkt[i][0])     ) ;
+              //printf("dmxl %d angle = %d\r\n", (int)i, (int)g_state.dynamixel_angles[i]);
+              g_state.dynamixel_speeds[i] =
+                (((uint16_t)g_dmxl_rx_pkt[i][3]) << 8) |
+                (((uint16_t)g_dmxl_rx_pkt[i][2])     ) ;
+              g_state.dynamixel_loads[i] =
+                (((uint16_t)g_dmxl_rx_pkt[i][5]) << 8) |
+                (((uint16_t)g_dmxl_rx_pkt[i][4])     ) ;
+              g_state.dynamixel_voltages[i]     = g_dmxl_rx_pkt[i][6];
+              g_state.dynamixel_temperatures[i] = g_dmxl_rx_pkt[i][7];
+              break;
+            default:
+              break;
           }
-          else
-            printf("checksum failed: local 0x%02x != received 0x%02x\r\n",
-                   (uint8_t)~port->rx_checksum, b);
-          port->parser_state = DMXL_PS_PREAMBLE_0;
-          port->comms_state = DMXL_CS_IDLE;
-          break;
-        default:
-          printf("woah there partner. unexpected dmxl rx state!\r\n");
-          port->parser_state = DMXL_PS_PREAMBLE_0;
-          break;
-      }
+        }
+        else
+          printf("checksum failed: local 0x%02x != received 0x%02x\r\n",
+              (uint8_t)~port->rx_checksum, b);
+        port->parser_state = DMXL_PS_PREAMBLE_0;
+        port->comms_state = DMXL_CS_IDLE;
+        break;
+      default:
+        printf("woah there partner. unexpected dmxl rx state!\r\n");
+        port->parser_state = DMXL_PS_PREAMBLE_0;
+        break;
     }
   }
+}
+
+void dmxl_process_rings()
+{
+  for (uint_fast8_t i = 0; i < NUM_DMXL; i++)
+    dmxl_process_ring(i);
 }
 
 void dmxl_set_led(const uint8_t port_idx, const uint8_t dmxl_id,
@@ -399,5 +406,69 @@ void dmxl_poll()
   // set the comms state to "idle" even if we didn't hear back from it by now
   for (uint_fast8_t i = 0; i < NUM_DMXL; i++)
     g_dmxl_ports[i].comms_state = DMXL_CS_IDLE;
+}
+
+void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port)
+{
+  if (dmxl_port >= NUM_DMXL)
+    return; // let's not corrupt memory.
+  dmxl_async_poll_state_t *ps = &dmxl_poll_states[dmxl_port]; // save typing
+  dmxl_port_t *dp = &g_dmxl_ports[dmxl_port];
+  USART_TypeDef *u = dp->uart;
+  static uint8_t dmxl_txbuf[NUM_DMXL][256];
+  static uint8_t dmxl_txbuf_readpos[NUM_DMXL] = {0};
+  static uint32_t dmxl_rx_start_time[NUM_DMXL] = {0};
+  switch (*ps)
+  {
+    case DPS_DONE: // poll start
+      {
+        u->CR1 &= ~USART_CR1_RE; // disable the receiver during transmit
+        u->CR1 |=  USART_CR1_TE; // enable the transmitter
+        dmxl_txbuf[dmxl_port][0] = 0xff; // header
+        dmxl_txbuf[dmxl_port][1] = 0xff; // more header
+        dmxl_txbuf[dmxl_port][2] = DMXL_DEFAULT_ID;
+        dmxl_txbuf[dmxl_port][3] = 4;  // packet length = 4
+        dmxl_txbuf[dmxl_port][4] = 2;  // instruction: "read data"
+        dmxl_txbuf[dmxl_port][5] = 36; // start address
+        dmxl_txbuf[dmxl_port][6] = 8;  // number of bytes to read
+        uint8_t csum = 0;
+        for (int i = 2; i < 7; i++)
+          csum += dmxl_txbuf[dmxl_port][i];
+        dmxl_txbuf[dmxl_port][7] = ~csum; 
+        u->DR; // read any garbage on the RX register
+        u->DR = dmxl_txbuf[dmxl_port][0]; // kick it off
+        dmxl_txbuf_readpos[dmxl_port] = 0;
+        *ps = DPS_POLL_TX;
+      }
+      break;
+    case DPS_POLL_TX:
+      if (u->SR & USART_SR_TXE) // is there room in the TX buffer ?
+      {
+        if (dmxl_txbuf_readpos[dmxl_port] < 7)
+        {
+          dmxl_txbuf_readpos[dmxl_port]++;
+          u->DR = dmxl_txbuf[dmxl_port][dmxl_txbuf_readpos[dmxl_port]];
+        }
+        else if (u->SR & USART_SR_TC) // last byte must fully complete
+        {
+          u->CR1 &= ~USART_CR1_TE; // disable the transmitter
+          u->CR1 |=  USART_CR1_RE; // re-enable the transmitter
+          dmxl_rx_start_time[dmxl_port] = SYSTIME;
+          g_dmxl_ports[dmxl_port].comms_state = DMXL_CS_POLL_STATE;
+          *ps = DPS_POLL_RX;
+        }
+      }
+      break;
+    case DPS_POLL_RX:
+      dmxl_process_ring(dmxl_port);
+      if (g_dmxl_ports[dmxl_port].comms_state != DMXL_CS_POLL_STATE)
+        *ps = DPS_DONE; // hooray, we received a full state message
+      if (SYSTIME - dmxl_rx_start_time[dmxl_port] > 10000) // wait at most 10ms
+        *ps = DPS_DONE; // time to give up. gotta know when to fold em
+      break;
+    default:
+      *ps = DPS_DONE; // shouldn't get here
+      break;
+  }
 }
 

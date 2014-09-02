@@ -9,7 +9,7 @@ TC=arm-none-eabi-
 CC=$(TC)gcc
 
 SRCS=startup.c main.c leds.c console.c stubs.c enet.c systime.c dmxl.c fan.c \
-     tactile.c pin.c enc.c state.c
+     tactile.c pin.c enc.c state.c async_poll.c
 OBJS=$(SRCS:%.c=$(BINDIR)/%.o)
 
 default: $(BINDIR) $(OUT).bin

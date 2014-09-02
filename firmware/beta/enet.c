@@ -378,7 +378,7 @@ typedef struct
 
 static uint8_t  g_eth_udpbuf[1500] __attribute__((aligned(8))) = {0};
 static uint8_t  g_eth_src_mac[6] = { 0xa4, 0xf3, 0xc1, 0x00, 0x01, 0x00 };
-static uint32_t g_eth_src_ip = 0x0a42ab99; // todo... not this.
+static uint32_t g_eth_src_ip = 0x0a636363; // todo... not this.
 
 void enet_send_udp_mcast(const uint32_t mcast_ip, const uint16_t mcast_port,
                          const uint8_t *payload, const uint16_t payload_len)
@@ -388,7 +388,7 @@ void enet_send_udp_mcast(const uint32_t mcast_ip, const uint16_t mcast_port,
                           (uint8_t)((mcast_ip & 0x00ff00) >>  8),
                           (uint8_t) (mcast_ip & 0x0000ff) };
   enet_send_udp_ucast(dest_mac, mcast_ip, mcast_port,
-                      0x0a0a0002 /*mcast_ip*/, mcast_port,
+                      g_eth_src_ip, mcast_port,
                       payload, payload_len);
 }
 

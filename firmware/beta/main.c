@@ -8,6 +8,7 @@
 #include "tactile.h"
 #include "enc.h"
 #include "state.h"
+#include "async_poll.h"
 
 //#define PRINT_TACTILE_TIMING
 
@@ -24,41 +25,47 @@ int main()
   tactile_init();
   enc_init();
   state_init();
+  async_poll_init();
   printf("init complete; entering main loop.\r\n");
-  __enable_irq();
-  /*
-  dmxl_set_torque_enable(1, 2, 1);
-  */
-  //printf("entering main loop\r\n");
   fan_on(); // todo: be smarter. probably doesn't need to run all the time.
+  __enable_irq();
+
+  volatile uint32_t prev_start_time = SYSTIME;
+  #define POLL_PERIOD_US 100000
+
   for (uint_fast32_t loop_count = 1; ; loop_count++)
   {
-    //if (loop_count % 2000000 == 0)
+    if (SYSTIME - prev_start_time >= POLL_PERIOD_US)
     {
+      //printf("%lu starting async poll\r\n", SYSTIME);
+      prev_start_time += POLL_PERIOD_US;
       g_state.systime = SYSTIME;
       leds_toggle(0);
       leds_toggle(1);
-#ifdef PRINT_TACTILE_TIMING
-      volatile uint32_t t_start = SYSTIME;
-#endif
-      tactile_poll();
-#ifdef PRINT_TACTILE_TIMING
-      volatile uint32_t tactile_dt = SYSTIME - t_start;
-      t_start = SYSTIME;
-#endif
-      enc_poll();
-#ifdef PRINT_TACTILE_TIMING
-      volatile uint32_t enc_dt = SYSTIME - t_start;
-      printf("tactile_dt: %u  enc_dt: %u\r\n", 
-             (unsigned)tactile_dt, (unsigned)enc_dt);
-#endif
-      dmxl_poll();
-      enet_link_status_t link_status = enet_get_link_status();
-      if (link_status == ENET_LINK_UP)
-        enet_send_state();
+      async_poll_start();
     }
-    enet_process_rx_ring();
-    dmxl_process_rings();
+    const async_poll_tick_result_t aptr = async_poll_tick();
+    if (aptr == APT_JUST_FINISHED)
+    {
+      volatile uint32_t t1 = SYSTIME - prev_start_time;
+      // now do the super slow tactile bridges...
+
+      // synchronous (slow!) poll for the SPI tactile ports now
+      tactile_poll(2);
+      tactile_poll(3);
+      volatile uint32_t t2 = SYSTIME - prev_start_time - t1;
+      printf("%lu async: %lu sync: %lu \r\n", SYSTIME, t1, t2);
+
+      if (enet_get_link_status() == ENET_LINK_UP)
+        enet_send_state();
+      enet_process_rx_ring(); // deal with inbound messages
+    }
+    /*
+    if (loop_count % 100000 == 0)
+    {
+      printf("%lu aptr = %d\n", SYSTIME, aptr);
+    }
+    */
   }
   return 0;
 }

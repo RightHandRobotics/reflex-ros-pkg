@@ -2,6 +2,7 @@
 #define DMXL_H
 
 #include <stdint.h>
+#include "async_poll.h"
 
 #define NUM_DMXL 4
 #define DMXL_DEFAULT_ID 1
@@ -15,6 +16,7 @@ typedef enum
 
 void dmxl_init();
 void dmxl_process_rings();
+void dmxl_process_ring(const uint_fast8_t dmxl_id);
 uint8_t dmxl_ping(const uint8_t port_idx, const uint8_t dmxl_id);
 
 void dmxl_set_torque_enable(const uint8_t port_idx, const uint8_t dmxl_id,
@@ -30,5 +32,14 @@ void dmxl_set_control_mode(const uint8_t port_idx,
 void dmxl_set_control_target(const uint8_t port_idx, 
                              const uint16_t target);
 void dmxl_poll();
+void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port);
+
+typedef enum 
+{ 
+  DPS_POLL_TX,
+  DPS_POLL_RX,
+  DPS_DONE = ASYNC_POLL_DONE
+} dmxl_async_poll_state_t;
+extern dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL];
 
 #endif 
