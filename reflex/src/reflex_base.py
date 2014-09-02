@@ -35,7 +35,7 @@ from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 #	loose
 
 # methods to preshape
-#	etc
+#	None - done in move_preshape, not control_loop
 
 # methods that provide feedback about the state of the hand:
 #	hand_in_contact()
@@ -43,7 +43,7 @@ from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 #	finger_in_fullcontact(fingerID)
 
 # methods to control the full hand
-#	etc etc
+#	None
 
 HISTORY_LENGTH = 50; # how many snapshots of old data to keep for checking motor stall, etc
 
@@ -52,7 +52,7 @@ class ReFlex(object):
 		super(ReFlex, self).__init__()
 
 		# basic commands
-		self.FINGER_COMMANDS = ['goto', 'guarded_move', 'solid_contact', 'avoid_contact', 'maintain_contact', 'dither', 'hold', 'loose']
+		self.BASE_FINGER_COMMANDS = ['goto', 'guarded_move', 'solid_contact', 'avoid_contact', 'maintain_contact', 'dither', 'hold', 'loose']
 		self.FINGER_MAP = {'f1':0,'f2':1,'f3':2}
 
 		# motion parameters
@@ -268,39 +268,54 @@ class ReFlex(object):
 			self.working[i] = False
 			self.control_mode[i] = 'loose'
 		else:
-			rospy.loginfo("reflex_base:__command_base_finger: received an unknown finger command: %s", mode)
+			rospy.logwarn("reflex_base:__command_base_finger: received an unknown finger command: %s", mode)
+
 
 	def command_base(self, speed, *args):
 		# 1 arg = hand command
 		# 3 arg = finger commands
 		# 2, 4, 6 arg = [finger, mode, (finger, mode, (finger, mode))]
 		
+		flag = False
 		if len(args) == 1:
-			self.__command_base_finger('f1', args[0])
+			self.__command_base_finger('f1', args[0]) 
 			self.__command_base_finger('f2', args[0])
 			self.__command_base_finger('f3', args[0])
 			self.servo_speed = [speed, speed, speed]
+
+			if args[0] not in self.BASE_FINGER_COMMANDS:
+				flag = True
+
 		elif len(args) == 3:
 			self.__command_base_finger('f1', args[0])
 			self.__command_base_finger('f2', args[1])
 			self.__command_base_finger('f3', args[2])
 			self.servo_speed = [speed, speed, speed]
+
+			for i in range(3):
+				if args[i] not in self.BASE_FINGER_COMMANDS:
+					flag = True
+
 		elif len(args) in [2,4,6]:
 			fingers = [args[2*j] for j in range(len(args)/2)]
 			modes = [args[2*(j+1)-1] for j in range(len(args)/2)]
-
 			for j in range(len(fingers)):
 				self.__command_base_finger(fingers[j], modes[j])
 				self.servo_speed[j] = speed
+
+			for mode in modes:
+				if mode not in self.BASE_FINGER_COMMANDS:
+					flag = True
 		else:
 			rospy.loginfo("reflex_base:command_base: did not recognize the input, was given %s", args)
+			flag = True
 		
 		rospy.loginfo("reflex_base:command_base: commanded the fingers, self.working = %s, self.control_mode: %s"\
 						, str(self.working), str(self.control_mode))
 
 		while any(self.working) and not rospy.is_shutdown():
 			rospy.sleep(0.01)
-		return
+		return flag
 
 	# Are any of the sensors (finger or palm) in contact?
 	def hand_in_contact(self):

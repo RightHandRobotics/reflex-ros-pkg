@@ -33,11 +33,15 @@ class CommandHandService:
 			rospy.loginfo("reflex_base:CommandHandService: The requested action %s is about to run", req.action)
 			start_time = rospy.Time.now()
 			# self.obj.command_base(req.speed, *req.action.split(' '))
-			self.obj.command_base(1.0, *req.action.split(' '))
+			flag = self.obj.command_base(1.0, *req.action.split(' '))
 			end_time = rospy.Time.now()
 			self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
-			return (1, end_time-start_time)
+			if flag:
+				parse_response = "ERROR: Given command was unknown"
+			else:
+				parse_response = "Command parsed"
+			return (parse_response, 1, end_time-start_time)
 
 class MoveFingerService:
 	def __init__(self, obj):
@@ -90,6 +94,7 @@ class StatusDumpService:
 self.working: %s\nself.control_mode: %s\nself.cmd_spool: %s\nself.hand: %s"\
 						, str(self.obj.working), str(self.obj.control_mode), str(self.obj.cmd_spool), str(self.obj.hand))
 		self.obj.get_subscriptions();
+		return []
 
 class KillService:
 	def __init__(self, obj):
@@ -98,6 +103,7 @@ class KillService:
 		rospy.loginfo("reflex_base:KillService: Setting all fingers to working = False and commanding 'hold'")
 		self.obj.working = [False, False, False]
 		self.obj.command_base(1.0, 'hold')
+		return []
 
 class CommandSmartService:
 	def __init__(self, obj):
@@ -114,8 +120,12 @@ class CommandSmartService:
 			rospy.loginfo("reflex_base:CommandSmartService: The requested action %s is about to run", req.action)
 			start_time = rospy.Time.now()
 			# self.obj.command_smarts(req.speed, *req.action.split(' '))
-			self.obj.command_smarts(1.0, *req.action.split(' '))
+			flag = self.obj.command_smarts(1.0, *req.action.split(' '))
 			end_time = rospy.Time.now()
 			self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
-			return (1, end_time-start_time)
+			if flag:
+				parse_response = "ERROR: Given command was unknown"
+			else:
+				parse_response = "Command parsed"
+			return (parse_response, 1, end_time-start_time)

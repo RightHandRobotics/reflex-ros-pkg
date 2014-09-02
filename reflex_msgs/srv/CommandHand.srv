@@ -2,5 +2,6 @@
 string action
 # float32 speed
 ---
+string parse_response
 int32 result
 duration elapsed_time

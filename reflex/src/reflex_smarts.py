@@ -24,11 +24,6 @@ from reflex_base_services import *
 # 3 arguments 		= apply to each finger
 # 2,4,6 arguments 	= apply to each (finger, command) pair
 
-# called on per-finger or full-hand basis
-FINGER_COMMANDS = ['open', 'preshape_probe', 'tighten', 'loosen']
-# called only on full-hand basis
-HAND_COMMANDS = ['cylinder', 'spherical', 'pinch', 'fingerwalk', 'align_all', 'dof']
-
 # position parameters
 ROT_CYL = 0.1		# radians rotation 
 ROT_SPH = 1.1		# radians rotation
@@ -42,6 +37,13 @@ HOW_HARDER = 0.4	# radians step size for tightening and loosening
 class ReFlex_Smarts(ReFlex):
 	def __init__(self):
 		super(ReFlex_Smarts, self).__init__()
+
+		# called on per-finger or full-hand basis
+		self.SMART_FINGER_COMMANDS = ['open', 'preshape_probe', 'tighten', 'loosen']
+
+		# called only on full-hand basis
+		self.HAND_COMMANDS = ['cylinder', 'spherical', 'pinch', 'fingerwalk', 'align_all', 'dof']
+
 
 	# Parses modes and turns them into control_modes for control_loop
 	def __command_smart_finger(self, finger, mode):
@@ -59,47 +61,70 @@ class ReFlex_Smarts(ReFlex):
 			self.working[i] = True
 			self.loosen(i, self.SERVO_SPEED_MAX/2.0)
 		else:
-			rospy.loginfo("reflex_smarts:__command_smart_finger: received an unknown finger command: %s", mode)
+			rospy.logwarn("reflex_smarts:__command_smart_finger: received an unknown finger command: %s", mode)
 
 	def command_smarts(self, speed, *args):
 		# 1 arg = hand command
 		# 3 arg = finger commands
 		# 2, 4, 6 arg = [finger, mode, (finger, mode, (finger, mode))]
 
+		flag = False
+
 		if len(args) == 1:
-			if args[0] in HAND_COMMANDS:
+			if args[0] in self.HAND_COMMANDS:
 				if args[0] == 'cylinder': 	self.set_cylindrical(speed)
 				if args[0] == 'spherical': 	self.set_spherical(speed)
 				if args[0] == 'pinch': 		self.set_pinch(speed)
 				if args[0] == 'dof':		self.dof_tour(speed)
 				if args[0] == 'fingerwalk':	self.fingerwalk(speed)
 				if args[0] == 'align_all':	self.align_all(speed)
+			elif args[0] in self.BASE_FINGER_COMMANDS:
+				self._ReFlex__command_base_finger('f1', args[0])
+				self._ReFlex__command_base_finger('f2', args[0])
+				self._ReFlex__command_base_finger('f3', args[0])
+				self.servo_speed = [speed, speed, speed]
 			else:
 				self.__command_smart_finger('f1', args[0])
 				self.__command_smart_finger('f2', args[0])
 				self.__command_smart_finger('f3', args[0])
 				self.servo_speed = [speed, speed, speed]
+				if args[0] not in self.SMART_FINGER_COMMANDS:
+					flag = True
+
 		elif len(args) == 3:
-			self.__command_smart_finger('f1', args[0])
-			self.__command_smart_finger('f2', args[1])
-			self.__command_smart_finger('f3', args[2])
+			for i in range(3):
+				ID = self.FINGER_MAP.keys()[i]
+				if args[i] in self.BASE_FINGER_COMMANDS:
+					self._ReFlex__command_base_finger(ID, args[i])
+				else:
+					self.__command_smart_finger(ID, args[i])
+					if args[i] not in self.SMART_FINGER_COMMANDS:
+						flag = True
+
 			self.servo_speed = [speed, speed, speed]
 		elif len(args) in [2,4,6]:
-			fingers = [args[2*j] for j in range(len(args)/2)]
+			IDs = [args[2*j] for j in range(len(args)/2)]
 			modes = [args[2*(j+1)-1] for j in range(len(args)/2)]
 
 			for j in range(len(fingers)):
-				self.__command_smart_finger(fingers[j], modes[j])
+				if modes[j] in self.BASE_FINGER_COMMANDS:
+					self._ReFlex__command_base_finger(IDs[j], modes[j])
+				else:
+					self.__command_smart_finger(IDs[j], modes[j])
 				self.servo_speed[j] = speed
+			for mode in modes:
+				if mode not in self.BASE_FINGER_COMMANDS or mode not in self.SMART_FINGER_COMMANDS:
+					flag = True
 		else:
 			rospy.loginfo("reflex_smarts:command_smarts: did not recognize the input, was given %s", args)
+			flag = True
 		
 		rospy.loginfo("reflex_smarts:command_smarts: commanded the fingers, self.working = %s, self.control_mode: %s"\
 						 , str(self.working), str(self.control_mode))
 
 		while any(self.working) and not rospy.is_shutdown():
 			rospy.sleep(0.01)
-		return
+		return flag
 
 	def open(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:open: Opening finger %d", finger_index+1)
