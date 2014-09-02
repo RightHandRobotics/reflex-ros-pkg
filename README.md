@@ -29,7 +29,9 @@ The LEDs on the controller board will stay dark, and if you have connected your 
 
 Then, just press and release the RESET button, and the controller will start executing the application flash image. Hooray!
 
+
 YOU'RE DONE. FOR DEBUGGING, KEEP READING:
+===============================================================
 
 The DFU system is really great for programming flash images and is sufficient if you're doing fairly minor tweaks that don't have a lot of side-effects, but if you need to do full-blown debugging, you'll want to use JTAG. The cheapest way to do this is to buy an Olimex ARM-USB-TINY-H JTAG adapter and their ARM-USB-20-10 pinout converter (since the controller board uses the "new" 50-mil ARM JTAG connector standard). Then, you can connect your USB-JTAG adapter to the controller via JTAG. To program it with a JTAG adapter attached:
 
