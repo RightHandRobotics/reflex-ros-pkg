@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('reflex_hand')
+import roslib; roslib.load_manifest('reflex_driver')
 import rospy, sys
 from reflex_msgs.msg import RawServoPositions
 from reflex_msgs.msg import RadianServoPositions
