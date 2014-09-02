@@ -147,12 +147,12 @@ class ReFlex_Smarts(ReFlex):
 	def fingerwalk(self, speed, in_step = 0.6, out_step = 1.0):
 		rospy.loginfo("reflex_smarts:fingerwalk: Starting fingerwalk...")
 		current_state = deepcopy(self.hand)
-		self.latching = True
+		# self.latching = True
 		counter = 0		# fail-safe to prevent overheating motors
 
 		if len(self.hand_hist) > 0:
 			while not any([self.hand_hist[0].palm.contact[i] for i in range(11)])\
-						and not all([self.full_contact(i) for i in range(3)])\
+						and not all([self.finger_full_contact(i) for i in range(3)])\
 							and (counter < floor(1.8/in_step))\
 								and not rospy.is_shutdown():
 				
@@ -174,7 +174,7 @@ class ReFlex_Smarts(ReFlex):
 				counter += 1
 				rospy.loginfo("reflex_smarts:fingerwalk: Have completed %d fingerwalk cycles", counter)
 
-			self.latching = False
+			# self.latching = False
 			return
 		else:
 			rospy.loginfo("reflex_smarts:fingerwalk: There is no Hand data being read, cannot do fingerwalk")

@@ -24,6 +24,29 @@ from reflex_base_services import *
 from reflex_msgs.msg import Hand, Event, RadianServoPositions
 from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 
+# methods to control individual fingers
+#	goto
+#	guarded_move
+#	solid_contact
+#	avoid_contact
+#	maintain_contact
+#	dither
+#	hold
+#	loose
+
+# methods to preshape
+#	etc
+
+# methods that provide feedback about the state of the hand:
+#	hand_in_contact()
+# 	finger_in_contact(fingerID)
+#	finger_in_fullcontact(fingerID)
+
+# methods to control the full hand
+#	etc etc
+
+HISTORY_LENGTH = 50; # how many snapshots of old data to keep for checking motor stall, etc
+
 class ReFlex(object):
 	def __init__(self):
 		super(ReFlex, self).__init__()
@@ -41,7 +64,7 @@ class ReFlex(object):
 		self.PRESHAPE_MIN = 0.0							# max opening (radians)
 		self.PRESHAPE_MAX = 1.6							# max closure (radians)
 
-		# control loop logic parameters
+		# control loop logic parameters for safety checking
 		self.ARRIVAL_ERROR = 0.06						# error at which the control loop considers position control finished
 		self.BLOCKED_ERROR = 0.1 						# if the finger hasn't moved this far in hand_hist steps, it's blocked
 
@@ -76,21 +99,22 @@ class ReFlex(object):
 		rospy.loginfo("Reflex class is initialized\n...running...")
 
 	def __hand_callback(self, msg):
+		"""updates the local cache of the hand state whenever a message arrives from reflex_driver_node"""
 		self.hand = deepcopy(msg)
 		self.hand_hist.append(self.hand)
 
 		# Allow latching
-		if self.latching and len(self.hand_hist) > 1:
-			for i in range(len(self.hand.finger)):
-				for j in range(len(self.hand.finger[i].contact)):
-					if self.hand_hist[-2].finger[i].contact[j]:
-						self.hand_hist[-1].finger[i].contact[j] = True
-			for j in range(len(self.hand.palm.contact)):
-				if self.hand_hist[-2].palm.contact[j]:
-					self.hand_hist[-1].palm.contact[j] = True
+		# if self.latching and len(self.hand_hist) > 1:
+		#	for i in range(len(self.hand.finger)):
+		#		for j in range(len(self.hand.finger[i].contact)):
+		#			if self.hand_hist[-2].finger[i].contact[j]:
+		#				self.hand_hist[-1].finger[i].contact[j] = True
+		#	for j in range(len(self.hand.palm.contact)):
+		#		if self.hand_hist[-2].palm.contact[j]:
+		#			self.hand_hist[-1].palm.contact[j] = True
 
-		# Bounds the hist list to 50 elements
-		while len(self.hand_hist) >= 51:
+		# Bounds the hist list to N elements
+		while len(self.hand_hist) >= HISTORY_LENGTH:
 			self.hand_hist.pop(0)
 
 		self.__control_loop()
@@ -111,8 +135,9 @@ class ReFlex(object):
 					self.working[i] = False
 					self.event_reason[i] = 1
 					# ASK: Is this a reasonable way to tell if something is blocked?
-				elif abs(motor_error) < self.ARRIVAL_ERROR or\
-						abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
+				#elif abs(motor_error) < self.ARRIVAL_ERROR or\
+				#		abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
+				elif abs(motor_error) < self.ARRIVAL_ERROR:
 					self.working[i] = False
 					self.event_reason[i] = 0
 
@@ -131,7 +156,7 @@ class ReFlex(object):
 					
 			elif self.control_mode[i] == 'solid_contact':		# close until both links experience contact
 				if self.hand.tactile_publishing and self.hand.joints_publishing:
-					if self.full_contact(i) or (self.hand.finger[i].spool >= self.TENDON_MAX):
+					if self.finger_full_contact(i) or (self.hand.finger[i].spool >= self.TENDON_MAX):
 						self.working[i] = False
 						self.event_reason = 0
 					elif self.working[i]:
@@ -169,6 +194,7 @@ class ReFlex(object):
 				pass
 
 			elif self.control_mode[i] == 'loose':
+				print 'loose: not yet implemented'
 				# TODO: Find a way to make the Dynamixels go loose and exert no force, make it happen here
 				pass
 
@@ -215,8 +241,6 @@ class ReFlex(object):
 		self.working[finger_index] = True
 		self.cmd_spool[finger_index] = goal_pos
 		self.servo_speed[finger_index] = speed
-		while self.working[finger_index] and not rospy.is_shutdown():
-			rospy.sleep(0.01)
 		return
 
 	# Parses modes and turns them into control_mode for control_loop
@@ -290,14 +314,15 @@ class ReFlex(object):
 
 	# Has the finger made contact?
 	def finger_in_contact(self, finger_index):
-		return sum(self.hand.finger[finger_index].contact) or (self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
+		return sum(self.hand.finger[finger_index].contact) > 0 # or (self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
 
 	# Are both links in contact?
-	def full_contact(self, finger_index):
+	def finger_full_contact(self, finger_index):
 		return sum(self.hand.finger[finger_index].contact[0:5])\
 					and (sum(self.hand.finger[finger_index].contact[5:9])\
 						or self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
-
+	
+	# Is the distal link bent
 	def distal_joint_contact(self, finger_index):
 		spool_level = [self.TENDON_MIN, self.TENDON_MAX]
 		contact_angle = [0.3, 0.75]							# Angle in distal link indicating contact (radians)
