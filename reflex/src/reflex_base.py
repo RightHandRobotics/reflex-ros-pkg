@@ -3,7 +3,7 @@
 ###########################################################
 # 
 # Exposes basic functionality of the hand in a ReFlex class
-# reflex_base is designed to be used in two ways
+# The reflex package is designed to be used in two ways
 # First, you can instantiate a ReFlex class and use it's methods/variables. This is intended for scripts
 # Second, you can run reflex_base.py and use the services advertised to run commands. This is for prototyping
 #
@@ -21,9 +21,8 @@ import sys
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 from reflex_base_services import *
-from reflex_msgs.msg import Hand, Event
+from reflex_msgs.msg import Hand, Event, RadianServoPositions
 from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
-from reflex_hand.msg import RadianServoPositions
 
 class ReFlex(object):
 	def __init__(self):

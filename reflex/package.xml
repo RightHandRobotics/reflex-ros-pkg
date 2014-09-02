@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>reflex_base</name>
+  <name>reflex</name>
   <version>0.0.0</version>
-  <description>The reflex_base package</description>
+  <description>The main reflex package</description>
   <maintainer email="support@righthandrobotics.com">Right Hand Robotics</maintainer>
   <license>BSD</license>
   <url type="website">www.righthandrobotics.com</url>

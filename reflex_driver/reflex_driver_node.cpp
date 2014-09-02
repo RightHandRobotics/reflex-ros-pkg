@@ -25,8 +25,8 @@
 #include <vector>
 #include <std_srvs/Empty.h>
 #include "reflex_hand.h"
-#include "reflex_hand/RawServoPositions.h"
-#include "reflex_hand/RadianServoPositions.h"
+#include <reflex_msgs/RawServoPositions.h>
+#include <reflex_msgs/RadianServoPositions.h>
 #include <reflex_msgs/Hand.h>
 using namespace std;
 
@@ -85,7 +85,7 @@ void load_params(ros::NodeHandle nh)
 
 
 // Takes raw Dynamixel values (0-4095) and writes them directly to the motors
-void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RawServoPositions::ConstPtr &msg)
+void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RawServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
   for (int i = 0; i < 4; i++)
@@ -96,7 +96,7 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RawSer
 
 // Commands the motors from radians, using the zero references from
 // yaml/finger_calibrate.yaml to translate into the raw Dyanmixel values
-void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_hand::RadianServoPositions::ConstPtr &msg)
+void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RadianServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
   for (int i = 0; i < 4; i++) {
@@ -236,7 +236,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
 
     // Move the fingers in
     ROS_INFO("Stepping the fingers inwards:\t%d\t%d\t%d\t%d", increase[0], increase[1], increase[2], increase[3]);
-    reflex_hand::RawServoPositions servo_pos;
+    reflex_msgs::RawServoPositions servo_pos;
     for (int i=0; i<4; i++)
       servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_inversion[i]*increase[i];
     raw_pub.publish(servo_pos);
@@ -369,7 +369,7 @@ int main(int argc, char **argv)
   // Advertising necessary topics
   hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_hand", 10);
   ROS_INFO("Advertising the /reflex_hand topic");
-  raw_pub = nh.advertise<reflex_hand::RawServoPositions>("/set_reflex_raw", 1);
+  raw_pub = nh.advertise<reflex_msgs::RawServoPositions>("/set_reflex_raw", 1);
 
   // Intializes the reflex_hand object
   string network_interface;
@@ -387,9 +387,9 @@ int main(int argc, char **argv)
   signal(SIGTERM, signal_handler);
   
   // Subscribing to the hand command topics
-  ros::Subscriber raw_positions_sub = nh.subscribe<reflex_hand::RawServoPositions>("set_reflex_raw",
+  ros::Subscriber raw_positions_sub = nh.subscribe<reflex_msgs::RawServoPositions>("set_reflex_raw",
                     1, boost::bind(set_raw_positions_cb, &rh, _1));
-  ros::Subscriber radian_positions_sub = nh.subscribe<reflex_hand::RadianServoPositions>("set_reflex_hand",
+  ros::Subscriber radian_positions_sub = nh.subscribe<reflex_msgs::RadianServoPositions>("set_reflex_hand",
                     1, boost::bind(set_radian_positions_cb, &rh, _1));
   
   // Initializing the /zero_tactile and /zero_finger services

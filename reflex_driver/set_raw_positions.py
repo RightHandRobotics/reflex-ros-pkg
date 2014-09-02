@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('reflex_hand')
 import rospy, sys
-from reflex_hand.msg import RawServoPositions
-from reflex_hand.msg import RadianServoPositions
+from reflex_msgs.msg import RawServoPositions
+from reflex_msgs.msg import RadianServoPositions
 
 if __name__ == '__main__':
   rospy.init_node('set_raw_positions')
