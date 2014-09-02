@@ -2,7 +2,7 @@
 
 ###########################################################
 # 
-# Services for basic reflex_base commands
+# Services for basic reflex package commands
 #
 # Eric Schneider
 # 
