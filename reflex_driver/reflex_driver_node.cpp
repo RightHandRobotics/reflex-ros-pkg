@@ -135,14 +135,13 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
         hand_msg.finger[i].contact[j] = true;
     }
   }
-  // hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[2] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
   hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
   const int palm_tactile_base_idx = reflex_hand::ReflexHandState::NUM_FINGERS * 9;
   for (int i=0; i < 11; i++)
   {
       hand_msg.palm.pressure[i] = state->tactile_pressures_[palm_tactile_base_idx + i] - tactile_offset_palm[i];
       hand_msg.palm.contact[i] = false;
-      if (state->tactile_pressures_[palm_tactile_base_idx + i] > contact_threshold)
+      if (hand_msg.palm.pressure[i] > contact_threshold)
         hand_msg.palm.contact[i] = true;
   }
   hand_msg.joints_publishing = true;
@@ -224,7 +223,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     }
 
     // Check whether the fingers have moved and set the next movement if they haven't
-    uint16_t increase[] = {10, 10, 10, 0};
+    uint16_t increase[] = {10, 10, 10, 0}; // dynamixel step in counts out of 4095
     last_capture = true;
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
     {
