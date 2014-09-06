@@ -48,7 +48,11 @@ vector<int> tactile_offset_f1;
 vector<int> tactile_offset_f2;
 vector<int> tactile_offset_f3;
 vector<int> tactile_offset_palm;
-
+int encoder_last_value[] = {0, 0, 0};
+// The encoders wrap around at 0-16383. This value stores the offset at each wrap
+int encoder_offset[] = {-1, -1, -1};
+// The encoder error at which the fingers consider themself zeroed during calibration
+float ZERO_ERROR = 0.05;
 
 void signal_handler(int signum)
 {
@@ -69,7 +73,8 @@ void load_params(ros::NodeHandle nh)
     topic = "encoder_zero_reference";
   if (!nh.getParam("motor_gear_ratio", dyn_ratio))
     topic = "motor_gear_ratio";
-  nh.param("contact_threshold", contact_threshold, 400);
+  if (!nh.getParam("contact_threshold", contact_threshold))
+    topic = "contact_threshold";
   if (!nh.getParam("tactile_offset_f1", tactile_offset_f1))
     topic = "tactile_offset_f1";
   if (!nh.getParam("tactile_offset_f2", tactile_offset_f2))
@@ -79,7 +84,12 @@ void load_params(ros::NodeHandle nh)
   if (!nh.getParam("tactile_offset_palm", tactile_offset_palm))
     topic = "tactile_offset_palm";
   if (topic != "no error")
+  {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
+    ROS_FATAL("This is likely because the corresponding yaml file in reflex_driver/yaml");
+    ROS_FATAL("were never loaded, or it's because they have been corrupted. If they were");
+    ROS_FATAL("corrupted, they can be repaired by pasting the *_backup.yaml file text in");
+  }
   ROS_INFO("Loaded all parameters");
 }
 
@@ -108,14 +118,33 @@ void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::Rad
 
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
 {
+  int val = 0;
+
   // Sets and publishes the reflex_msgs/Hand message
   reflex_msgs::Hand hand_msg;
   int pressure_offset;
   // The dynamixel for Finger 1 has index 0, Finger 2 has index 1, Finger 3 has index 3
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
   {
-    const int tactile_base_idx = i * 9;
-    hand_msg.finger[i].proximal = ((state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE) - enc_zero[i]);
+    // TODO: Remove these if statements when the firmware order is fixed
+    if (i == 0) val = 0;
+    else if (i == 1) val = 2*9;
+    else val = 1*9;
+    const int tactile_base_idx = val;  
+    // const int tactile_base_idx = i * 9;
+    // TODO: Remove the (2-i) statement when the firmware order is fixed
+    // Checks whether the encoder value has wrapped around and corrects for it
+    if (encoder_offset[i] == -1)
+      encoder_offset[i] = 0;
+    else
+    {
+      if (encoder_last_value[i] - state->encoders_[2-i] > 5000)
+        encoder_offset[i] = encoder_offset[i] + 16383;
+      else if (encoder_last_value[i] - state->encoders_[2-i] < -5000)
+        encoder_offset[i] = encoder_offset[i] - 16383;
+    }
+    encoder_last_value[i] = state->encoders_[2-i];
+    hand_msg.finger[i].proximal = ((state->encoders_[2-i] + encoder_offset[i])*reflex_hand::ReflexHand::ENC_SCALE - enc_zero[i]);
     hand_msg.finger[i].spool = motor_inversion[i]*((state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
     hand_msg.finger[i].distal = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
 
@@ -131,17 +160,17 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
         pressure_offset = tactile_offset_f3[j];
       hand_msg.finger[i].pressure[j] = state->tactile_pressures_[tactile_base_idx + j] - pressure_offset;
       hand_msg.finger[i].contact[j] = false;
-      if (hand_msg.finger[i].pressure[j] > contact_threshold)
+      if (abs(hand_msg.finger[i].pressure[j]) > contact_threshold)
         hand_msg.finger[i].contact[j] = true;
     }
   }
-  hand_msg.palm.preshape = motor_inversion[3] * ((state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
+  hand_msg.palm.preshape = motor_inversion[3]*((state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
   const int palm_tactile_base_idx = reflex_hand::ReflexHandState::NUM_FINGERS * 9;
   for (int i=0; i < 11; i++)
   {
       hand_msg.palm.pressure[i] = state->tactile_pressures_[palm_tactile_base_idx + i] - tactile_offset_palm[i];
       hand_msg.palm.contact[i] = false;
-      if (hand_msg.palm.pressure[i] > contact_threshold)
+      if (abs(hand_msg.palm.pressure[i]) > contact_threshold)
         hand_msg.palm.contact[i] = true;
   }
   hand_msg.joints_publishing = true;
@@ -156,7 +185,11 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     tactile_file << "# Captured sensor values from unloaded state, used for calibration \n";
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
     {
-      const int tactile_base_idx = i * 9;
+      if (i == 0) val = 0;
+      else if (i == 1) val = 2*9;
+      else val = 1*9;
+      const int tactile_base_idx = val;  
+      // const int tactile_base_idx = i * 9;
       // Write to variable
       for (int j = 0; j < 9; j++)
       {
@@ -211,7 +244,8 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
       ROS_INFO("Capturing starter encoder positions");
       // Write to variable
       for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-        enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
+        // TODO: Remove the (2-i) statement when the firmware order is fixed
+        enc_zero[i] = state->encoders_[2-i] * reflex_hand::ReflexHand::ENC_SCALE;
 
       // Write to file
       finger_file << "# Calbration constants for joints [f1, f2, f3, preshape]\n";
@@ -223,38 +257,65 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     }
 
     // Check whether the fingers have moved and set the next movement if they haven't
-    uint16_t increase[] = {10, 10, 10, 0}; // dynamixel step in counts out of 4095
+    uint16_t increase[] = {20, 20, 50, 0}; // dynamixel step in counts out of 4095
     last_capture = true;
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
     {
-      if (abs(enc_zero[i] - state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE) > 0.1)
+      // TODO: Remove the (2-i) statement when the firmware order is fixed
+      ROS_INFO("Finger %d\tenc_zero: %4f\tEncoder:%4f\tSpool: %4f",
+              i+1, enc_zero[i], state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE,
+              state->dynamixel_angles_[i]*reflex_hand::ReflexHand::DYN_SCALE);
+      if (abs(enc_zero[i] - state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE) > ZERO_ERROR)
         increase[i] = 0;
       else
         last_capture = false;
     }
+    ROS_INFO("Palm Spool: %4f",
+              state->dynamixel_angles_[3]*reflex_hand::ReflexHand::DYN_SCALE);
 
     // Move the fingers in
-    ROS_INFO("Stepping the fingers inwards:\t%d\t%d\t%d\t%d", increase[0], increase[1], increase[2], increase[3]);
+    ROS_INFO("Stepping the fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
+          state->dynamixel_angles_[0], increase[0],
+          state->dynamixel_angles_[1], increase[1],
+          state->dynamixel_angles_[2], increase[2],
+          state->dynamixel_angles_[3], increase[3]);
     reflex_msgs::RawServoPositions servo_pos;
     for (int i=0; i<4; i++)
+    {
       servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_inversion[i]*increase[i];
+      ROS_INFO("Published position: %d", servo_pos.raw_positions[i]);
+    }
     raw_pub.publish(servo_pos);
 
     // If all fingers have moved, capture their position and write it to file
     if (last_capture)
     {
-      ROS_INFO("Finger movement detected, zeroing motors");
+      ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
       // Write to variable
+      int scale = 200;
       for (int i = 0; i<4; i++)
-        dyn_zero[i] = state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+      {
+        if (i == 3) scale = 0;
+        dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_inversion[i]*scale))*
+              reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+        if (dyn_zero[i] > 4*3.1415)
+        {
+          ROS_WARN("Something went wrong in calibration - motor %d was set anomalously high", i+1);
+          ROS_WARN("\tMotor zero reference value: %4f radians (nothing should be over 2*pi)", dyn_zero[i]);
+          ROS_WARN("\tTry redoing the calibration, depowering/repowering if it repeats");
+        }
+
+        servo_pos.raw_positions[i] = state->dynamixel_angles_[i] - (motor_inversion[i]*scale);
+      }
       // Write to file
       finger_file << "motor_zero_reference: ["
-                            << state->dynamixel_angles_[0] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[0] << ", "
-                            << state->dynamixel_angles_[1] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[1] << ", "
-                            << state->dynamixel_angles_[2] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[2] << ", "
-                            << state->dynamixel_angles_[3] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3] << "]\n";
+                            << dyn_zero[0] << ", "
+                            << dyn_zero[1] << ", "
+                            << dyn_zero[2] << ", "
+                            << dyn_zero[3] << "]\n";
       aqcuire_fingers = false;
       finger_file.close();
+      raw_pub.publish(servo_pos);
     }
   }
 
@@ -300,11 +361,11 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   //          state->dynamixel_error_states_[1],
   //          state->dynamixel_error_states_[2],
   //          state->dynamixel_error_states_[3]);
-  //   ROS_INFO("dynamixel angles: %6u %6u %6u %6u",
-  //            state->dynamixel_angles_[0],
-  //            state->dynamixel_angles_[1],
-  //            state->dynamixel_angles_[2],
-  //            state->dynamixel_angles_[3]);
+    // ROS_INFO("dynamixel angles: %6u %6u %6u %6u",
+    //          state->dynamixel_angles_[0],
+    //          state->dynamixel_angles_[1],
+    //          state->dynamixel_angles_[2],
+    //          state->dynamixel_angles_[3]);
   // ROS_INFO("dynamixel speeds: %6u %6u %6u %6u",
   //          state->dynamixel_speeds_[0],
   //          state->dynamixel_speeds_[1],

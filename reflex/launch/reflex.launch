@@ -1,7 +1,6 @@
 <!-- nodes and parameters for reflex -->
 <launch>
 
-  <param name="contact_threshold" value="5" />
   <rosparam file="$(find reflex)/yaml/reflex.yaml" command="load"/>
   <rosparam file="$(find reflex)/yaml/takktile_cal.yaml" command="load"/>
 

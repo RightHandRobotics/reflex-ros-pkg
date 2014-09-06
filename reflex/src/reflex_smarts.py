@@ -25,14 +25,15 @@ from reflex_base_services import *
 # 2,4,6 arguments 	= apply to each (finger, command) pair
 
 # position parameters
-ROT_CYL = 0.1		# radians rotation 
-ROT_SPH = 1.1		# radians rotation
-ROT_PINCH = 2.3 	# radians rotation
+ROT_CYL = 0.0		# radians rotation 
+ROT_SPH = 0.8		# radians rotation
+ROT_PINCH = 1.57 	# radians rotation
 
 OPEN = 0			# radians tendon spool
 PROBE_POS = 0.8		# radians tendon spool
-DOF_POS = 1.5
-HOW_HARDER = 0.4	# radians step size for tightening and loosening
+DOF_POS = 3.25
+DOF_WAITTIME = 1 	# seconds between dof_tour steps
+HOW_HARDER = 1.0	# radians step size for tightening and loosening
 
 class ReFlex_Smarts(ReFlex):
 	def __init__(self):
@@ -62,6 +63,8 @@ class ReFlex_Smarts(ReFlex):
 			self.loosen(i, self.SERVO_SPEED_MAX/2.0)
 		else:
 			rospy.logwarn("reflex_smarts:__command_smart_finger: received an unknown finger command: %s", mode)
+		self.reset_hist(self.working[i], i)
+
 
 	def command_smarts(self, speed, *args):
 		# 1 arg = hand command
@@ -106,19 +109,19 @@ class ReFlex_Smarts(ReFlex):
 			IDs = [args[2*j] for j in range(len(args)/2)]
 			modes = [args[2*(j+1)-1] for j in range(len(args)/2)]
 
-			for j in range(len(fingers)):
+			for j in range(len(IDs)):
 				if modes[j] in self.BASE_FINGER_COMMANDS:
 					self._ReFlex__command_base_finger(IDs[j], modes[j])
 				else:
 					self.__command_smart_finger(IDs[j], modes[j])
 				self.servo_speed[j] = speed
 			for mode in modes:
-				if mode not in self.BASE_FINGER_COMMANDS or mode not in self.SMART_FINGER_COMMANDS:
+				if mode not in self.BASE_FINGER_COMMANDS and mode not in self.SMART_FINGER_COMMANDS:
 					flag = True
 		else:
 			rospy.loginfo("reflex_smarts:command_smarts: did not recognize the input, was given %s", args)
 			flag = True
-		
+
 		rospy.loginfo("reflex_smarts:command_smarts: commanded the fingers, self.working = %s, self.control_mode: %s"\
 						 , str(self.working), str(self.control_mode))
 
@@ -126,47 +129,57 @@ class ReFlex_Smarts(ReFlex):
 			rospy.sleep(0.01)
 		return flag
 
+
 	def open(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:open: Opening finger %d", finger_index+1)
 		self.move_finger(finger_index, self.TENDON_MIN, speed)
+
 
 	def preshape_probe(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:preshape_probe: Setting finger %d to preshape probe position", finger_index+1)
 		self.move_finger(finger_index, PROBE_POS, speed)
 
+
 	def tighten(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:tighten: Tightening finger %d", finger_index+1)
-		self.move_finger(finger_index, self.hand.finger[finger_index].spool + HOW_HARDER, speed)
+		self.move_finger(finger_index, self.hand.finger[finger_index].spool + (HOW_HARDER/3), speed)
+
 
 	def loosen(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:loosen: Tightening finger %d", finger_index+1)
-		self.move_finger(finger_index, self.hand.finger[finger_index].spool - HOW_HARDER, speed)
+		self.move_finger(finger_index, self.hand.finger[finger_index].spool - (HOW_HARDER/3), speed)
+
 
 	def set_cylindrical(self, speed):
 		rospy.loginfo("reflex_smarts:set_cylindrical: Going to cylindrical pose")
 		self.move_preshape(ROT_CYL, speed)
 
+
 	def set_spherical(self, speed):
 		rospy.loginfo("reflex_smarts:set_spherical: Going to spherical pose")
 		self.move_preshape(ROT_SPH, speed)
+
 
 	def set_pinch(self, speed):
 		rospy.loginfo("reflex_smarts:set_pinch: Going to pinch pose")
 		self.move_preshape(ROT_PINCH, speed)
 
+
 	# Runs the hand through it's range of motions, using both finger positions and preshape joint
 	def dof_tour(self, speed):
 		rospy.loginfo("reflex_smarts:dof_tour: Exploring hand DOF...")
 		self.move_preshape(ROT_CYL, speed)
+		rospy.sleep(DOF_WAITTIME)
 		for i in range(3):
 			self.move_finger(i, DOF_POS, speed)
-			rospy.sleep(1.5)
+			rospy.sleep(DOF_WAITTIME)
 			self.open(i, speed)
-			rospy.sleep(1)
-		for pos in [ROT_CYL, ROT_SPH, ROT_PINCH, ROT_CYL]:
+			rospy.sleep(DOF_WAITTIME)
+		for pos in [ROT_SPH, ROT_PINCH, ROT_CYL]:
 			self.move_preshape(pos, speed)
-			rospy.sleep(1.5)
+			rospy.sleep(DOF_WAITTIME)
 		return
+
 
 	# Performs a preset routine to tighten fingers and walk object into a solid grip
 	def fingerwalk(self, speed, in_step = 0.6, out_step = 1.0):
@@ -205,6 +218,7 @@ class ReFlex_Smarts(ReFlex):
 			rospy.loginfo("reflex_smarts:fingerwalk: There is no Hand data being read, cannot do fingerwalk")
 			return
 
+
 	# Finds the average of the three finger spool values and sets them all to that
 	def align_all(self, speed):
 		avg_spool = sum([self.hand.finger[i].spool for i in range(3)])/3.0
@@ -218,29 +232,29 @@ if __name__ == '__main__':
 	rospy.init_node('ReflexServiceNode')
 	reflex_hand = ReFlex_Smarts()
 
-	sh1 = CommandHandService(reflex_hand)
-	s1  = "/reflex/command_base"
-	rospy.loginfo("reflex:__main__: Advertising the %s service", s1)
-	s1 = rospy.Service(s1, CommandHand, sh1)
+	# sh1 = CommandHandService(reflex_hand)
+	# s1  = "/reflex/command_base"
+	# rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s1)
+	# s1 = rospy.Service(s1, CommandHand, sh1)
 
 	sh2 = MoveFingerService(reflex_hand)
 	s2  = "/reflex/move_finger"
-	rospy.loginfo("reflex:__main__: Advertising the %s service", s2)
+	rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s2)
 	s2 = rospy.Service(s2, MoveFinger, sh2)
 
 	sh3 = MovePreshapeService(reflex_hand)
 	s3  = "/reflex/move_preshape"
-	rospy.loginfo("reflex:__main__: Advertising the %s service", s3)
+	rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s3)
 	s3 = rospy.Service(s3, MovePreshape, sh3)
 
 	sh4 = StatusDumpService(reflex_hand)
 	s4  = "/reflex/status_dump"
-	rospy.loginfo("reflex:__main__: Advertising the %s service", s4)
+	rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s4)
 	s4 = rospy.Service(s4, Empty, sh4)
 
 	sh5 = KillService(reflex_hand)
 	s5  = "/reflex/kill_current"
-	rospy.loginfo("reflex:__main__: Advertising the %s service", s5)
+	rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s5)
 	s5 = rospy.Service(s5, Empty, sh5)
 
 	sh6 = CommandSmartService(reflex_hand)

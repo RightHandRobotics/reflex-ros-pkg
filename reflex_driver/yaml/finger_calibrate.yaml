@@ -1,3 +1,3 @@
 # Calbration constants for joints [f1, f2, f3, preshape]
-motor_zero_reference: [1.7, 1.57, 0, 2.8]
-encoder_zero_reference: [0.0, 0.0, 0.0]
+encoder_zero_reference: [1.24145, 3.69827, 1.25564]
+motor_zero_reference: [1.39112, 3.17311, 0.657928, 1.68472]
