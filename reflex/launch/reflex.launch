@@ -21,6 +21,7 @@
   follow visualizer tutorial to get this package You'll need to install rviz-->
   <!--include file="$(find rhr_visualization)/launch/rhr_viz.launch"/-->
   
-  <include file="$(find dococ)/launch/buttons.launch"/>
+  <!--include file="$(find dococ)/launch/buttons.launch"/-->
+
 
 </launch>
