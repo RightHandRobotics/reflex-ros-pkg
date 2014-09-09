@@ -53,9 +53,9 @@ static volatile uint16_t g_eth_rxpool_ptrs_rpos = 0;
 ///////////////////////////////////////////////////////////////////////////
 // local functions
 static void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len);
-static void eth_dispatch_eth(const uint8_t *data, const uint16_t len);
-static void eth_dispatch_ip(const uint8_t *data, const uint16_t len);
-static void eth_dispatch_udp(const uint8_t *data, const uint16_t len);
+static bool eth_dispatch_eth(const uint8_t *data, const uint16_t len);
+static bool eth_dispatch_ip(const uint8_t *data, const uint16_t len);
+static bool eth_dispatch_udp(const uint8_t *data, const uint16_t len);
 
 ///////////////////////////////////////////////////////////////////////////
 
@@ -437,8 +437,9 @@ void enet_send_udp_ucast(const uint8_t *dest_mac,
   */
 }
 
-void enet_process_rx_ring()
+uint_fast8_t enet_process_rx_ring()
 {
+  uint_fast8_t num_pkts_rx = 0;
   while (g_eth_rxpool_ptrs_wpos != g_eth_rxpool_ptrs_rpos)
   {
     const uint16_t rp = g_eth_rxpool_ptrs_rpos;
@@ -469,40 +470,41 @@ void enet_process_rx_ring()
     //printf("  ucast_match = %d, bcast_match = %d, mcast_match = %d\r\n",
     //       unicast_match, broadcast_match, multicast_match);
     if (unicast_match || multicast_match || broadcast_match)
-      eth_dispatch_eth(start, len);
+      num_pkts_rx += eth_dispatch_eth(start, len) ? 1 : 0;
     if (++g_eth_rxpool_ptrs_rpos >= ETH_RAM_RXPOOL_NPTR)
       g_eth_rxpool_ptrs_rpos = 0;
   }
+  return num_pkts_rx;
 }
 
-static void eth_dispatch_eth(const uint8_t *data, const uint16_t len)
+static bool eth_dispatch_eth(const uint8_t *data, const uint16_t len)
 {
   // dispatch according to protocol
   const eth_eth_header_t *e = (const eth_eth_header_t *)data;
   switch (eth_htons(e->ethertype))
   {
     case ETH_ETHERTYPE_IP:
-      eth_dispatch_ip(data, len);
-      break;
+      return eth_dispatch_ip(data, len);
     default:
-      break;
+      return false;
   }
 }
 
-static void eth_dispatch_ip(const uint8_t *data, const uint16_t len)
+static bool eth_dispatch_ip(const uint8_t *data, const uint16_t len)
 {
   const eth_ip_header_t *ip = (const eth_ip_header_t *)data;
   if (ip->version != 4) // we only handle ipv4 (for now...)
-    return;
+    return false;
   // if it's unicast, verify our IP address, otherwise ignore the packet
   if (ip->eth.dest_addr[0] == g_eth_src_mac[0])
     if (ip->source_addr != eth_htonl(g_eth_src_ip))
-      return;
+      return false;
   if (ip->proto == ETH_IP_PROTO_UDP)
-    eth_dispatch_udp(data, len);
+    return eth_dispatch_udp(data, len);
+  return false; // if we get here, we aren't smart enough to handle this packet
 }
 
-static void eth_dispatch_udp(const uint8_t *data, const uint16_t len)
+static bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
 {
   const eth_udp_header_t *udp = (const eth_udp_header_t *)data;
   const uint16_t port = eth_htons(udp->dest_port);
@@ -510,7 +512,7 @@ static void eth_dispatch_udp(const uint8_t *data, const uint16_t len)
   const uint8_t *payload = data + sizeof(eth_udp_header_t);
   //printf("  udp len: %d\r\n", udp_payload_len);
   if (payload_len > len - sizeof(eth_udp_header_t))
-    return; // ignore fragmented UDP packets.
+    return false; // ignore fragmented UDP packets.
 
   //printf("dispatch udp: port = %d  payload_len = %d\r\n", port, payload_len);
   /*
@@ -531,6 +533,7 @@ static void eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       */
       for (int i = 0; i < NUM_DMXL; i++)
         dmxl_set_control_mode(i, (dmxl_control_mode_t)payload[1+i]);
+      return true;
     }
     else if (cmd == 2 && payload_len >= 9)
     {
@@ -544,8 +547,11 @@ static void eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       for (int i = 0; i < NUM_DMXL; i++)
         dmxl_set_control_target(i, targets[i]);
       //dmxl_set_control_target(0, targets[0]); // debugging... just do #0
+      return true;
     }
   }
+  // if we get here, we haven't handled this packet
+  return false;
 }
 
 // todo: be smarter about multicast group choice

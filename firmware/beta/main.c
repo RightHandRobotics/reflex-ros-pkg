@@ -30,19 +30,28 @@ int main()
   fan_on(); // todo: be smarter. probably doesn't need to run all the time.
   __enable_irq();
 
+  dmxl_set_status_return_levels();
+
   volatile uint32_t prev_start_time = SYSTIME;
-  //#define POLL_PERIOD_US 100000
+  //#define POLL_PERIOD_US 33333
   #define POLL_PERIOD_US 25000
+  uint_fast8_t poll_cycles_to_skip = 0;
 
   for (uint_fast32_t loop_count = 1; ; loop_count++)
   {
     if (SYSTIME - prev_start_time >= POLL_PERIOD_US)
     {
       prev_start_time += POLL_PERIOD_US;
-      g_state.systime = SYSTIME;
-      leds_toggle(0);
-      leds_toggle(1);
-      async_poll_start();
+      if (poll_cycles_to_skip > 0)
+        poll_cycles_to_skip--;
+      else
+      {
+        g_state.systime = SYSTIME;
+        //printf("start %d\r\n", (int)g_state.systime);
+        leds_toggle(0);
+        leds_toggle(1);
+        async_poll_start();
+      }
     }
     const async_poll_tick_result_t aptr = async_poll_tick();
     if (aptr == APT_JUST_FINISHED)
@@ -53,14 +62,18 @@ int main()
 #endif
       if (enet_get_link_status() == ENET_LINK_UP)
         enet_send_state();
-      enet_process_rx_ring(); // deal with inbound messages
+
+      uint_fast8_t num_rx = enet_process_rx_ring();
+      if (num_rx) // most inbound messages require dmxl tx/rx
+      {
+        // if we did something with a packet, bump our next TX time up 
+        // by one cycle period, so we have enough time to talk to the
+        // dynamixels
+        poll_cycles_to_skip = 3; // skip the next polling cycle
+        //printf("proc rx ring: %d\r\n", num_rx);
+        dmxl_process_rings();
+      }
     }
-    /*
-    if (loop_count % 100000 == 0)
-    {
-      printf("%lu aptr = %d\n", SYSTIME, aptr);
-    }
-    */
   }
   return 0;
 }

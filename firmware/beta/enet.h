@@ -18,7 +18,7 @@ void enet_send_udp_mcast(const uint32_t mcast_ip, const uint16_t mcast_port,
 
 void enet_write_phy_reg(const uint8_t reg_idx, const uint16_t reg_val);
 
-void enet_process_rx_ring();
+uint_fast8_t enet_process_rx_ring();
 
 void enet_send_state();
 

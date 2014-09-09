@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "async_poll.h"
+#include <stdbool.h>
 
 #define NUM_DMXL 4
 #define DMXL_DEFAULT_ID 1
@@ -41,5 +42,9 @@ typedef enum
   DPS_DONE = ASYNC_POLL_DONE
 } dmxl_async_poll_state_t;
 extern dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL];
+
+bool dmxl_all_available();
+
+void dmxl_set_status_return_levels();
 
 #endif 

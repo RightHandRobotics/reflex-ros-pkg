@@ -8,9 +8,10 @@
 
 typedef enum
 {
-  DMXL_CS_IDLE       = 0,
-  DMXL_CS_TX         = 1,
-  DMXL_CS_POLL_STATE = 2,
+  DMXL_CS_IDLE        = 0,
+  DMXL_CS_TX          = 1,
+  DMXL_CS_POLL_STATE  = 2,
+  DMXL_CS_POLL_DEBRIS = 3
 } dmxl_comms_state_t;
 
 typedef enum
@@ -50,6 +51,12 @@ static volatile uint8_t  g_dmxl_rx_pkt[NUM_DMXL][256];
 
 dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL] = 
   { DPS_DONE, DPS_DONE, DPS_DONE, DPS_DONE };
+
+static void dmxl_read_data(const uint8_t port_idx, const uint8_t dmxl_id,
+                           const uint8_t data_len, const uint8_t start_addr);
+static void dmxl_write_data(const uint8_t port_idx, const uint8_t dmxl_id,
+                            const uint8_t data_len, const uint8_t start_addr, 
+                            const uint8_t *data);
 
 // put in ramfunc sector ?
 static inline void dmxl_push_byte(const uint8_t dmxl_port, const uint8_t byte) 
@@ -144,6 +151,36 @@ void dmxl_init()
   // turn on the 3.3v <-> 5v translator chip now
   GPIOA->MODER |= 1 << (PORTA_DMXL_BUF_EN * 2);
   GPIOA->BSRRL |= 1 << PORTA_DMXL_BUF_EN;
+}
+
+void dmxl_set_status_return_levels()
+{
+  // see what the Status Return Level is. If it's not 1, set it to one
+  for (int i = 0; i < NUM_DMXL; i++)
+  {
+    g_dmxl_ports[i].comms_state = DMXL_CS_POLL_DEBRIS;
+    dmxl_read_data(i, DMXL_DEFAULT_ID, 1, 0x10);
+    volatile uint32_t t_start = SYSTIME;
+    uint8_t status_return_level = 0xff;
+    while (SYSTIME - t_start < 10000)
+    {
+      dmxl_process_rings();
+      if (g_dmxl_ports[i].comms_state != DMXL_CS_POLL_DEBRIS)
+      {
+        status_return_level = g_dmxl_rx_pkt[i][0];
+        printf("dmxl %d status return level = %d\n", i, status_return_level);
+        break;
+      }
+    }
+    if (status_return_level == 0xff)
+      printf("couldn't poll status return level for dmxl %d\r\n", i);
+    else if (status_return_level != 1)
+    {
+      // set it to 2
+      uint8_t level = 1; // only respond to READ
+      dmxl_write_data(i, DMXL_DEFAULT_ID, 1, 0x10, &level);
+    }
+  }
 }
 
 static void dmxl_tx(const uint8_t port_idx, 
@@ -284,6 +321,8 @@ void dmxl_process_ring(const uint_fast8_t dmxl_id)
                 (((uint16_t)g_dmxl_rx_pkt[i][4])     ) ;
               g_state.dynamixel_voltages[i]     = g_dmxl_rx_pkt[i][6];
               g_state.dynamixel_temperatures[i] = g_dmxl_rx_pkt[i][7];
+              break;
+            case DMXL_CS_POLL_DEBRIS:
               break;
             default:
               break;
@@ -470,5 +509,13 @@ void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port)
       *ps = DPS_DONE; // shouldn't get here
       break;
   }
+}
+
+bool dmxl_all_available()
+{
+  for (int i = 0; i < NUM_DMXL; i++)
+    if (dmxl_poll_states[i] != DPS_DONE)
+      return false;
+  return true;
 }
 
