@@ -12,26 +12,9 @@ void signal_handler(int signum)
     g_done = true;
 }
 
-typedef struct
-{
-  uint8_t  header[4];
-  uint32_t systime;
-  uint16_t tactile_pressures[ReflexHandState::NUM_TACTILE];
-  uint16_t tactile_temperatures[ReflexHandState::NUM_TACTILE];
-  uint16_t encoders[ReflexHandState::NUM_FINGERS];
-  uint8_t  dynamixel_error_states[4];
-  uint16_t dynamixel_angles[4];
-  uint16_t dynamixel_speeds[4];
-  uint16_t dynamixel_loads[4];
-  uint8_t  dynamixel_voltages[4];
-  uint8_t  dynamixel_temperatures[4];
-} __attribute__((packed)) mcu_state_format_1_t;
-
-
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const s)
 {
   ROS_INFO("rhs_cb");
-  //mcu_state_format_1_t *s = (mcu_
   printf("systime_us = %u\n", (unsigned)s->systime_us_);
   printf("tactile pressures:\n  ");
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_TACTILE; i++)
@@ -51,6 +34,14 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const s)
   }
   printf("\n");
 
+  printf("dynamixel:\n");
+  for (int i = 0; i < 4; i++)
+    printf("  %6hu  %6hu  %6hu  %6hu  %6hu\n", 
+           s->dynamixel_angles_[i],
+           s->dynamixel_speeds_[i],
+           s->dynamixel_loads_[i],
+           s->dynamixel_voltages_[i],
+           s->dynamixel_temperatures_[i]);
 }
 
 int main(int argc, char **argv)
