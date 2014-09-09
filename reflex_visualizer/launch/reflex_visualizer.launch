@@ -1,0 +1,8 @@
+<!-- Launches the RightHand Robotics visualizer, which reads data on the /reflex_hand topic -->
+<launch>
+	<param name="robot_description" command="$(find xacro)/xacro.py '$(find reflex_visualizer)/urdf/full_reflex_model.urdf.xacro'" />
+
+	<node name="hand_visualizer" pkg="reflex_visualizer" type="hand_visualizer" output="screen"/>
+	<node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find reflex_visualizer)/urdf.rviz" required="true" />
+</launch>
