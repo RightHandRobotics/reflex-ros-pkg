@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "state.h"
 #include "systime.h"
+#include "delay.h"
 
 #define PORTA_DMXL_BUF_EN 10
 
@@ -184,7 +185,7 @@ void dmxl_set_status_return_levels()
 }
 
 static void dmxl_tx(const uint8_t port_idx, 
-             const uint8_t *payload, const uint8_t payload_len)
+                    const uint8_t *payload, const uint8_t payload_len)
 {
   if (port_idx >= NUM_DMXL)
     return; // bogus port index
@@ -392,19 +393,19 @@ void dmxl_set_control_mode(const uint8_t port_idx,
   if (control_mode == DMXL_CM_IDLE)
   {
     dmxl_set_led(port_idx, DMXL_DEFAULT_ID, 0);
-    for (volatile uint32_t i = 0; i < 200000; i++) { }
+    delay_us(1);
     dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 0);
   }
   else if (control_mode == DMXL_CM_VELOCITY)
   {
     dmxl_set_led(port_idx, DMXL_DEFAULT_ID, 1);
-    for (volatile uint32_t i = 0; i < 200000; i++) { }
+    delay_us(1);
     dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 1);
   }
   else if (control_mode == DMXL_CM_POSITION)
   {
     dmxl_set_led(port_idx, DMXL_DEFAULT_ID, 1);
-    for (volatile uint32_t i = 0; i < 200000; i++) { }
+    delay_us(1);
     dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 1);
   }
 }

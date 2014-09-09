@@ -4,6 +4,7 @@
 #include <string.h>
 #include "dmxl.h"
 #include "state.h"
+#include "systime.h"
 
 // declare the pin numbers
 #define PORTA_ETH_REFCLK 1
@@ -469,6 +470,7 @@ uint_fast8_t enet_process_rx_ring()
       multicast_match = 0;
     //printf("  ucast_match = %d, bcast_match = %d, mcast_match = %d\r\n",
     //       unicast_match, broadcast_match, multicast_match);
+    //printf("dispatch @ %8u\r\n", (unsigned)SYSTIME);
     if (unicast_match || multicast_match || broadcast_match)
       num_pkts_rx += eth_dispatch_eth(start, len) ? 1 : 0;
     if (++g_eth_rxpool_ptrs_rpos >= ETH_RAM_RXPOOL_NPTR)
@@ -513,6 +515,7 @@ static bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
   //printf("  udp len: %d\r\n", udp_payload_len);
   if (payload_len > len - sizeof(eth_udp_header_t))
     return false; // ignore fragmented UDP packets.
+  //printf("dispatch udp @ %8u\r\n", (unsigned)SYSTIME);
 
   //printf("dispatch udp: port = %d  payload_len = %d\r\n", port, payload_len);
   /*

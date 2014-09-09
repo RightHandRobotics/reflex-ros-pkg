@@ -63,15 +63,32 @@ int main()
       if (enet_get_link_status() == ENET_LINK_UP)
         enet_send_state();
 
+#ifdef PRINT_TIMING
+      volatile uint32_t t_before_enet = SYSTIME;
+#endif
       uint_fast8_t num_rx = enet_process_rx_ring();
+#ifdef PRINT_TIMING
+      volatile uint32_t t_after_enet = SYSTIME;
+#endif
       if (num_rx) // most inbound messages require dmxl tx/rx
       {
         // if we did something with a packet, bump our next TX time up 
         // by one cycle period, so we have enough time to talk to the
         // dynamixels
-        poll_cycles_to_skip = 3; // skip the next polling cycle
+        poll_cycles_to_skip = 1; // skip the next polling cycle
         //printf("proc rx ring: %d\r\n", num_rx);
+#ifdef PRINT_TIMING
+        volatile uint32_t t_before_dmxl = SYSTIME;
+#endif
         dmxl_process_rings();
+#ifdef PRINT_TIMING
+        volatile uint32_t t_after_dmxl = SYSTIME;
+        printf("%8u %8u %8u %8u\r\n",
+               (unsigned)t_before_enet,
+               (unsigned)t_after_enet,
+               (unsigned)t_before_dmxl,
+               (unsigned)t_after_dmxl);
+#endif
       }
     }
   }
