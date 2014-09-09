@@ -7,18 +7,21 @@
   <!-- A) Uncomment reflex_hand_node.launch to start reading the hand data from ethernet and commanding motors (DEFAULT) -->
   <include file="$(find reflex_driver)/launch/reflex_driver.launch"/>
   <!-- B) Uncomment spoof_rhr_data . Choose this or reflex_hand_node. Go to RHR website and follow visualizer tutorial to get this package -->
-  <!-- <node name="spoof_rhr_data" pkg="rhr_visualization" type="spoof_rhr_data.py"/> -->
+  <!-- <node name="spoof_rhr_data" pkg="reflex_visualizer" type="spoof_rhr_data.py"/> -->
 
   <!-- A) Uncomment reflex to only use the basic motions and commands. Choose this or reflex smarts -->
   <!-- <node name="reflex"            pkg="reflex"       type="reflex.py"         output="screen"/> -->
   <!-- B) Uncomment reflex_smarts to have access to reflex plus some pre-programmed moves like 'open' and 'tighten' (DEFAULT) -->
-  <node name="reflex_smarts"          pkg="reflex"       type="reflex_smarts.py"       output="screen"/>
+  <node name="reflex_smarts"          pkg="reflex"       type="reflex_smarts.py"       output="screen"	respawn="true"/>
 
   <!-- A) Uncomment these lines to view the tf frames in rviz. You'll need to install tf and rviz -->
-  <!-- <node name="reflex_tf_broadcaster"  pkg="reflex"       type="reflex_tf_broadcaster"  output="screen"/>
-  <node name="rviz"                   pkg="rviz" type="rviz"  args="-d $(find reflex)/urdf.rviz"  output="screen"/> -->
+  <!--node name="reflex_tf_broadcaster"  pkg="reflex"       type="reflex_tf_broadcaster"  output="screen"/-->
+  <!--node name="rviz"                   pkg="rviz" type="rviz"  args="-d $(find reflex)/urdf.rviz"  output="screen"/-->
   <!-- B) Uncomment this line to use the visualizer. Cannot be used at the same time as the other rviz call. Go to RHR website and
   follow visualizer tutorial to get this package You'll need to install rviz-->
-  <!-- <include file="$(find rhr_visualization)/launch/rhr_viz.launch"/> -->
+  <!--include file="$(find rhr_visualization)/launch/rhr_viz.launch"/-->
+  
+  <!--include file="$(find dococ)/launch/buttons.launch"/-->
+
 
 </launch>
