@@ -7,7 +7,7 @@
   <!-- A) Uncomment reflex_hand_node.launch to start reading the hand data from ethernet and commanding motors (DEFAULT) -->
   <include file="$(find reflex_driver)/launch/reflex_driver.launch"/>
   <!-- B) Uncomment spoof_rhr_data . Choose this or reflex_hand_node. Go to RHR website and follow visualizer tutorial to get this package -->
-  <!-- <node name="spoof_rhr_data" pkg="rhr_visualization" type="spoof_rhr_data.py"/> -->
+  <!-- <node name="spoof_rhr_data" pkg="reflex_visualizer" type="spoof_rhr_data.py"/> -->
 
   <!-- A) Uncomment reflex to only use the basic motions and commands. Choose this or reflex smarts -->
   <!-- <node name="reflex"            pkg="reflex"       type="reflex.py"         output="screen"/> -->

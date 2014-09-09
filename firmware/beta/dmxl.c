@@ -174,7 +174,7 @@ static void dmxl_tx(const uint8_t port_idx,
   }
   while (!(u->SR & USART_SR_TC)) { } // wait for TX to finish
   u->CR1 &= ~USART_CR1_TE; // disable the transmitter
-  u->CR1 |=  USART_CR1_RE; // re-enable the transmitter
+  u->CR1 |=  USART_CR1_RE; // re-enable the receiver
   // todo: actually spin here until we get a packet back in the rx ring
 }
 

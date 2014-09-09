@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <name>reflex_visualizer</name>
+  <version>0.0.0</version>
+  <description>The reflex_visualizer package</description>
+  <maintainer email="support@righthandrobotics.com">Right Hand Robotics</maintainer>
+  <license>BSD</license>
+  <url type="website">www.righthandrobotics.com</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>urdf</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>urdf</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+</package>
