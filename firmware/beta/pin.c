@@ -8,12 +8,12 @@ void pin_set_output_type(GPIO_TypeDef *gpio,
 {
   if (output_type == PIN_OUTPUT_TYPE_OPEN_DRAIN)
   {
-    printf("setting pin %d to open-drain\r\n", pin_idx);
+    //printf("setting pin %d to open-drain\r\n", pin_idx);
     gpio->OTYPER |= (1 << pin_idx);
   }
   else
   {
-    printf("setting pin %d to push-pull\r\n", pin_idx);
+    //printf("setting pin %d to push-pull\r\n", pin_idx);
     gpio->OTYPER &= ~(1 << pin_idx);
   }
 }

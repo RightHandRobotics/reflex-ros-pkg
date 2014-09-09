@@ -8,11 +8,14 @@
 void tactile_init();
 void tactile_poll(const uint_fast8_t port);
 void tactile_poll_nonblocking_tick(const uint8_t tactile_port);
+void tactile_bridge_poll_nonblocking(const uint8_t tactile_bridge);
 
 #define SENSORS_PER_FINGER  9
 #define NUM_PALM_SENSORS   11
 #define NUM_SENSORS (NUM_FINGERS * SENSORS_PER_FINGER + NUM_PALM_SENSORS)
 #define NUM_TACTILE_PORTS 4
+#define NUM_INTERNAL_I2C 2
+#define NUM_BRIDGED_I2C 2
 
 typedef enum 
 { 
@@ -28,7 +31,8 @@ typedef enum
   TPS_DONE = ASYNC_POLL_DONE
 } tactile_async_poll_state_t;
 
-extern tactile_async_poll_state_t tactile_poll_states[NUM_TACTILE_PORTS];
+extern tactile_async_poll_state_t 
+tactile_poll_states[NUM_TACTILE_PORTS];
 
 #endif
 

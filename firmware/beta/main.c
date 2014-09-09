@@ -10,7 +10,7 @@
 #include "state.h"
 #include "async_poll.h"
 
-//#define PRINT_TACTILE_TIMING
+//#define PRINT_TIMING
 
 int main()
 {
@@ -31,13 +31,13 @@ int main()
   __enable_irq();
 
   volatile uint32_t prev_start_time = SYSTIME;
-  #define POLL_PERIOD_US 100000
+  //#define POLL_PERIOD_US 100000
+  #define POLL_PERIOD_US 25000
 
   for (uint_fast32_t loop_count = 1; ; loop_count++)
   {
     if (SYSTIME - prev_start_time >= POLL_PERIOD_US)
     {
-      //printf("%lu starting async poll\r\n", SYSTIME);
       prev_start_time += POLL_PERIOD_US;
       g_state.systime = SYSTIME;
       leds_toggle(0);
@@ -47,15 +47,10 @@ int main()
     const async_poll_tick_result_t aptr = async_poll_tick();
     if (aptr == APT_JUST_FINISHED)
     {
-      volatile uint32_t t1 = SYSTIME - prev_start_time;
-      // now do the super slow tactile bridges...
-
-      // synchronous (slow!) poll for the SPI tactile ports now
-      tactile_poll(2);
-      tactile_poll(3);
-      volatile uint32_t t2 = SYSTIME - prev_start_time - t1;
-      printf("%lu async: %lu sync: %lu \r\n", SYSTIME, t1, t2);
-
+#ifdef PRINT_TIMING
+      volatile uint32_t t1 __attribute__((unused))= SYSTIME - prev_start_time;
+      printf("%lu : %lu \r\n", SYSTIME, t1);
+#endif
       if (enet_get_link_status() == ENET_LINK_UP)
         enet_send_state();
       enet_process_rx_ring(); // deal with inbound messages

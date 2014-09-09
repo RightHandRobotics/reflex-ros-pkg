@@ -43,6 +43,7 @@ async_poll_tick_result_t async_poll_tick()
     return APT_COMPLETE;
   bool all_done = true;
   for (uint_fast8_t i = 0; i < ASYNC_POLL_NUM_PORTS; i++)
+  //for (uint_fast8_t i = 2; i < 3; i++)
   {
     if (*(poll_targets[i].poll_state) == (int)ASYNC_POLL_DONE)
       continue;
@@ -68,6 +69,7 @@ async_poll_tick_result_t async_poll_tick()
 void async_poll_start()
 {
   for (uint_fast8_t i = 0; i < ASYNC_POLL_NUM_PORTS; i++)
+  //for (uint_fast8_t i = 2; i < 3; i++)
   {
     // force them all to the DONE state, in case somebody was stuck,
     // so their state machines get the DONE -> IDLE transition on the next tick
