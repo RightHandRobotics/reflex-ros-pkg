@@ -7,6 +7,8 @@
 #include <string>
 using namespace std;
 
+//int palm_map[] = {5, 7, 6, 8, 2, 3, 8, 9, 9, 0, 1};
+int palm_map[] = {5, 8, 6, 7, 2, 3, 8, 9, 9, 0, 1};
 
 ros::Publisher joint_pub;
 ros::Publisher sensor_pub;
@@ -126,8 +128,8 @@ int main(int argc, char **argv)
   // Loop through tactile sensors in the palm
   for (int i=0; i<11; i++)
   {
-    contact_val = hand->palm.contact[i];
-    pressure_val = hand->palm.pressure[i];
+    contact_val = hand->palm.contact[palm_map[i]];
+    pressure_val = hand->palm.pressure[palm_map[i]];
     visualization_msgs::Marker contact_marker = makeContactMarker(contact_val, i, 0.004, 0.01, false);
     visualization_msgs::Marker pressure_marker = makePressureMarker(pressure_val, i, 0.009, 0.008, false);
     marker_array.markers.push_back(contact_marker);
