@@ -146,7 +146,8 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     encoder_last_value[i] = state->encoders_[2-i];
     hand_msg.finger[i].proximal = ((state->encoders_[2-i] + encoder_offset[i])*reflex_hand::ReflexHand::ENC_SCALE - enc_zero[i]);
     hand_msg.finger[i].spool = motor_inversion[i]*((state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
-    hand_msg.finger[i].distal = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
+    double diff = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
+    hand_msg.finger[i].distal = (diff<0)?0:diff;
 
     for (int j=0; j < 9; j++)
     {
