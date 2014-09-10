@@ -33,7 +33,8 @@
  	</xacro:macro>
 
   <xacro:macro name="pad_color">
-    <color rgba="0.686 0.0706 0.8039 1"/>
+    <color rgba="0.6 0.0 0.0 1"/>
+    <!--    <color rgba="0.686 0.0706 0.8039 1"/> -->
   </xacro:macro>  
 
 	<!-- Macro to make each park of the link -->
