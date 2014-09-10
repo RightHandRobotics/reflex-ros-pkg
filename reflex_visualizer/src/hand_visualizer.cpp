@@ -162,7 +162,7 @@ visualization_msgs::Marker makeContactMarker(bool val, int id, float radius, flo
     marker.scale.z = height-0.001;
     marker.color.r = 1.0;
     marker.color.g = 1.0;
-    marker.color.b = 0.0;
+    marker.color.b = 1.0;
   }
   return marker;
 }
@@ -185,7 +185,7 @@ visualization_msgs::Marker makePressureMarker(float val, int id, float radius, f
   val = max(min((0.6*abs(val)/-100) + 0.6, 1.0), 0.0);
     marker.color.r = val;
     marker.color.g = val;
-    marker.color.b = 1.0;
+    marker.color.b = val;
     return marker;
   }
 
