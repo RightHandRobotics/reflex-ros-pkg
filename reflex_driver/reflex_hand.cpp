@@ -159,7 +159,8 @@ bool ReflexHand::listen(const double max_seconds)
     int nbytes = recvfrom(rx_sock_, rxbuf, sizeof(rxbuf), 0, NULL, NULL);
     rx(rxbuf, nbytes);
   }
-  /*
+ 
+  /* 
   if (rv < 0)
     return false;
   if (rv == 0 || !FD_ISSET(rx_sock_, &rdset))
@@ -168,7 +169,7 @@ bool ReflexHand::listen(const double max_seconds)
     return false;
   if (state_cb_)
     state_cb_(&rx_state_);
-    */
+  */ 
   return true;
 }
 
