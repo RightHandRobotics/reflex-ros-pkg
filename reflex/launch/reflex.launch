@@ -19,7 +19,7 @@
   <!--node name="rviz"                   pkg="rviz" type="rviz"  args="-d $(find reflex)/urdf.rviz"  output="screen"/-->
   <!-- B) Uncomment this line to use the visualizer. Cannot be used at the same time as the other rviz call. Go to RHR website and
   follow visualizer tutorial to get this package You'll need to install rviz-->
-  <!--include file="$(find rhr_visualization)/launch/rhr_viz.launch"/-->
+  <!--include file="$(find reflex_visualizer)/launch/rhr_viz.launch"/-->
   
   <!--include file="$(find dococ)/launch/buttons.launch"/-->
 
