@@ -50,11 +50,12 @@ class ReFlex(object):
 		super(ReFlex, self).__init__()
 
 		# basic commands
-		self.BASE_FINGER_COMMANDS = ['goto', 'guarded_move', 'solid_contact', 'avoid_contact', 'maintain_contact', 'dither', 'hold', 'loose']
+		self.BASE_FINGER_COMMANDS = ['goto', 'guarded_move', 'guarded_move_fast', 'solid_contact', 'avoid_contact', 'maintain_contact', 'dither', 'hold', 'loose']
 		self.FINGER_MAP = {'f1':0,'f2':1,'f3':2}
 
 		# motion parameters
 		self.FINGER_STEP = 0.05 						# radians / 0.01 second
+		self.FINGER_STEP_LARGE = 0.15 					# radians / 0.01 second
 		self.SERVO_SPEED_MIN = 0.0 						# radians / second
 		self.SERVO_SPEED_MAX = 3.0 						# radians / second
 		self.TENDON_MIN = 0.0							# max opening (radians)
@@ -162,6 +163,19 @@ class ReFlex(object):
 					self.working[i] = False
 					self.event_reason[i] = 1
 					
+			# guarded modes
+			elif self.control_mode[i] == 'guarded_move_fast':		# close until either link experiences contact
+				if self.hand.tactile_publishing and self.hand.joints_publishing:
+					if self.finger_in_contact(i) or (self.hand.finger[i].spool >= self.TENDON_MAX):
+						self.working[i] = False
+						self.event_reason[i] = 0
+					elif self.working[i]:
+						self.cmd_spool[i] = self.hand.finger[i].spool+self.FINGER_STEP_LARGE
+				else:
+					rospy.loginfo(publishing_error + "guarded_move_fast")
+					self.working[i] = False
+					self.event_reason[i] = 1
+			
 			elif self.control_mode[i] == 'solid_contact':		# close until both links experience contact
 				if self.hand.tactile_publishing and self.hand.joints_publishing:
 					if self.finger_full_contact(i) or (self.hand.finger[i].spool >= self.TENDON_MAX):
@@ -225,7 +239,7 @@ class ReFlex(object):
 			pos_error.append(motor_error > self.ARRIVAL_ERROR and self.working[i])
 			self.cmd_spool_old[i] = deepcopy(self.cmd_spool[i])
 
-			if self.working[i] and (self.control_mode[i] == 'guarded_move' or self.control_mode[i] == 'solid_contact'):
+			if self.working[i] and (self.control_mode[i] == 'guarded_move' or self.control_mode[i] == 'solid_contact' or self.control_mode[i] == 'guarded_move_fast'):
 				rospy.loginfo("Finger %d\tControl mode: %s\tStill working: True", i+1, self.control_mode[i])
 
 		if sum(cmd_change) or sum(pos_error):
@@ -268,6 +282,9 @@ class ReFlex(object):
 		if mode == 'guarded_move':
 			self.working[i] = True
 			self.control_mode[i] = 'guarded_move'
+		if mode == 'guarded_move_fast':
+			self.working[i] = True
+			self.control_mode[i] = 'guarded_move_fast'
 		elif mode == 'solid_contact':
 			self.working[i] = True
 			self.control_mode[i] = 'solid_contact'
@@ -384,6 +401,10 @@ class ReFlex(object):
 
 	def guarded_move(self):
 		self.__command_base('guarded_move')
+
+
+	def guarded_move_fast(self):
+		self.__command_base('guarded_move_fast')
 
 
 	def solid_contact(self):
