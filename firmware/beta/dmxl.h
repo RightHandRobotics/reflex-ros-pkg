@@ -32,11 +32,14 @@ void dmxl_set_control_mode(const uint8_t port_idx,
                            const dmxl_control_mode_t control_mode);
 void dmxl_set_control_target(const uint8_t port_idx, 
                              const uint16_t target);
+void dmxl_set_all_control_targets(const uint16_t *targets);
+
 void dmxl_poll();
 void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port);
 
 typedef enum 
 { 
+  DPS_WAIT,
   DPS_POLL_TX,
   DPS_POLL_RX,
   DPS_DONE = ASYNC_POLL_DONE

@@ -33,7 +33,7 @@ clean:
 	rmdir $(BINDIR)
 
 dfu_download: $(OUT).bin
-	sudo dfu-util -d 0483:df11 --dfuse-address 0x08000000 -a 0 -D bin/reflex.bin
+	sudo dfu-util -d 0483:df11 --dfuse-address 0x08000000 -a 0 -D bin/reflex.bin -v
 
 program: ${OUT}.bin
 	$(OPENOCD) -f stm32/olimex-arm-usb-tiny-h.cfg -f stm32/stm32.cfg -c "init; halt; flash write_image erase ${OUT}.bin 0x8000000; verify_image ${OUT}.bin 0x8000000; sleep 100; reset run; sleep 100; shutdown"

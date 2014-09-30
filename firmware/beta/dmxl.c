@@ -481,6 +481,46 @@ void dmxl_set_control_target(const uint8_t port_idx,
   dmxl_write_data(port_idx, DMXL_DEFAULT_ID, 2, 30, d);
 }
 
+void dmxl_set_all_control_targets(const uint16_t *targets)
+{
+  // set all control targets simultaneously
+  static uint8_t pkts[NUM_DMXL][12];
+  for (int i = 0; i < NUM_DMXL; i++)
+  {
+    USART_TypeDef *u = g_dmxl_ports[i].uart;
+    u->CR1 &= ~USART_CR1_RE; // disable the receiver during transmit
+    u->CR1 |=  USART_CR1_TE; // enable the transmitter
+    pkts[i][0] = 0xff;
+    pkts[i][1] = 0xff;
+    pkts[i][2] = DMXL_DEFAULT_ID;
+    pkts[i][3] = 5; // write 2 bytes + 3 byte overhead
+    pkts[i][4] = 3; // instruction: "write data"
+    pkts[i][5] = 30; // start address: control target
+    pkts[i][6] = targets[i] & 0xff; // LSB of control target
+    pkts[i][7] = (targets[i] >> 8) & 0xff; // MSB of control target
+    pkts[i][8] = 0; // checksum
+    for (int j = 2; j < 8; j++)
+      pkts[i][8] += pkts[i][j];
+    pkts[i][8] = ~pkts[i][8]; // invert checksum
+  }
+  for (int j = 0; j < 9; j++)
+  {
+    for (int i = 0; i < NUM_DMXL; i++)
+    {
+      USART_TypeDef *u = g_dmxl_ports[i].uart;
+      while (!(u->SR & USART_SR_TXE)) { } // wait for tx buffer to clear
+      u->DR = pkts[i][j];
+    }
+  }
+  for (int i = 0; i < NUM_DMXL; i++)
+  {
+    USART_TypeDef *u = g_dmxl_ports[i].uart;
+    while (!(u->SR & USART_SR_TC)) { } // wait for last TX to finish
+    u->CR1 &= ~USART_CR1_TE; // disable the transmitter
+    u->CR1 |=  USART_CR1_RE; // re-enable the receiver
+  }
+}
+
 void dmxl_poll()
 {
   // spin through and poll all their angles, velocities, currents, 
@@ -520,6 +560,11 @@ void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port)
   switch (*ps)
   {
     case DPS_DONE: // poll start
+      dmxl_rx_start_time[dmxl_port] = SYSTIME;
+      *ps = DPS_WAIT; // give any outbound command some time to be processed
+      break;
+    case DPS_WAIT:
+      if (SYSTIME - dmxl_rx_start_time[dmxl_port] > 5000) 
       {
         u->CR1 &= ~USART_CR1_RE; // disable the receiver during transmit
         u->CR1 |=  USART_CR1_TE; // enable the transmitter

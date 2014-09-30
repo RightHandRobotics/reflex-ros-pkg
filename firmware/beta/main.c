@@ -64,6 +64,9 @@ int main()
       if (enet_get_link_status() == ENET_LINK_UP)
         enet_send_state();
 
+      enet_process_rx_ring();
+#if 0
+
 #ifdef PRINT_TIMING
       volatile uint32_t t_before_enet = SYSTIME;
 #endif
@@ -91,6 +94,7 @@ int main()
                (unsigned)t_after_dmxl);
 #endif
       }
+#endif
     }
   }
   return 0;

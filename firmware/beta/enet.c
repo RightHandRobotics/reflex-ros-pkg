@@ -5,6 +5,7 @@
 #include "dmxl.h"
 #include "state.h"
 #include "systime.h"
+#include "delay.h"
 
 // declare the pin numbers
 #define PORTA_ETH_REFCLK 1
@@ -536,6 +537,7 @@ static bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       */
       for (int i = 0; i < NUM_DMXL; i++)
         dmxl_set_control_mode(i, (dmxl_control_mode_t)payload[1+i]);
+      delay_ms(1); // be sure they control mode messages get through
       return true;
     }
     else if (cmd == 2 && payload_len >= 9)
@@ -547,8 +549,11 @@ static bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       printf("targets: %06d %06d %06d %06d\r\n", 
              targets[0], targets[1], targets[2], targets[3]);
       */
+      /*
       for (int i = 0; i < NUM_DMXL; i++)
         dmxl_set_control_target(i, targets[i]);
+      */
+      dmxl_set_all_control_targets(targets);
       //dmxl_set_control_target(0, targets[0]); // debugging... just do #0
       return true;
     }
