@@ -12,7 +12,8 @@ typedef enum
   DMXL_CS_IDLE        = 0,
   DMXL_CS_TX          = 1,
   DMXL_CS_POLL_STATE  = 2,
-  DMXL_CS_POLL_DEBRIS = 3
+  DMXL_CS_POLL_DEBRIS = 3,
+  DMXL_CS_PING        = 4
 } dmxl_comms_state_t;
 
 typedef enum
@@ -58,6 +59,7 @@ static void dmxl_read_data(const uint8_t port_idx, const uint8_t dmxl_id,
 static void dmxl_write_data(const uint8_t port_idx, const uint8_t dmxl_id,
                             const uint8_t data_len, const uint8_t start_addr, 
                             const uint8_t *data);
+static uint8_t dmxl_send_ping(const uint8_t port_idx, const uint8_t dmxl_id);
 
 // put in ramfunc sector ?
 static inline void dmxl_push_byte(const uint8_t dmxl_port, const uint8_t byte) 
@@ -93,6 +95,34 @@ void usart6_vector()
   dmxl_push_byte(2, USART6->DR);
 }
 
+void dmxl_set_usart_baud(const uint_fast8_t dmxl_idx, int baud)
+{
+  USART_TypeDef *u = g_dmxl_ports[dmxl_idx].uart;
+  if (baud == 57600)
+  {
+    if (u == USART6)
+      u->BRR = (((uint16_t)91) << 4) | 2; 
+    else
+      u->BRR = (((uint16_t)45) << 4) | 9;
+  }
+  else if (baud == 250000)
+  {
+    if (u == USART6)
+      u->BRR = (((uint16_t)21) << 4);
+    else
+      u->BRR = (((uint16_t)10) << 4) | 8;
+  }
+  else if (baud == 1000000)
+  {
+    if (u == USART6)
+      u->BRR = (((uint16_t)5) << 4) |  4; 
+    else
+      u->BRR = (((uint16_t)2) << 4) | 10;
+  }
+  else
+    printf("ahhh unhandled baud rate: %d\r\n", baud);
+}
+
 void dmxl_init()
 {
   printf("dmxl_init()\r\n");
@@ -123,12 +153,8 @@ void dmxl_init()
     USART_TypeDef *u = dp->uart;
     u->CR1 &= ~USART_CR1_UE; // make sure it's off while we configure it
     u->CR1 |=  USART_CR1_RE; // don't enable the transmitter yet
-    // set to the default baud rate: 57600
-    if (u == USART6)
-      u->BRR = (((uint16_t)91) << 4) | 2; 
-    else
-      u->BRR = (((uint16_t)45) << 4) | 9;
 
+    dmxl_set_usart_baud(i, 250000);
     /*
     if (u == USART6) // running on APB2 = 84 MHz
       u->BRR = (((uint16_t)5) << 4) | 4; // 5.25 mantissa = 5, fraction =  4
@@ -184,6 +210,39 @@ void dmxl_set_status_return_levels()
   }
 }
 
+void dmxl_set_baud_rates()
+{
+  for (int i = 0; i < NUM_DMXL; i++)
+  {
+    dmxl_set_usart_baud(i, 250000);
+    g_dmxl_ports[i].comms_state = DMXL_CS_PING;
+    dmxl_send_ping(i, DMXL_DEFAULT_ID);
+    volatile uint32_t t_start = SYSTIME;
+    bool pong_received = false;
+    while (SYSTIME - t_start < 10000 && !pong_received)
+    {
+      dmxl_process_rings();
+      if (g_dmxl_ports[i].comms_state != DMXL_CS_PING)
+        pong_received = true;
+    }
+    if (pong_received)
+    {
+      printf("received rx @ 250 kbit from dmxl %d\r\n", i);
+      continue; // hooray. it's already at the target baud rate
+    }
+    else
+    {
+      printf("no rx received from dmxl %d... trying 57600 baud...\r\n", i);
+      // this is the default out-of-the-box setup
+      dmxl_set_usart_baud(i, 57600);
+      uint8_t baud_code = 7; // the dynamixel code for 250000 baud
+      dmxl_write_data(i, DMXL_DEFAULT_ID, 1, 0x04, &baud_code);
+      delay_ms(500);
+      dmxl_set_usart_baud(i, 250000);
+    }
+  }
+}
+
 static void dmxl_tx(const uint8_t port_idx, 
                     const uint8_t *payload, const uint8_t payload_len)
 {
@@ -216,7 +275,7 @@ static void dmxl_tx(const uint8_t port_idx,
   // todo: actually spin here until we get a packet back in the rx ring
 }
 
-uint8_t dmxl_ping(const uint8_t port_idx, const uint8_t dmxl_id)
+uint8_t dmxl_send_ping(const uint8_t port_idx, const uint8_t dmxl_id)
 {
   uint8_t pkt[3];
   pkt[0] = dmxl_id;

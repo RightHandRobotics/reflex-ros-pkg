@@ -46,5 +46,6 @@ extern dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL];
 bool dmxl_all_available();
 
 void dmxl_set_status_return_levels();
+void dmxl_set_baud_rates();
 
 #endif 

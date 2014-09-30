@@ -30,6 +30,7 @@ int main()
   fan_on(); // todo: be smarter. probably doesn't need to run all the time.
   __enable_irq();
 
+  dmxl_set_baud_rates();
   dmxl_set_status_return_levels();
 
   volatile uint32_t prev_start_time = SYSTIME;
@@ -75,7 +76,7 @@ int main()
         // if we did something with a packet, bump our next TX time up 
         // by one cycle period, so we have enough time to talk to the
         // dynamixels
-        poll_cycles_to_skip = 1; // skip the next polling cycle
+        //poll_cycles_to_skip = 1; // skip the next polling cycle
         //printf("proc rx ring: %d\r\n", num_rx);
 #ifdef PRINT_TIMING
         volatile uint32_t t_before_dmxl = SYSTIME;

@@ -1,4 +1,4 @@
-default: gccarm.installed openocd
+default: gccarm.installed openocd dfu
 
 # potentially this could be smarter if it detects the OS/distro or whatever.
 dfu:
