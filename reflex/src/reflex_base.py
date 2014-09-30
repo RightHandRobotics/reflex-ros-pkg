@@ -54,7 +54,7 @@ class ReFlex(object):
 		self.FINGER_MAP = {'f1':0,'f2':1,'f3':2}
 
 		# motion parameters
-		self.FINGER_STEP = 0.05 						# radians / 0.01 second
+		self.FINGER_STEP = 0.1 						# radians / 0.01 second
 		self.FINGER_STEP_LARGE = 0.15 					# radians / 0.01 second
 		self.SERVO_SPEED_MIN = 0.0 						# radians / second
 		self.SERVO_SPEED_MAX = 3.0 						# radians / second
@@ -229,7 +229,7 @@ class ReFlex(object):
 
 			# If an action has been completed, publish an event
 			if (working_state[i] == True) and (self.working[i] == False):
-				self.event_pub.publish("Finger %d has completed '%s' action"%(i, self.control_mode[i]),\
+				self.event_pub.publish("Finger %d has completed '%s' action to spool position %f"%(i, self.control_mode[i], self.cmd_spool[i]),\
 										self.control_mode[i], i, self.event_reason[i], rospy.Time.now())
 
 			# execute finger control 
