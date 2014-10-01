@@ -14,6 +14,7 @@ First, you need to get the cross-compiler (gcc-arm) and build OpenOCD, the JTAG 
 Now you can build the firmware image:
 
     cd firmware/beta
+    make clean
     make
 
 That will produce a flash image in the firmware/beta/bin directory. To program the microcontroller's flash memory with this image, we can use the microcontroller's built-in ROM bootloader, which will let us connect to the chip directly over USB and program its flash. The STM32F4 processor chooses whether it should boot to the ROM bootloader or the flash-memory program based on whether it's BOOT pin is high or low when its RESET line is released. On the controller board, you will find two buttons. The one nearest the corner of the board is connected to RESET. The one a little further from the corner is the BOOT select line. The neat thing about this setup is that it's impossible to "brick" the chip, even without a JTAG dongle: you can *always* put the chip back in bootloader mode and re-image it. To do this, follow these steps:
