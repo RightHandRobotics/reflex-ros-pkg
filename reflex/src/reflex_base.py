@@ -282,7 +282,7 @@ class ReFlex(object):
 		if mode == 'guarded_move':
 			self.working[i] = True
 			self.control_mode[i] = 'guarded_move'
-		if mode == 'guarded_move_fast':
+		elif mode == 'guarded_move_fast':
 			self.working[i] = True
 			self.control_mode[i] = 'guarded_move_fast'
 		elif mode == 'solid_contact':
