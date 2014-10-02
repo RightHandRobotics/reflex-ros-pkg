@@ -43,7 +43,7 @@ class ReFlex_Smarts(ReFlex):
 		self.SMART_FINGER_COMMANDS = ['open', 'preshape_probe', 'tighten', 'loosen']
 
 		# called only on full-hand basis
-		self.HAND_COMMANDS = ['cylinder', 'spherical', 'pinch', 'fingerwalk', 'align_all', 'dof']
+		self.HAND_COMMANDS = ['cylinder', 'spherical', 'pinch', 'fingerwalk', 'align_all', 'dof', 'burnin']
 
 
 	# Parses modes and turns them into control_modes for control_loop
@@ -79,6 +79,7 @@ class ReFlex_Smarts(ReFlex):
 				if args[0] == 'spherical': 	self.set_spherical(speed)
 				if args[0] == 'pinch': 		self.set_pinch(speed)
 				if args[0] == 'dof':		self.dof_tour(speed)
+				if args[0] == 'burnin':		self.burnin(speed)
 				if args[0] == 'fingerwalk':	self.fingerwalk(speed)
 				if args[0] == 'align_all':	self.align_all(speed)
 			elif args[0] in self.BASE_FINGER_COMMANDS:
@@ -180,6 +181,16 @@ class ReFlex_Smarts(ReFlex):
 			rospy.sleep(DOF_WAITTIME)
 		return
 
+	def burnin(self, speed):
+		rospy.loginfo("reflex_smarts:burnin")
+		self.move_preshape(ROT_CYL, speed)
+		while any(self.working) and not rospy.is_shutdown(): rospy.sleep(0.01)
+		for i in range(3):
+			self.move_finger(i, DOF_POS, speed)
+			while any(self.working) and not rospy.is_shutdown(): rospy.sleep(0.01)
+			self.open(i, speed)
+			while any(self.working) and not rospy.is_shutdown(): rospy.sleep(0.01)
+		return	
 
 	# Performs a preset routine to tighten fingers and walk object into a solid grip
 	def fingerwalk(self, speed, in_step = 0.6, out_step = 1.0):
