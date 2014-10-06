@@ -33,7 +33,7 @@ OPEN = 0			# radians tendon spool
 PROBE_POS = 0.8		# radians tendon spool
 DOF_POS = 3.25
 DOF_WAITTIME = 1 	# seconds between dof_tour steps
-HOW_HARDER = 1.0	# radians step size for tightening and loosening
+HOW_HARDER = 0.1	# radians step size for tightening and loosening
 
 class ReFlex_Smarts(ReFlex):
 	def __init__(self):
@@ -143,12 +143,12 @@ class ReFlex_Smarts(ReFlex):
 
 	def tighten(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:tighten: Tightening finger %d", finger_index+1)
-		self.move_finger(finger_index, self.hand.finger[finger_index].spool + (HOW_HARDER/3), speed)
+		self.move_finger(finger_index, self.hand.finger[finger_index].spool + HOW_HARDER, speed)
 
 
 	def loosen(self, finger_index, speed):
 		rospy.loginfo("reflex_smarts:loosen: Tightening finger %d", finger_index+1)
-		self.move_finger(finger_index, self.hand.finger[finger_index].spool - (HOW_HARDER/3), speed)
+		self.move_finger(finger_index, self.hand.finger[finger_index].spool - HOW_HARDER, speed)
 
 
 	def set_cylindrical(self, speed):
