@@ -293,11 +293,11 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     {
       ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
       // Write to variable
-      int scale = 200;
+      int offset = 300;
       for (int i = 0; i<4; i++)
       {
-        if (i == 3) scale = 0;
-        dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_inversion[i]*scale))*
+        if (i == 3) offset = 0;
+        dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_inversion[i]*offset))*
               reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
         if (dyn_zero[i] > 4*3.1415)
         {
@@ -306,7 +306,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
           ROS_WARN("\tTry redoing the calibration, depowering/repowering if it repeats");
         }
 
-        servo_pos.raw_positions[i] = state->dynamixel_angles_[i] - (motor_inversion[i]*scale);
+        servo_pos.raw_positions[i] = state->dynamixel_angles_[i] - (motor_inversion[i]*offset);
       }
       // Write to file
       finger_file << "motor_zero_reference: ["

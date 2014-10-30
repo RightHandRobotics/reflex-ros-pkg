@@ -172,6 +172,7 @@ class ReFlex_Smarts(ReFlex):
 		self.move_preshape(ROT_CYL, speed)
 		rospy.sleep(DOF_WAITTIME)
 		for i in range(3):
+			rospy.logwarn("Moving finger %d", i + 1)
 			self.move_finger(i, DOF_POS, speed)
 			rospy.sleep(DOF_WAITTIME)
 			self.open(i, speed)
