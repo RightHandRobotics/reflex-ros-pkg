@@ -157,7 +157,9 @@ class ReFlex(object):
                     self.event_reason[i] = 0
                 elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME) and \
                     abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
-                    self.move_finger(i, self.TENDON_MIN, 1.0)
+                    self.move_finger(i, self.hand.finger[i].spool, 1.0)
+                    self.working[i] = False
+                    self.event_reason[i] = 0
                     rospy.logwarn("Finger %d was blocked, opening finger", i + 1)
                     rospy.logwarn("-------------------------------------")
                     rospy.loginfo("\tIf the finger reports blocked but wasn't actually blocked,")
