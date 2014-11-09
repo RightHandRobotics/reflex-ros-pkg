@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
 ###########################################################
-# 
+#
 # Exposes basic functionality of the hand in a ReFlex class
 # The reflex package is designed to be used in two ways
-# First, you can instantiate a ReFlex class and use it's methods/variables. This is intended for scripts
-# Second, you can run reflex_base.py and use the services advertised to run commands. This is for prototyping
+# First, you can instantiate a ReFlex class and use it's methods/variables.
+# This is intended for scripts
+# Second, you can run reflex_base.py and use the services advertised to run
+# commands. This is for prototyping
 #
 # Eric Schneider
-# 
+#
 ###########################################################
 # TODO: Setting servo speed is implemented here but not in firmware.
 # Pass speed to the hand in __control_loop when implemented
@@ -45,30 +47,43 @@ from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 # methods to control the full hand
 #   None
 
+
 class ReFlex(object):
+
     def __init__(self):
         super(ReFlex, self).__init__()
 
         # basic commands
-        self.BASE_FINGER_COMMANDS = ['goto', 'guarded_move', 'guarded_move_fast', 'solid_contact', 'avoid_contact', 'maintain_contact', 'dither', 'hold', 'loose']
-        self.FINGER_MAP = {'f1':0,'f2':1,'f3':2}
+        self.BASE_FINGER_COMMANDS = ['goto',
+                                     'guarded_move',
+                                     'guarded_move_fast',
+                                     'solid_contact',
+                                     'avoid_contact',
+                                     'maintain_contact',
+                                     'dither',
+                                     'hold',
+                                     'loose']
+        self.FINGER_MAP = {'f1': 0, 'f2': 1, 'f3': 2}
 
         # motion parameters
-        self.FINGER_STEP = 0.05                 # radians / 0.01 second
-        self.FINGER_STEP_LARGE = 0.15           # radians / 0.01 second
-        self.SERVO_SPEED_MIN = 0.0              # radians / second
-        self.SERVO_SPEED_MAX = 3.0              # radians / second
-        self.TENDON_MIN = 0.0                   # max opening (radians)
-        self.TENDON_MAX = 3.5                   # max closure (radians)
-        self.PRESHAPE_MIN = 0.0                 # max opening (radians)
-        self.PRESHAPE_MAX = 1.6                 # max closure (radians)
+        self.FINGER_STEP = 0.05         # radians / 0.01 second
+        self.FINGER_STEP_LARGE = 0.15   # radians / 0.01 second
+        self.SERVO_SPEED_MIN = 0.0      # radians / second
+        self.SERVO_SPEED_MAX = 3.0      # radians / second
+        self.TENDON_MIN = 0.0           # max opening (radians)
+        self.TENDON_MAX = 3.5           # max closure (radians)
+        self.PRESHAPE_MIN = 0.0         # max opening (radians)
+        self.PRESHAPE_MAX = 1.6         # max closure (radians)
 
         # control loop logic parameters for safety checking
-        self.ARRIVAL_ERROR = 0.05               # error at which the control loop considers position control finished
-        self.BLOCKED_ERROR = 0.05               # if the finger hasn't moved this far in hand_hist steps, it's blocked
-        self.BLOCKED_TIME = 0.3                 # seconds before checking for blackage.
-                                                # it's necessary to wait, otherwise the finger will interpret the time
-                                                # spent still before movement as being blocked
+        self.ARRIVAL_ERROR = 0.05       # error at which control loop considers
+                                        #     position control finished
+        self.BLOCKED_ERROR = 0.05       # if the finger hasn't moved this far
+                                        #     in hand_hist steps, it's blocked
+        self.BLOCKED_TIME = 0.3         # seconds before checking for blackage.
+                                        # it's necessary to wait, otherwise the
+                                        # finger will interpret the time spent
+                                        # still before movement as blocked
 
         # Initialize logic variables
         self.control_mode = ['goto', 'goto', 'goto']        # control mode for each finger
@@ -101,7 +116,9 @@ class ReFlex(object):
         rospy.loginfo("ReFlex class is subscribing to topic %s", topic)
         rospy.Subscriber(topic, Hand, self.__hand_callback)
         time_waiting = 0.0
-        while len(self.hand_hist) < 2 and time_waiting < self.SUBSCRIBE_TIME and not rospy.is_shutdown():
+        while len(self.hand_hist) < 2\
+              and time_waiting < self.SUBSCRIBE_TIME\
+              and not rospy.is_shutdown():
             rospy.sleep(0.01)
             time_waiting += 0.01
         self.hand_publishing = did_subscribe_succeed(time_waiting, topic)
@@ -155,22 +172,25 @@ class ReFlex(object):
                 elif self.working[i] and abs(motor_error) < self.ARRIVAL_ERROR:
                     self.working[i] = False
                     self.event_reason[i] = 0
-                elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME) and \
-                    abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
+                elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME)\
+                     and abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
                     self.move_finger(i, self.hand.finger[i].spool, 1.0)
                     self.working[i] = False
                     self.event_reason[i] = 0
                     rospy.logwarn("Finger %d was blocked, opening finger", i + 1)
                     rospy.logwarn("-------------------------------------")
-                    rospy.loginfo("\tIf the finger reports blocked but wasn't actually blocked,")
-                    rospy.loginfo("\tyou likely commanded the finger to a point past it's range.")
+                    rospy.loginfo("\tIf the finger reports blocked but wasn't
+                    rospy.loginfo("\tactually blocked, you likely commanded")
+                    rospy.loginfo("\tthe finger to a point past it's range.")
                     rospy.loginfo("\tConsider redoing tendon length if finger can't fully close")
                     rospy.logwarn("-------------------------------------")
 
             # guarded modes
             elif self.control_mode[i] == 'guarded_move':        # close until either link experiences contact
-                if self.hand.tactile_publishing and self.hand.joints_publishing:
-                    if self.finger_in_contact(i) or (self.hand.finger[i].spool >= self.TENDON_MAX):
+                if self.hand.tactile_publishing\
+                   and self.hand.joints_publishing:
+                    if self.finger_in_contact(i)\
+                       or (self.hand.finger[i].spool >= self.TENDON_MAX):
                         self.working[i] = False
                         self.event_reason[i] = 0
                     elif self.working[i]:
@@ -179,7 +199,7 @@ class ReFlex(object):
                     rospy.loginfo(publishing_error + "guarded_move")
                     self.working[i] = False
                     self.event_reason[i] = 1
-                    
+
             # guarded modes
             elif self.control_mode[i] == 'guarded_move_fast':       # close until either link experiences contact
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
@@ -192,7 +212,7 @@ class ReFlex(object):
                     rospy.loginfo(publishing_error + "guarded_move_fast")
                     self.working[i] = False
                     self.event_reason[i] = 1
-            
+
             elif self.control_mode[i] == 'solid_contact':       # close until both links experience contact
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
                     if self.finger_full_contact(i) or (self.hand.finger[i].spool >= self.TENDON_MAX):
@@ -295,7 +315,6 @@ class ReFlex(object):
                         break
             return
 
-    
     # Commands a finger to move to a certain position
     def move_finger(self, finger_index, goal_pos, speed):
         self.control_mode[finger_index] = 'goto'
@@ -304,7 +323,6 @@ class ReFlex(object):
         self.cmd_spool[finger_index] = goal_pos
         self.servo_speed[finger_index] = speed
         return
-
 
     # Parses modes and turns them into control_mode for control_loop
     def __command_base_finger(self, finger, mode):
@@ -339,7 +357,6 @@ class ReFlex(object):
         else:
             rospy.logwarn("reflex_base:__command_base_finger: received an unknown finger command: %s", mode)
         self.reset_hist(self.working[i], i)
-
 
     def command_base(self, speed, *args):
         # 1 arg = hand command
@@ -387,7 +404,6 @@ class ReFlex(object):
             rospy.sleep(0.01)
         return flag
 
-
     # Are any of the sensors (finger or palm) in contact?
     def hand_in_contact(self):
         any_contact = False
@@ -398,70 +414,57 @@ class ReFlex(object):
             any_contact = True
         return any_contact
 
-
     # Has the finger made contact?
     def finger_in_contact(self, finger_index):
         return sum(self.hand.finger[finger_index].contact) > 0 or \
                (self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
 
-
     # Are both links in contact?
     def finger_full_contact(self, finger_index):
-        return sum(self.hand.finger[finger_index].contact[0:5]) and \
-               (sum(self.hand.finger[finger_index].contact[5:9]) or \
-               self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
-
+        return sum(self.hand.finger[finger_index].contact[0:5])\
+               and (sum(self.hand.finger[finger_index].contact[5:9])\
+               or self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
 
     # Is the distal link bent
     def distal_joint_contact(self, finger_index):
         spool_level = [self.TENDON_MIN, self.TENDON_MAX]
-        contact_angle = [0.6, 0.8]                         # Angle in distal link indicating contact (radians)
-        
+        contact_angle = [0.6, 0.8]  # Distal angle indicating contact (radians)
+
         # Fit current spool level to a linear slope
         slope = (contact_angle[1] - contact_angle[0]) / (spool_level[1] - spool_level[0])
         y_intercept = contact_angle[0]
         return slope * self.hand.finger[finger_index].spool + y_intercept
 
     def reset_hist(self, flag, finger_index):
-        # This resetting of the 'spool' variable is so that the finger doesn't get stuck as BLOCKED just after
-        # getting commanded. It would get stuck otherwise, because before getting commanded it may
-        # not have moved for a while, and would raise the BLOCKED flag
+        # Resetting of 'spool' variable is so the finger doesn't get stuck as
+        # BLOCKED just after getting commanded
         if flag:
             for i in range(len(self.hand_hist)):
                 self.hand_hist[i].finger[finger_index].spool = -1
 
-
     def guarded_move(self):
         self.__command_base('guarded_move')
-
 
     def guarded_move_fast(self):
         self.__command_base('guarded_move_fast')
 
-
     def solid_contact(self):
         self.__command_base('solid_contact')
 
-    
     def avoid_contact(self):
         self.__command_base('avoid_contact')
-
 
     def maintain_contact(self):
         self.__command_base('maintain_contact')
 
-
     def dither(self):
         self.__command_base('dither')
-
 
     def hold(self):
         self.__command_base('hold')
 
-
     def loose(self):
         self.__command_base('loose')
-
 
     def get_subscriptions(self):
         rospy.loginfo("hand_publishing = %s", self.hand_publishing)
@@ -482,27 +485,27 @@ if __name__ == '__main__':
     reflex_hand = ReFlex()
 
     sh1 = CommandHandService(reflex_hand)
-    s1  = "/reflex/command_base"
+    s1 = "/reflex/command_base"
     rospy.loginfo("reflex_base:__main__: Advertising the %s service", s1)
     s1 = rospy.Service(s1, CommandHand, sh1)
 
     sh2 = MoveFingerService(reflex_hand)
-    s2  = "/reflex/move_finger"
+    s2 = "/reflex/move_finger"
     rospy.loginfo("reflex_base:__main__: Advertising the %s service", s2)
     s2 = rospy.Service(s2, MoveFinger, sh2)
 
     sh3 = MovePreshapeService(reflex_hand)
-    s3  = "/reflex/move_preshape"
+    s3 = "/reflex/move_preshape"
     rospy.loginfo("reflex_base:__main__: Advertising the %s service", s3)
     s3 = rospy.Service(s3, MovePreshape, sh3)
 
     sh4 = StatusDumpService(reflex_hand)
-    s4  = "/reflex/status_dump"
+    s4 = "/reflex/status_dump"
     rospy.loginfo("reflex_base:__main__: Advertising the %s service", s4)
     s4 = rospy.Service(s4, Empty, sh4)
 
     sh5 = KillService(reflex_hand)
-    s5  = "/reflex/kill_current"
+    s5 = "/reflex/kill_current"
     rospy.loginfo("reflex_base:__main__: Advertising the %s service", s5)
     s5 = rospy.Service(s5, Empty, sh5)
 
