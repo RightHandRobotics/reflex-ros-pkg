@@ -1,6 +1,5 @@
 <!-- nodes and parameters for reflex -->
 <launch>
-
   <rosparam file="$(find reflex)/yaml/reflex.yaml" command="load"/>
   <rosparam file="$(find reflex)/yaml/takktile_cal.yaml" command="load"/>
 
@@ -10,7 +9,7 @@
   <!-- <node name="spoof_rhr_data" pkg="reflex_visualizer" type="spoof_rhr_data.py"/> -->
 
   <!-- A) Uncomment reflex to only use the basic motions and commands. Choose this or reflex smarts -->
-  <!-- <node name="reflex"            pkg="reflex"       type="reflex.py"         output="screen"/> -->
+  <!-- <node name="reflex"            pkg="reflex"       type="reflex_base.py"         output="screen"/> -->
   <!-- B) Uncomment reflex_smarts to have access to reflex plus some pre-programmed moves like 'open' and 'tighten' (DEFAULT) -->
   <node name="reflex_smarts"          pkg="reflex"       type="reflex_smarts.py"       output="screen"	respawn="true"/>
 
@@ -22,6 +21,4 @@
   <!--include file="$(find reflex_visualizer)/launch/rhr_viz.launch"/-->
   
   <!--include file="$(find dococ)/launch/buttons.launch"/-->
-
-
 </launch>

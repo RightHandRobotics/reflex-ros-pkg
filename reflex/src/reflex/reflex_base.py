@@ -177,12 +177,13 @@ class ReFlex(object):
                     self.move_finger(i, self.hand.finger[i].spool, 1.0)
                     self.working[i] = False
                     self.event_reason[i] = 0
-                    rospy.logwarn("Finger %d was blocked, opening finger", i + 1)
+                    rospy.logwarn("Finger %d was blocked, opening finger", i+1)
                     rospy.logwarn("-------------------------------------")
-                    rospy.loginfo("\tIf the finger reports blocked but wasn't
+                    rospy.loginfo("\tIf the finger reports blocked but wasn't")
                     rospy.loginfo("\tactually blocked, you likely commanded")
                     rospy.loginfo("\tthe finger to a point past it's range.")
-                    rospy.loginfo("\tConsider redoing tendon length if finger can't fully close")
+                    rospy.loginfo("\tConsider redoing tendon length if finger")
+                    rospy.logwarn("\tcan't fully close")
                     rospy.logwarn("-------------------------------------")
 
             # guarded modes
