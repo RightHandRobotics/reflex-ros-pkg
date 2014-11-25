@@ -183,7 +183,7 @@ class ReFlex(object):
                     rospy.loginfo("\tactually blocked, you likely commanded")
                     rospy.loginfo("\tthe finger to a point past it's range.")
                     rospy.loginfo("\tConsider redoing tendon length if finger")
-                    rospy.logwarn("\tcan't fully close")
+                    rospy.loginfo("\tcan't fully close")
                     rospy.logwarn("-------------------------------------")
 
             # guarded modes
@@ -277,15 +277,16 @@ class ReFlex(object):
             pos_error.append(motor_error > self.ARRIVAL_ERROR and self.working[i])
             self.cmd_spool_old[i] = deepcopy(self.cmd_spool[i])
 
-            if self.working[i] and (self.control_mode[i] == 'guarded_move' or self.control_mode[i] == 'solid_contact' or self.control_mode[i] == 'guarded_move_fast'):
-                rospy.loginfo("Finger %d\tControl mode: %s\tStill working: True", i + 1, self.control_mode[i])
+            # What was this code for? It obscured a lot of useful print statements
+            # if self.working[i] and (self.control_mode[i] == 'guarded_move' or self.control_mode[i] == 'solid_contact' or self.control_mode[i] == 'guarded_move_fast'):
+            #     rospy.loginfo("Finger %d\tControl mode: %s\tStill working: True", i + 1, self.control_mode[i])
 
         if sum(cmd_change) or sum(pos_error):
             pos_list = [self.cmd_spool[0], self.cmd_spool[1], self.cmd_spool[2], min(max(self.hand.palm.preshape, self.PRESHAPE_MIN), self.PRESHAPE_MAX)]
             self.actuator_pub.publish(RadianServoPositions(pos_list))
 
     # Commands the preshape joint to move to a certain position
-    def move_preshape(self, goal_pos, speed):
+    def move_preshape(self, goal_pos, speed=1.0):
         if not self.hand.palm.preshape == goal_pos:
             self.call_time[3] = rospy.get_time()
             cmd = min(max(goal_pos, self.PRESHAPE_MIN), self.PRESHAPE_MAX)
@@ -317,7 +318,7 @@ class ReFlex(object):
             return
 
     # Commands a finger to move to a certain position
-    def move_finger(self, finger_index, goal_pos, speed):
+    def move_finger(self, finger_index, goal_pos, speed=1.0):
         self.control_mode[finger_index] = 'goto'
         self.call_time[finger_index] = rospy.get_time()
         self.working[finger_index] = True

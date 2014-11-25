@@ -60,7 +60,7 @@ class ReFlex_Smarts(ReFlex):
         if mode == 'open':
             self.working[i] = True
             self.open(i, self.SERVO_SPEED_MAX)
-        if mode == 'close':
+        elif mode == 'close':
             self.working[i] = True
             self.close(i, self.SERVO_SPEED_MAX)
         elif mode == 'preshape_probe':
