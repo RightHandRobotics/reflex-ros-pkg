@@ -144,45 +144,45 @@ class ReFlex_Smarts(ReFlex):
             rospy.sleep(0.01)
         return flag
 
-    def open(self, finger_index, speed):
+    def open(self, finger_index, speed=1.0):
         rospy.loginfo("reflex_smarts: Opening finger %d", finger_index + 1)
         self.move_finger(finger_index, self.TENDON_MIN, speed)
 
-    def close(self, finger_index, speed):
+    def close(self, finger_index, speed=1.0):
         rospy.loginfo("reflex_smarts: Closing finger %d", finger_index + 1)
         self.move_finger(finger_index, self.TENDON_MAX, speed)
 
-    def preshape_probe(self, finger_index, speed):
+    def preshape_probe(self, finger_index, speed=1.0):
         rospy.loginfo("reflex_smarts: Finger %d to preshape position",
                       finger_index + 1)
         self.move_finger(finger_index, PROBE_POS, speed)
 
-    def tighten(self, finger_index, speed):
+    def tighten(self, finger_index, speed=1.0, spool_delta=HOW_HARDER):
         rospy.loginfo("reflex_smarts: Tighten finger %d", finger_index + 1)
         self.move_finger(finger_index,
-                         self.hand.finger[finger_index].spool + HOW_HARDER,
+                         self.hand.finger[finger_index].spool + spool_delta,
                          speed)
 
-    def loosen(self, finger_index, speed):
+    def loosen(self, finger_index, speed=1.0, spool_delta=HOW_HARDER):
         rospy.loginfo("reflex_smarts: Tightening finger %d", finger_index + 1)
         self.move_finger(finger_index,
-                         self.hand.finger[finger_index].spool - HOW_HARDER,
+                         self.hand.finger[finger_index].spool - spool_delta,
                          speed)
 
-    def set_cylindrical(self, speed):
+    def set_cylindrical(self, speed=1.0):
         rospy.loginfo("reflex_smarts: Going to cylindrical pose")
         self.move_preshape(ROT_CYL, speed)
 
-    def set_spherical(self, speed):
+    def set_spherical(self, speed=1.0):
         rospy.loginfo("reflex_smarts: Going to spherical pose")
         self.move_preshape(ROT_SPH, speed)
 
-    def set_pinch(self, speed):
+    def set_pinch(self, speed=1.0):
         rospy.loginfo("reflex_smarts: Going to pinch pose")
         self.move_preshape(ROT_PINCH, speed)
 
     # Runs hand through its range of motion, using fingers and preshape joint
-    def dof_tour(self, speed):
+    def dof_tour(self, speed=1.0):
         rospy.loginfo("reflex_smarts: Exploring hand DOF...")
         self.move_preshape(ROT_CYL, speed)
         rospy.sleep(DOF_WAITTIME)
@@ -197,7 +197,7 @@ class ReFlex_Smarts(ReFlex):
             rospy.sleep(DOF_WAITTIME)
         return
 
-    def burnin(self, speed):
+    def burnin(self, speed=1.0):
         rospy.loginfo("reflex_smarts:burnin")
         self.move_preshape(ROT_CYL, speed)
         while any(self.working) and not rospy.is_shutdown():
@@ -212,7 +212,7 @@ class ReFlex_Smarts(ReFlex):
         return
 
     # Performs a set routine to tighten fingers and walk object into solid grip
-    def fingerwalk(self, speed, in_step=0.6, out_step=1.0):
+    def fingerwalk(self, speed=1.0, in_step=0.6, out_step=1.0):
         rospy.loginfo("reflex_smarts: Starting fingerwalk...")
         current_state = deepcopy(self.hand)
         counter = 0     # fail-safe to prevent overheating motors
@@ -257,7 +257,7 @@ class ReFlex_Smarts(ReFlex):
             return
 
     # Finds the avg of the three finger spool values and sets them all to that
-    def align_all(self, speed):
+    def align_all(self, speed=1.0):
         avg_spool = sum([self.hand.finger[i].spool for i in range(3)]) / 3.0
         rospy.loginfo("reflex_smarts: Set all fingers to avg spool pos: %f",
                       avg_spool)
