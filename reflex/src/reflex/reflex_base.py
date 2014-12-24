@@ -71,7 +71,7 @@ class ReFlex(object):
         self.SERVO_SPEED_MIN = 0.0      # radians / second
         self.SERVO_SPEED_MAX = 3.0      # radians / second
         self.TENDON_MIN = 0.0           # max opening (radians)
-        self.TENDON_MAX = 3.5           # max closure (radians)
+        self.TENDON_MAX = 4.0           # max closure (radians)
         self.PRESHAPE_MIN = 0.0         # max opening (radians)
         self.PRESHAPE_MAX = 1.6         # max closure (radians)
 
@@ -173,19 +173,20 @@ class ReFlex(object):
                     self.working[i] = False
                     self.event_reason[i] = 0
                 # TODO: Look into how to correctly deal with a blocked hand
-                # elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME)\
-                #      and abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
-                #     self.move_finger(i, self.hand.finger[i].spool, 1.0)
-                #     self.working[i] = False
-                #     self.event_reason[i] = 0
-                #     rospy.logwarn("Finger %d was blocked, opening finger", i+1)
-                #     rospy.logwarn("-------------------------------------")
-                #     rospy.loginfo("\tIf the finger reports blocked but wasn't")
-                #     rospy.loginfo("\tactually blocked, you likely commanded")
-                #     rospy.loginfo("\tthe finger to a point past it's range.")
-                #     rospy.loginfo("\tConsider redoing tendon length if finger")
-                #     rospy.loginfo("\tcan't fully close")
-                #     rospy.logwarn("-------------------------------------")
+                elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME)\
+                     and abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
+                    self.move_finger(i, self.hand.finger[i].spool, 1.0)
+                    self.working[i] = False
+                    self.event_reason[i] = 0
+                    rospy.logwarn("Finger %d was blocked, halting finger", i+1)
+                    rospy.logwarn("-------------------------------------")
+                    rospy.loginfo("\tIf the finger reports blocked but wasn't")
+                    rospy.loginfo("\tactually blocked by an object, it was")
+                    rospy.loginfo("\tlikely commanded to a point out of its.")
+                    rospy.loginfo("\trange. Consider redoing the tendon length")
+                    rospy.loginfo("\tif the finger doesn't have the desired")
+                    rospy.loginfo("\trange")
+                    rospy.logwarn("-------------------------------------")
 
             # guarded modes
             elif self.control_mode[i] == 'guarded_move':        # close until either link experiences contact
@@ -286,6 +287,7 @@ class ReFlex(object):
     def move_preshape(self, goal_pos, speed=1.0):
         if not self.hand.palm.preshape == goal_pos:
             self.call_time[3] = rospy.get_time()
+            self.reset_hist(True, 3)
             cmd = min(max(goal_pos, self.PRESHAPE_MIN), self.PRESHAPE_MAX)
             speed = min(max(speed, self.SERVO_SPEED_MIN), self.SERVO_SPEED_MAX)
             pos_list = [self.hand.finger[0].spool,
@@ -304,15 +306,15 @@ class ReFlex(object):
                     rospy.sleep(0.01)
 
                     # TODO: Investigate how to appropriately do deal with a blocked hand
-                    # if rospy.get_time() > self.call_time[3] + self.BLOCKED_TIME and \
-                    #         abs(self.hand_hist[0].palm.preshape - self.hand_hist[-1].palm.preshape) < self.BLOCKED_ERROR:
-                    #     pos_list = [self.hand.finger[0].spool,
-                    #                 self.hand.finger[1].spool,
-                    #                 self.hand.finger[2].spool,
-                    #                 self.hand.palm.preshape]
-                    #     self.actuator_pub.publish(RadianServoPositions(pos_list))
-                    #     rospy.logwarn("The preshape joint was just blocked, stopping it now")
-                    #     break
+                    if rospy.get_time() > (self.call_time[3] + self.BLOCKED_TIME) \
+                       and abs(self.hand_hist[0].palm.preshape - self.hand_hist[-1].palm.preshape) < self.BLOCKED_ERROR:
+                        pos_list = [self.hand.finger[0].spool,
+                                    self.hand.finger[1].spool,
+                                    self.hand.finger[2].spool,
+                                    self.hand.palm.preshape]
+                        self.actuator_pub.publish(RadianServoPositions(pos_list))
+                        rospy.logwarn("The preshape joint was blocked, stopping it")
+                        break
             return
 
     # Commands a finger to move to a certain position
@@ -328,7 +330,7 @@ class ReFlex(object):
     def __command_base_finger(self, finger, mode):
         i = self.FINGER_MAP[finger]
         if mode in self.BASE_FINGER_COMMANDS:
-            self.call_time[i] = rospy.get_time
+            self.call_time[i] = rospy.get_time()
 
         if mode == 'guarded_move':
             self.working[i] = True
@@ -379,8 +381,8 @@ class ReFlex(object):
             self.__command_base_finger('f3', args[2])
             self.servo_speed = [speed, speed, speed]
 
-            for i in range(3):
-                if args[i] not in self.BASE_FINGER_COMMANDS:
+            for arg in args:
+                if arg not in self.BASE_FINGER_COMMANDS:
                     flag = True
 
         elif len(args) in [2,4,6]:
@@ -425,7 +427,7 @@ class ReFlex(object):
                and (sum(self.hand.finger[finger_index].contact[5:9])\
                or self.hand.finger[finger_index].distal > self.distal_joint_contact(finger_index))
 
-    # Is the distal link bent
+    # Is the distal link bent?
     def distal_joint_contact(self, finger_index):
         spool_level = [self.TENDON_MIN, self.TENDON_MAX]
         contact_angle = [0.6, 0.8]  # Distal angle indicating contact (radians)
@@ -438,7 +440,10 @@ class ReFlex(object):
     def reset_hist(self, flag, finger_index):
         # Resetting of 'spool' variable is so the finger doesn't get stuck as
         # BLOCKED just after getting commanded
-        if flag:
+        if finger_index == 3:
+            for i in range(len(self.hand_hist)):
+                self.hand_hist[i].palm.preshape = -1
+        elif flag:
             for i in range(len(self.hand_hist)):
                 self.hand_hist[i].finger[finger_index].spool = -1
 

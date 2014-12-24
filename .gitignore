@@ -4,7 +4,7 @@ firmware/tools/gccarm.installed
 bin/
 build/
 devel/
-*calibrate.yaml
+reflex_driver/yaml/*calibrate.yaml
 *~
 *.pyc
 firmware/beta/bin

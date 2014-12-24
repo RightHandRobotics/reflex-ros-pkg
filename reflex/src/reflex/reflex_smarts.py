@@ -26,10 +26,10 @@ from reflex_base_services import *
 ROT_CYL = 0.0       # radians rotation
 ROT_SPH = 0.8       # radians rotation
 ROT_PINCH = 1.57    # radians rotation
-
 OPEN = 0            # radians tendon spool
+CLOSED = 3.5        # radians tendon spool
 PROBE_POS = 0.8     # radians tendon spool
-DOF_POS = 3.25
+
 DOF_WAITTIME = 1    # seconds between dof_tour steps
 HOW_HARDER = 0.1    # radians step size for tightening and loosening
 
@@ -59,19 +59,19 @@ class ReFlex_Smarts(ReFlex):
         i = self.FINGER_MAP[finger]
         if mode == 'open':
             self.working[i] = True
-            self.open(i, self.SERVO_SPEED_MAX)
+            self.open(i)
         elif mode == 'close':
             self.working[i] = True
-            self.close(i, self.SERVO_SPEED_MAX)
+            self.close(i)
         elif mode == 'preshape_probe':
             self.working[i] = True
-            self.preshape_probe(i, self.SERVO_SPEED_MAX)
+            self.preshape_probe(i)
         elif mode == 'tighten':
             self.working[i] = True
-            self.tighten(i, self.SERVO_SPEED_MAX/2.0)
+            self.tighten(i)
         elif mode == 'loosen':
             self.working[i] = True
-            self.loosen(i, self.SERVO_SPEED_MAX/2.0)
+            self.loosen(i)
         else:
             rospy.logwarn("reflex_smarts: received unknown finger command: %s",
                           mode)
@@ -136,7 +136,6 @@ class ReFlex_Smarts(ReFlex):
                           args)
             flag = True
 
-        rospy.loginfo("reflex_smarts:command_smarts: commanded fingers")
         rospy.loginfo("self.working = %s, self.control_mode: %s",
                       str(self.working), str(self.control_mode))
 
@@ -146,11 +145,11 @@ class ReFlex_Smarts(ReFlex):
 
     def open(self, finger_index, speed=1.0):
         rospy.loginfo("reflex_smarts: Opening finger %d", finger_index + 1)
-        self.move_finger(finger_index, self.TENDON_MIN, speed)
+        self.move_finger(finger_index, OPEN, speed)
 
     def close(self, finger_index, speed=1.0):
         rospy.loginfo("reflex_smarts: Closing finger %d", finger_index + 1)
-        self.move_finger(finger_index, self.TENDON_MAX, speed)
+        self.move_finger(finger_index, CLOSED, speed)
 
     def preshape_probe(self, finger_index, speed=1.0):
         rospy.loginfo("reflex_smarts: Finger %d to preshape position",
@@ -188,7 +187,7 @@ class ReFlex_Smarts(ReFlex):
         rospy.sleep(DOF_WAITTIME)
         for i in range(3):
             rospy.logwarn("Moving finger %d", i + 1)
-            self.move_finger(i, DOF_POS, speed)
+            self.move_finger(i, CLOSED, speed)
             rospy.sleep(DOF_WAITTIME)
             self.open(i, speed)
             rospy.sleep(DOF_WAITTIME)
@@ -203,7 +202,7 @@ class ReFlex_Smarts(ReFlex):
         while any(self.working) and not rospy.is_shutdown():
             rospy.sleep(0.01)
         for i in range(3):
-            self.move_finger(i, DOF_POS, speed)
+            self.move_finger(i, CLOSED, speed)
             while any(self.working) and not rospy.is_shutdown():
                 rospy.sleep(0.01)
             self.open(i, speed)
@@ -271,27 +270,27 @@ if __name__ == '__main__':
 
     sh2 = MoveFingerService(reflex_hand)
     s2 = "/reflex/move_finger"
-    rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s2)
+    rospy.loginfo("reflex_smarts: Advertising the %s service", s2)
     s2 = rospy.Service(s2, MoveFinger, sh2)
 
     sh3 = MovePreshapeService(reflex_hand)
     s3 = "/reflex/move_preshape"
-    rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s3)
+    rospy.loginfo("reflex_smarts: Advertising the %s service", s3)
     s3 = rospy.Service(s3, MovePreshape, sh3)
 
     sh4 = StatusDumpService(reflex_hand)
     s4 = "/reflex/status_dump"
-    rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s4)
+    rospy.loginfo("reflex_smarts: Advertising the %s service", s4)
     s4 = rospy.Service(s4, Empty, sh4)
 
     sh5 = KillService(reflex_hand)
     s5 = "/reflex/kill_current"
-    rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s5)
+    rospy.loginfo("reflex_smarts: Advertising the %s service", s5)
     s5 = rospy.Service(s5, Empty, sh5)
 
     sh6 = CommandSmartService(reflex_hand)
     s6 = "/reflex/command_smarts"
-    rospy.loginfo("reflex_smarts:__main__: Advertising the %s service", s6)
+    rospy.loginfo("reflex_smarts: Advertising the %s service", s6)
     s6 = rospy.Service(s6, CommandHand, sh6)
 
     r_fast = rospy.Rate(50)

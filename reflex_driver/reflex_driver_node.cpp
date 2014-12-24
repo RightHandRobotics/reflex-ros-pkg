@@ -17,6 +17,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 #include <ros/ros.h>
+#include <algorithm>
 #include <fstream>
 #include <signal.h>
 #include <stdio.h>
@@ -28,10 +29,12 @@
 #include <reflex_msgs/RawServoPositions.h>
 #include <reflex_msgs/RadianServoPositions.h>
 #include <reflex_msgs/Hand.h>
+#include <reflex_msgs/DebugInfo.h>
 using namespace std;
 
 
 ros::Publisher hand_pub;
+ros::Publisher debug_pub;
 ros::Publisher raw_pub;
 ofstream tactile_file;
 string tactile_file_address;
@@ -98,8 +101,9 @@ void load_params(ros::NodeHandle nh)
 void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RawServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = msg->raw_positions[i];
+  }
   rh->setServoTargets(targets);
 }
 
@@ -109,8 +113,18 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RawSer
 void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::RadianServoPositions::ConstPtr &msg)
 {
   uint16_t targets[4];
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = (motor_inversion[i]*msg->radian_positions[i] + dyn_zero[i]) * (dyn_ratio[i]/reflex_hand::ReflexHand::DYN_SCALE);
+    if (targets[i] > reflex_hand::ReflexHand::DYN_MIN_RAW_WRAPPED) {
+      ROS_WARN("Finger %d set out of range (%d), reset to %d", i+1,
+               (int16_t) targets[i], reflex_hand::ReflexHand::DYN_MIN_RAW);
+      targets[i] = reflex_hand::ReflexHand::DYN_MIN_RAW;
+    }
+    else if (targets[i] > reflex_hand::ReflexHand::DYN_MAX_RAW) {
+      ROS_WARN("Finger %d set out of range (%d), reset to %d", i+1,
+               targets[i], reflex_hand::ReflexHand::DYN_MAX_RAW);
+      targets[i] = reflex_hand::ReflexHand::DYN_MAX_RAW;
+    }
   }
   rh->setServoTargets(targets);
 }
@@ -320,12 +334,22 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     }
   }
 
-  // These commented print statement can be saved for debugging  
-  // ROS_INFO("rx time: %d", state->systime_us_);
-  // ROS_INFO("encoders: %6u %6u %6u", 
-  //          state->encoders_[0],
-  //          state->encoders_[1],
-  //          state->encoders_[2]);
+  char buffer [10];
+  reflex_msgs::DebugInfo debug_msg;
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    debug_msg.encoder[i] = state->encoders_[i];
+  }
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    debug_msg.motor[i].raw_angle = state->dynamixel_angles_[i];
+    debug_msg.motor[i].speed = state->dynamixel_speeds_[i];
+    debug_msg.motor[i].load = state->dynamixel_loads_[i];
+    debug_msg.motor[i].voltage = state->dynamixel_voltages_[i];
+    debug_msg.motor[i].temperature = state->dynamixel_temperatures_[i];
+    sprintf(buffer, "0x%02x", state->dynamixel_error_states_[i]);
+    debug_msg.motor[i].error_state = buffer;
+  }
+  debug_pub.publish(debug_msg);
+
   // for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
   // {
   //   const int tactile_base_idx = i * 9;
@@ -342,8 +366,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   //            state->tactile_pressures_[tactile_base_idx + 7],
   //            state->tactile_pressures_[tactile_base_idx + 8]);
   // }
-  // const int palm_tactile_base_idx = 
-  //   reflex_hand::ReflexHandState::NUM_FINGERS * 9;
   // ROS_INFO("palm tactile pressures: "
   //          "%4u %4u %4u %4u %4u %4u %4u %4u %4u %4u %4u",
   //          state->tactile_pressures_[palm_tactile_base_idx + 0],
@@ -357,36 +379,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   //          state->tactile_pressures_[palm_tactile_base_idx + 8],
   //          state->tactile_pressures_[palm_tactile_base_idx + 9],
   //          state->tactile_pressures_[palm_tactile_base_idx + 10]);
-  // ROS_INFO("dynamixel error states: 0x%02x 0x%02x 0x%02x 0x%02x",
-  //          state->dynamixel_error_states_[0],
-  //          state->dynamixel_error_states_[1],
-  //          state->dynamixel_error_states_[2],
-  //          state->dynamixel_error_states_[3]);
-    // ROS_INFO("dynamixel angles: %6u %6u %6u %6u",
-    //          state->dynamixel_angles_[0],
-    //          state->dynamixel_angles_[1],
-    //          state->dynamixel_angles_[2],
-    //          state->dynamixel_angles_[3]);
-  // ROS_INFO("dynamixel speeds: %6u %6u %6u %6u",
-  //          state->dynamixel_speeds_[0],
-  //          state->dynamixel_speeds_[1],
-  //          state->dynamixel_speeds_[2],
-  //          state->dynamixel_speeds_[3]);
-  // ROS_INFO("dynamixel loads: %6u %6u %6u %6u",
-  //          state->dynamixel_loads_[0],
-  //          state->dynamixel_loads_[1],
-  //          state->dynamixel_loads_[2],
-  //          state->dynamixel_loads_[3]);
-  // ROS_INFO("dynamixel voltages: %6u %6u %6u %6u",
-  //          state->dynamixel_voltages_[0],
-  //          state->dynamixel_voltages_[1],
-  //          state->dynamixel_voltages_[2],
-  //          state->dynamixel_voltages_[3]);
-  // ROS_INFO("dynamixel temperatures: %6u %6u %6u %6u",
-  //          state->dynamixel_temperatures_[0],
-  //          state->dynamixel_temperatures_[1],
-  //          state->dynamixel_temperatures_[2],
-  //          state->dynamixel_temperatures_[3]);
 
   return;
 }
@@ -430,6 +422,8 @@ int main(int argc, char **argv)
   // Advertising necessary topics
   hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_hand", 10);
   ROS_INFO("Advertising the /reflex_hand topic");
+  debug_pub = nh.advertise<reflex_msgs::DebugInfo>("/reflex/debug_info", 10);
+  ROS_INFO("Advertising the /reflex/debug_info topic");
   raw_pub = nh.advertise<reflex_msgs::RawServoPositions>("/set_reflex_raw", 1);
 
   // Intializes the reflex_hand object

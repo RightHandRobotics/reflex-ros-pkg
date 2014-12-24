@@ -137,7 +137,7 @@ void ReflexHand::tx(const uint8_t *msg,
                     const uint16_t msg_len, 
                     const uint16_t port)
 {
-  ROS_INFO("ReflexHand::tx %d bytes to port %d", msg_len, port);
+  // ROS_INFO("ReflexHand::tx %d bytes to port %d", msg_len, port);
   mcast_addr_.sin_port = htons(port);
   int nsent = sendto(tx_sock_, msg, msg_len, 0,
                      (sockaddr *)&mcast_addr_, sizeof(mcast_addr_));

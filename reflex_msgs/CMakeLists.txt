@@ -50,6 +50,8 @@ add_message_files(
   Palm.msg
   Finger.msg
   Event.msg
+  DebugInfo.msg
+  Dynamixel.msg
   RawServoPositions.msg
   RadianServoPositions.msg
 )

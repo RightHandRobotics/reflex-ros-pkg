@@ -23,7 +23,6 @@ class CommandHandService:
 
     def __call__(self, req):
         rospy.loginfo("reflex_base:CommandHandService:")
-        rospy.loginfo("\tCalling service...")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
             return (0, -1)
@@ -49,7 +48,6 @@ class MoveFingerService:
 
     def __call__(self, req):
         rospy.loginfo("reflex_base:MoveFingerService:")
-        rospy.loginfo("\tCalling service...")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
             return (0, -1)
@@ -82,7 +80,6 @@ class MovePreshapeService:
 
     def __call__(self, req):
         rospy.loginfo("reflex_base:MovePreshapeService:")
-        rospy.loginfo("\tCalling ReFlex service...")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
             return (0, -1)
@@ -151,7 +148,6 @@ class CommandSmartService:
 
     def __call__(self, req):
         rospy.loginfo("reflex_base:CommandSmartService:")
-        rospy.loginfo("\tCalling service...")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
             return (0, -1)
