@@ -9,7 +9,7 @@ from std_srvs.srv import Empty
 
 # Imports the code to control the hand using smart actions
 from reflex import reflex_smarts
-rospy.init_node('TestHandNode')
+rospy.init_node('ExampleHandNode')
 
 # Starts up hand and publishes the command data
 reflex_hand = reflex_smarts.ReFlex_Smarts()
