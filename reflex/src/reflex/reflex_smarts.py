@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ##########################################################
-# This extends the reflex_smarts ReFlex class and adds a series
+# This extends the ReFlex class and adds a series
 # of preset moves
 # Eric Schneider
 ##########################################################
@@ -270,27 +270,27 @@ if __name__ == '__main__':
 
     sh2 = MoveFingerService(reflex_hand)
     s2 = "/reflex/move_finger"
-    rospy.loginfo("reflex_smarts: Advertising the %s service", s2)
+    rospy.loginfo("Advertising %s service", s2)
     s2 = rospy.Service(s2, MoveFinger, sh2)
 
     sh3 = MovePreshapeService(reflex_hand)
     s3 = "/reflex/move_preshape"
-    rospy.loginfo("reflex_smarts: Advertising the %s service", s3)
+    rospy.loginfo("Advertising %s service", s3)
     s3 = rospy.Service(s3, MovePreshape, sh3)
 
     sh4 = StatusDumpService(reflex_hand)
     s4 = "/reflex/status_dump"
-    rospy.loginfo("reflex_smarts: Advertising the %s service", s4)
+    rospy.loginfo("Advertising %s service", s4)
     s4 = rospy.Service(s4, Empty, sh4)
 
     sh5 = KillService(reflex_hand)
     s5 = "/reflex/kill_current"
-    rospy.loginfo("reflex_smarts: Advertising the %s service", s5)
+    rospy.loginfo("Advertising %s service", s5)
     s5 = rospy.Service(s5, Empty, sh5)
 
     sh6 = CommandSmartService(reflex_hand)
     s6 = "/reflex/command_smarts"
-    rospy.loginfo("reflex_smarts: Advertising the %s service", s6)
+    rospy.loginfo("Advertising %s service", s6)
     s6 = rospy.Service(s6, CommandHand, sh6)
 
     r_fast = rospy.Rate(50)
