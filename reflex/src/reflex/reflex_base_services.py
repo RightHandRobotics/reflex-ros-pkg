@@ -16,21 +16,21 @@ from reflex_msgs.msg import Hand
 from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 
 
-class CommandHandService:
+class CommandSmartService:
     def __init__(self, obj):
         self.obj = obj
         self.locked = False
 
     def __call__(self, req):
-        rospy.loginfo("reflex_base:CommandHandService:")
+        rospy.loginfo("reflex_base:CommandSmartService:")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
             return (0, -1)
         else:
             self.locked = True
-            rospy.loginfo("\tThe action %s is about to run", req.action)
+            rospy.loginfo("\tRequested action %s is about to run", req.action)
             start_time = rospy.Time.now()
-            flag = self.obj.command_base(1.0, *req.action.split(' '))
+            flag = self.obj.command_smarts(1.0, *req.action.split(' '))
             end_time = rospy.Time.now()
             self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
@@ -38,7 +38,7 @@ class CommandHandService:
                 parse_response = "ERROR: Given command was unknown"
             else:
                 parse_response = "Command parsed"
-            return (parse_response, 1, end_time-start_time)
+            return (parse_response, 1, end_time - start_time)
 
 
 class MoveFingerService:
@@ -70,7 +70,7 @@ class MoveFingerService:
             end_time = rospy.Time.now()
             self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
-            return (1, end_time-start_time)
+            return (1, end_time - start_time)
 
 
 class MovePreshapeService:
@@ -100,7 +100,8 @@ class MovePreshapeService:
             end_time = rospy.Time.now()
             self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
-            return (1, end_time-start_time)
+            return (1, end_time - start_time)
+
 
 class KillService:
     def __init__(self, obj):
@@ -113,28 +114,3 @@ class KillService:
         self.obj.working = [False, False, False]
         self.obj.command_base(1.0, 'hold')
         return []
-
-
-class CommandSmartService:
-    def __init__(self, obj):
-        self.obj = obj
-        self.locked = False
-
-    def __call__(self, req):
-        rospy.loginfo("reflex_base:CommandSmartService:")
-        if self.locked:
-            rospy.loginfo("\tService locked at the moment (in use), try later")
-            return (0, -1)
-        else:
-            self.locked = True
-            rospy.loginfo("\tRequested action %s is about to run", req.action)
-            start_time = rospy.Time.now()
-            flag = self.obj.command_smarts(1.0, *req.action.split(' '))
-            end_time = rospy.Time.now()
-            self.locked = False
-# TODO: Use more in-depth return statements than 1 and 0
-            if flag:
-                parse_response = "ERROR: Given command was unknown"
-            else:
-                parse_response = "Command parsed"
-            return (parse_response, 1, end_time - start_time)

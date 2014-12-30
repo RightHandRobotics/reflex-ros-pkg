@@ -268,6 +268,11 @@ if __name__ == '__main__':
     rospy.init_node('ReflexServiceNode')
     reflex_hand = ReFlex_Smarts()
 
+    sh1 = CommandSmartService(reflex_hand)
+    s1 = "/reflex/command_smarts"
+    rospy.loginfo("Advertising %s service", s1)
+    s1 = rospy.Service(s1, CommandHand, sh1)
+
     sh2 = MoveFingerService(reflex_hand)
     s2 = "/reflex/move_finger"
     rospy.loginfo("Advertising %s service", s2)
@@ -282,11 +287,6 @@ if __name__ == '__main__':
     s4 = "/reflex/kill_current"
     rospy.loginfo("Advertising %s service", s4)
     s4 = rospy.Service(s4, Empty, sh4)
-
-    sh5 = CommandSmartService(reflex_hand)
-    s5 = "/reflex/command_smarts"
-    rospy.loginfo("Advertising %s service", s5)
-    s5 = rospy.Service(s5, CommandHand, sh5)
 
     r_fast = rospy.Rate(50)
     r_slow = rospy.Rate(1)

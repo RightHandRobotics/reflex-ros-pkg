@@ -76,13 +76,13 @@ class ReFlex(object):
         self.PRESHAPE_MAX = 1.6         # max closure (radians)
 
         # control loop logic parameters for safety checking
-        self.ARRIVAL_ERROR = 0.05       # error at which control loop considers
-                                        #     position control finished
-        self.BLOCKED_ERROR = 0.05       # if the finger hasn't moved this far
-                                        #     in hand_hist steps, it's blocked
-        self.BLOCKED_TIME = 0.3         # seconds before checking for blackage.
+        self.ARRIVAL_ERROR = 0.05       #  error at which controller considers
+                                        # position control finished
+        self.BLOCKED_ERROR = 0.05       #  if the finger hasn't moved this far
+                                        # in hand_hist steps, it's blocked
+        self.BLOCKED_TIME = 0.3         #  seconds before checking for blockage
                                         # it's necessary to wait, otherwise the
-                                        # finger will interpret the time spent
+                                        # finger will interpret the time spenthttp://answers.ros.org/question/197109/how-does-mavros-rc-override-work/?answer=200242#post-id-200242
                                         # still before movement as blocked
 
         # Initialize logic variables
@@ -496,38 +496,3 @@ def did_subscribe_succeed(time_waiting, topic):
     else:
         rospy.loginfo('ReFlex class subscribed to topic %s', topic)
         return True
-
-
-if __name__ == '__main__':
-    rospy.init_node('ReflexServiceNode')
-    rospy.sleep(0.5)
-    reflex_hand = ReFlex()
-
-    sh1 = CommandHandService(reflex_hand)
-    s1 = '/reflex/command_base'
-    rospy.loginfo('reflex_base: Advertising %s service', s1)
-    s1 = rospy.Service(s1, CommandHand, sh1)
-
-    sh2 = MoveFingerService(reflex_hand)
-    s2 = '/reflex/move_finger'
-    rospy.loginfo('reflex_base: Advertising %s service', s2)
-    s2 = rospy.Service(s2, MoveFinger, sh2)
-
-    sh3 = MovePreshapeService(reflex_hand)
-    s3 = '/reflex/move_preshape'
-    rospy.loginfo('reflex_base: Advertising %s service', s3)
-    s3 = rospy.Service(s3, MovePreshape, sh3)
-
-    sh4 = KillService(reflex_hand)
-    s4 = '/reflex/kill_current'
-    rospy.loginfo('reflex_base: Advertising %s service', s4)
-    s4 = rospy.Service(s4, Empty, sh4)
-
-    r_fast = rospy.Rate(50)
-    r_slow = rospy.Rate(1)
-    while not rospy.is_shutdown():
-        if reflex_hand.hand_publishing:
-            r_slow.sleep()
-        else:
-            reflex_hand._ReFlex__control_loop()
-            r_fast.sleep()
