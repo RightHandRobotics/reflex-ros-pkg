@@ -102,32 +102,6 @@ class MovePreshapeService:
 # TODO: Use more in-depth return statements than 1 and 0
             return (1, end_time-start_time)
 
-
-class StatusDumpService:
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __call__(self, req):
-        rospy.loginfo("reflex_base:StatusDumpService:")
-        rospy.loginfo("Dumping hand data ====================>\n\
-self.working: %s\n\
-self.control_mode: %s\n\
-self.cmd_spool: %s\n\
-hand_hist[0].spool: %s, hand_hist[-1].spool: %s\n\
-self.hand: %s",
-                      str(self.obj.working),
-                      str(self.obj.control_mode),
-                      str([self.obj.hand_hist[0].finger[0].spool,
-                           self.obj.hand_hist[0].finger[1].spool,
-                           self.obj.hand_hist[0].finger[2].spool]),
-                      str([self.obj.hand_hist[-1].finger[0].spool,
-                           self.obj.hand_hist[-1].finger[1].spool,
-                           self.obj.hand_hist[-1].finger[2].spool]),
-                      str(self.obj.cmd_spool), str(self.obj.hand))
-        self.obj.get_subscriptions()
-        return []
-
-
 class KillService:
     def __init__(self, obj):
         self.obj = obj

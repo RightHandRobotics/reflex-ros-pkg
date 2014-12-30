@@ -278,20 +278,15 @@ if __name__ == '__main__':
     rospy.loginfo("Advertising %s service", s3)
     s3 = rospy.Service(s3, MovePreshape, sh3)
 
-    sh4 = StatusDumpService(reflex_hand)
-    s4 = "/reflex/status_dump"
+    sh4 = KillService(reflex_hand)
+    s4 = "/reflex/kill_current"
     rospy.loginfo("Advertising %s service", s4)
     s4 = rospy.Service(s4, Empty, sh4)
 
-    sh5 = KillService(reflex_hand)
-    s5 = "/reflex/kill_current"
+    sh5 = CommandSmartService(reflex_hand)
+    s5 = "/reflex/command_smarts"
     rospy.loginfo("Advertising %s service", s5)
-    s5 = rospy.Service(s5, Empty, sh5)
-
-    sh6 = CommandSmartService(reflex_hand)
-    s6 = "/reflex/command_smarts"
-    rospy.loginfo("Advertising %s service", s6)
-    s6 = rospy.Service(s6, CommandHand, sh6)
+    s5 = rospy.Service(s5, CommandHand, sh5)
 
     r_fast = rospy.Rate(50)
     r_slow = rospy.Rate(1)
