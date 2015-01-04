@@ -17,7 +17,7 @@ rospy.sleep(1)
 
 # Zeroing the tactile data is necessary if you wish to use a mode
 # that employs tactile data (like guarded_move) because the
-# sensors drift over time
+# sensors drift over time. This creates a callable service proxy 
 zero_tactile = rospy.ServiceProxy('/zero_tactile', Empty)
 
 ##################################################################
@@ -39,7 +39,6 @@ rospy.sleep(2)
 # not just the command_smarts interface. Opens each finger in turn
 for finger in range(3):
     reflex_hand.open(finger)
-    # This sleep is for visual effect
     rospy.sleep(2)
 
 rospy.loginfo("EXAMPLE -- Finished individual command example")
@@ -69,10 +68,11 @@ rospy.sleep(2)
 # You can't move the fingers while adjusting the preshape joint
 # Note: hand moves all the way to its goal before moving on
 reflex_hand.set_cylindrical(1)
-rospy.sleep(1)
+rospy.sleep(2)
 reflex_hand.set_pinch(1)
-rospy.sleep(1)
+rospy.sleep(2)
 reflex_hand.set_cylindrical(1)
+rospy.sleep(2)
 
 rospy.loginfo("EXAMPLE -- Leaving preshape control example")
 rospy.sleep(2)
@@ -91,8 +91,8 @@ rospy.sleep(2)
 
 ##################################################################
 rospy.loginfo("EXAMPLE -- Entering ceaseless example")
-rospy.loginfo("\tCeaseless example shows avoid_contact. To")
-rospy.loginfo("\tmake a finger open, just apply pressure")
+rospy.loginfo("  Ceaseless example shows avoid_contact. To")
+rospy.loginfo("  make a finger open, just apply pressure")
 # Calling the zero_tactile service proxy zeros tactile sensors
 # before the avoid_contact function uses the data
 zero_tactile()

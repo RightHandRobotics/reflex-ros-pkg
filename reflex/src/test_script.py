@@ -24,7 +24,7 @@ std_wait = 2
 # Calibrate the hand and check the raw values
 raw_input("== When ready to calibrate the hand, press [Enter]\n")
 zero_fingers()
-raw_input("== Open a terminal and rostopic echo the /reflex/debug_info\n\
+raw_input("== Open a terminal and rostopic echo the /reflex/motor_debug\n\
 == topic. Check that the raw angle values are correct:\n\
 == F1: less than 900 -- F2: greater than 3200 -- F3: less than 900\n\
 == If all is good, hit [Enter]. If not, cancel the script and redo tendons\n")
