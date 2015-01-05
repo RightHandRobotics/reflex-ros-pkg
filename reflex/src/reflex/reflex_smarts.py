@@ -3,7 +3,6 @@
 ##########################################################
 # This extends the ReFlex class and adds a series
 # of preset moves
-# Eric Schneider
 ##########################################################
 
 import rospy

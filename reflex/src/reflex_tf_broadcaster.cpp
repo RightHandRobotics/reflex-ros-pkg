@@ -3,8 +3,6 @@
 # This subscribres to the /reflex_hand topic and uses the joint
 # angles found there to publish the hand tf transforms
 # 
-# Eric Schneider
-# 
 ########################################################## */
 
 #include <ros/ros.h>

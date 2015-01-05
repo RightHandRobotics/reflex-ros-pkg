@@ -2,7 +2,6 @@
 
 ###########################################################
 # Services for basic reflex package commands
-# Eric Schneider
 ###########################################################
 
 import rospy

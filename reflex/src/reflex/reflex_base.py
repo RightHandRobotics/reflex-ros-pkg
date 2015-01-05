@@ -9,8 +9,6 @@
 # Second, you can run reflex_base.py and use the services advertised to run
 # commands. This is for prototyping
 #
-# Eric Schneider
-#
 ###########################################################
 
 import rospy
@@ -21,8 +19,10 @@ import sys
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 from reflex_base_services import *
-from reflex_msgs.msg import Hand, RadianServoPositions, StateDebug
+from reflex_msgs.msg import Hand, RadianServoPositions
 from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
+
+from state_debug import StateDebugger
 
 # methods to control individual fingers
 #   goto
@@ -90,19 +90,14 @@ class ReFlex(object):
         self.actuator_pub = rospy.Publisher('/set_reflex_hand',
                                             RadianServoPositions,
                                             queue_size=1)
-        self.debug_pub = rospy.Publisher('/reflex/state_debug',
-                                         StateDebug,
-                                         queue_size=1)
-        self.state_debug = StateDebug()
-        self.state_debug_old = StateDebug()
 
         # Subscribe to sensor information
         self.hand_publishing = True
         self.hand = Hand()
         self.hand_hist = []             # history of incoming hand data, bounded in __hand_callback
         self.HISTORY_LENGTH = 15        # how many snapshots of old data to keep for checking motor stall, etc
-
         self.SUBSCRIBE_TIME = 5         # time (seconds) that code will wait for a subscription
+        self.state_debugger = StateDebugger()
 
         topic = '/reflex_hand'
         rospy.loginfo('ReFlex class is subscribing to topic %s', topic)
@@ -129,30 +124,28 @@ class ReFlex(object):
         self.__control_loop()
 
     def __control_loop(self):
-        publishing_error = 'reflex_base: tactile_publishing = %s and joints_publishing = %s, both must be true to use ' % \
+        publishing_error = 'tactile_publishing = %s and joints_publishing = %s, both must be true to use ' % \
                             (self.hand.tactile_publishing, self.hand.joints_publishing)
-        self.state_debug = StateDebug()
 
         # each finger has a control mode, which corresponds to some basic logic
         cmd_change = []
         pos_error = []
+        self.state_debugger.track_fingers(self.control_mode)
 
         for i in range(3):
-            self.state_debug.finger[i].mode = self.control_mode[i]
-            self.state_debug.finger[i].working = self.working[i]
-
             # position control mode
             motor_error = self.cmd_spool[i] - self.hand.finger[i].spool
             if self.control_mode[i] == 'goto':
-                self.state_debug.finger[i].state = 'Waiting for (arrived) or (blocked)'
+                if self.working[i]:
+                   self.state_debugger.set_finger_state(i, 'Waiting for (arrived) or (blocked)')
                 if not self.hand.joints_publishing:
                     self.working[i] = False
                 elif self.working[i] and abs(motor_error) < self.ARRIVAL_ERROR:
-                    self.state_debug.finger[i].state = '(arrived)'
+                    self.state_debugger.set_finger_state(i, '(arrived)')
                     self.working[i] = False
                 elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME)\
                      and abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
-                    self.state_debug.finger[i].state = '(blocked)'
+                    self.state_debugger.set_finger_state(i, '(blocked)')
                     self.move_finger(i, self.hand.finger[i].spool)
                     self.working[i] = False
                     rospy.logwarn('Finger %d was blocked, halting finger', i+1)
@@ -169,13 +162,14 @@ class ReFlex(object):
             elif self.control_mode[i] == 'guarded_move':        # close until either link experiences contact
                 if self.hand.tactile_publishing\
                    and self.hand.joints_publishing:
-                    self.state_debug.finger[i].state = 'Waiting for (contacted) or (end of range)'
+                    if self.working[i]:
+                        self.state_debugger.set_finger_state(i, 'Waiting for (contacted) or (end of range)')
                     if self.finger_in_contact(i):
                         self.working[i] = False
-                        self.state_debug.finger[i].state = '(contacted)'
+                        self.state_debugger.set_finger_state(i, '(contacted)')
                     elif self.hand.finger[i].spool >= self.TENDON_MAX:
                         self.working[i] = False
-                        self.state_debug.finger[i].state = '(end of range)'
+                        self.state_debugger.set_finger_state(i, '(end of range)')
                     elif self.working[i]:
                         self.cmd_spool[i] = self.hand.finger[i].spool + self.FINGER_STEP
                 else:
@@ -184,13 +178,14 @@ class ReFlex(object):
 
             elif self.control_mode[i] == 'guarded_move_fast':       # close until either link experiences contact
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
-                    self.state_debug.finger[i].state = 'Waiting for (contacted) or (end of range)'
+                    if self.working[i]:
+                        self.state_debugger.set_finger_state(i, 'Waiting for (contacted) or (end of range)')
                     if self.finger_in_contact(i):
                         self.working[i] = False
-                        self.state_debug.finger[i].state = '(contacted)'
+                        self.state_debugger.set_finger_state(i, '(contacted)')
                     elif self.hand.finger[i].spool >= self.TENDON_MAX:
                         self.working[i] = False
-                        self.state_debug.finger[i].state = '(end of range)'
+                        self.state_debugger.set_finger_state(i, '(end of range)')
                     elif self.working[i]:
                         self.cmd_spool[i] = self.hand.finger[i].spool + self.FINGER_STEP_LARGE
                 else:
@@ -199,13 +194,14 @@ class ReFlex(object):
 
             elif self.control_mode[i] == 'solid_contact':       # close until both links experience contact
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
-                    self.state_debug.finger[i].state = 'Waiting for (contacted) or (end of range)'
+                    if self.working[i]:
+                        self.state_debugger.set_finger_state(i, 'Waiting for (contacted) or (end of range)')
                     if self.finger_full_contact(i):
                         self.working[i] = False
-                        self.state_debug.finger[i].state = '(contacted)'
+                        self.state_debugger.set_finger_state(i, '(contacted)')
                     elif self.hand.finger[i].spool >= self.TENDON_MAX:
                         self.working[i] = False
-                        self.state_debug.finger[i].state = '(end of range)'
+                        self.state_debugger.set_finger_state(i, '(end of range)')
                     elif self.working[i]:
                         self.cmd_spool[i] = self.hand.finger[i].spool + self.FINGER_STEP
                 else:
@@ -214,7 +210,7 @@ class ReFlex(object):
 
             # ceaseless modes
             elif self.control_mode[i] == 'dither':              # if in contact, loosen; if no contact, tighten
-                self.state_debug.finger[i].state = 'In state until commanded otherwise'
+                self.state_debugger.set_finger_state(i, 'In state until commanded otherwise')
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
                     if self.finger_in_contact(i) and (self.hand.finger[i].spool > self.TENDON_MIN):
                         self.cmd_spool[i] = self.hand.finger[i].spool - self.FINGER_STEP
@@ -224,7 +220,7 @@ class ReFlex(object):
                     rospy.loginfo(publishing_error + 'dither')
 
             elif self.control_mode[i] == 'avoid_contact':       # open finger if contact
-                self.state_debug.finger[i].state = 'In state until commanded otherwise'
+                self.state_debugger.set_finger_state(i, 'In state until commanded otherwise')
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
                     if self.finger_in_contact(i) and (self.hand.finger[i].spool > self.TENDON_MIN):
                         self.cmd_spool[i] = self.hand.finger[i].spool-self.FINGER_STEP
@@ -232,7 +228,7 @@ class ReFlex(object):
                     rospy.loginfo(publishing_error + 'avoid_contact')
 
             elif self.control_mode[i] == 'maintain_contact':    # if no contact, move finger in
-                self.state_debug.finger[i].state = 'In state until commanded otherwise'
+                self.state_debugger.set_finger_state(i, 'In state until commanded otherwise')
                 if self.hand.tactile_publishing and self.hand.joints_publishing:
                     if not self.finger_in_contact(i) and (self.hand.finger[i].spool < self.TENDON_MAX):
                         self.cmd_spool[i] = self.hand.finger[i].spool+self.FINGER_STEP
@@ -240,7 +236,7 @@ class ReFlex(object):
                     rospy.loginfo(publishing_error + 'maintain_contact')
             
             elif self.control_mode[i] == 'hold':
-                self.state_debug.finger[i].state = 'In state until commanded otherwise'
+                self.state_debugger.set_finger_state(i, 'In state until commanded otherwise')
                 pass
 
             else:
@@ -256,18 +252,14 @@ class ReFlex(object):
             pos_list = [self.cmd_spool[0], self.cmd_spool[1], self.cmd_spool[2], min(max(self.hand.palm.preshape, self.PRESHAPE_MIN), self.PRESHAPE_MAX)]
             self.actuator_pub.publish(RadianServoPositions(pos_list))
         
-        if self.state_debug != self.state_debug_old:
-            self.debug_pub.publish(self.state_debug)
-            self.state_debug_old = deepcopy(self.state_debug)
+        self.state_debugger.set_fingers_working(self.working)
+        self.state_debugger.publish_state_if_changed()
 
     # Commands the preshape joint to move to a certain position
     def move_preshape(self, goal_pos):
         if self.hand.palm.preshape != goal_pos:
-            self.state_debug = StateDebug()
-            self.state_debug.preshape.mode = 'goto'
-            self.state_debug.preshape.working = True
-            self.state_debug.preshape.state = 'Waiting for (arrived) or (blocked)'
-            self.debug_pub.publish(self.state_debug)
+            print "HERE COMMANDING THE PRESHAPE"
+            self.state_debugger.track_preshape()
 
             self.call_time[3] = rospy.get_time()
             self.reset_hist(True, 3)
@@ -298,12 +290,10 @@ class ReFlex(object):
                         rospy.logwarn('The preshape joint was blocked, stopping it')
                         blocked = True
 
-            self.state_debug.preshape.working = False
             if blocked:
-                self.state_debug.preshape.state = 'Preshape was (blocked)'
+                self.state_debugger.end_preshape_tracking('Preshape was (blocked)')
             else:
-                self.state_debug.preshape.state = 'Preshape (arrived)'
-            self.debug_pub.publish(self.state_debug)
+                self.state_debugger.end_preshape_tracking('Preshape (arrived)')
             return
 
     # Commands a finger to move to a certain position
@@ -381,7 +371,7 @@ class ReFlex(object):
             rospy.loginfo('reflex_base: did not recognize the input, was given %s', args)
             flag = True
         
-        rospy.loginfo('reflex_base: commanded the fingers, self.working = %s, self.control_mode: %s'\
+        rospy.loginfo('commanded the fingers, self.working = %s, self.control_mode: %s'\
                         , str(self.working), str(self.control_mode))
 
         while any(self.working) and not rospy.is_shutdown():
