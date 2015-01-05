@@ -258,7 +258,6 @@ class ReFlex(object):
     # Commands the preshape joint to move to a certain position
     def move_preshape(self, goal_pos):
         if self.hand.palm.preshape != goal_pos:
-            print "HERE COMMANDING THE PRESHAPE"
             self.state_debugger.track_preshape()
 
             self.call_time[3] = rospy.get_time()
