@@ -12,8 +12,6 @@
 # Eric Schneider
 #
 ###########################################################
-# TODO: Setting servo speed is implemented here but not in firmware.
-# Pass speed to the hand in __control_loop when implemented
 
 import rospy
 import numpy as np
@@ -34,7 +32,6 @@ from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 #   maintain_contact
 #   dither
 #   hold
-#   loose
 
 # methods to preshape
 #   None - done in move_preshape, not control_loop
@@ -61,15 +58,12 @@ class ReFlex(object):
                                      'avoid_contact',
                                      'maintain_contact',
                                      'dither',
-                                     'hold',
-                                     'loose']
+                                     'hold']
         self.FINGER_MAP = {'f1': 0, 'f2': 1, 'f3': 2}
 
         # motion parameters
         self.FINGER_STEP = 0.05         # radians / 0.01 second
         self.FINGER_STEP_LARGE = 0.15   # radians / 0.01 second
-        self.SERVO_SPEED_MIN = 0.0      # radians / second
-        self.SERVO_SPEED_MAX = 3.0      # radians / second
         self.TENDON_MIN = 0.0           # max opening (radians)
         self.TENDON_MAX = 4.0           # max closure (radians)
         self.PRESHAPE_MIN = 0.0         # max opening (radians)
@@ -95,7 +89,6 @@ class ReFlex(object):
         self.event_reason = [-1, -1, -1]                    # used by the event publisher to give varied error values
         self.cmd_spool = np.array([-1.0, -1.0, -1.0])       # finger commanded position, radians spool rotation
         self.cmd_spool_old = deepcopy(self.cmd_spool)       # Previous cmd position. If current cmd position matches, give no command
-        self.servo_speed = np.array([-1.0, -1.0, -1.0])     # finger commanded position, radians spool rotation
 
         # Set up motor publishers
         self.actuator_pub = rospy.Publisher('/set_reflex_hand', RadianServoPositions)
@@ -105,9 +98,6 @@ class ReFlex(object):
         self.hand = Hand()
         self.latching = False
         self.hand_hist = []             # history of incoming hand data, bounded in __hand_callback
-        self.HIST_INTERVAL = 1          # every self.HIST_INTERVAL the hand_hist variable is updated
-                                        # this number should probably increase when /reflex_hand speeds up
-        self.HIST_COUNTER = 0           # used to count how many times the control loop has been run
         self.HISTORY_LENGTH = 15        # how many snapshots of old data to keep for checking motor stall, etc
 
         self.SUBSCRIBE_TIME = 5         # time (seconds) that code will wait for a subscription
@@ -131,9 +121,7 @@ class ReFlex(object):
     def __hand_callback(self, msg):
         """updates the local cache of the hand state whenever a message arrives from reflex_driver_node"""
         self.hand = deepcopy(msg)
-        if (self.HIST_COUNTER % self.HIST_INTERVAL) == 0:
-            self.hand_hist.append(self.hand)
-        self.HIST_COUNTER += 1
+        self.hand_hist.append(self.hand)
 
         # Allow latching
         # if self.latching and len(self.hand_hist) > 1:
@@ -175,7 +163,7 @@ class ReFlex(object):
                 # TODO: Look into how to correctly deal with a blocked hand
                 elif self.working[i] and rospy.get_time() > (self.call_time[i] + self.BLOCKED_TIME)\
                      and abs(self.hand_hist[0].finger[i].spool - self.hand_hist[-1].finger[i].spool) < self.BLOCKED_ERROR:
-                    self.move_finger(i, self.hand.finger[i].spool, 1.0)
+                    self.move_finger(i, self.hand.finger[i].spool)
                     self.working[i] = False
                     self.event_reason[i] = 0
                     rospy.logwarn("Finger %d was blocked, halting finger", i+1)
@@ -255,11 +243,6 @@ class ReFlex(object):
             elif self.control_mode[i] == 'hold':
                 pass
 
-            elif self.control_mode[i] == 'loose':
-                rospy.logwarn('loose: not yet implemented')
-                # TODO: Find a way to make the Dynamixels go loose and exert no force, make it happen here
-                pass
-
             else:
                 rospy.loginfo("reflex_base:__control_loop: Found unrecognized control_mode: %s", self.control_mode[i])
 
@@ -270,7 +253,6 @@ class ReFlex(object):
 
             # execute finger control 
             self.cmd_spool[i] = min(max(self.cmd_spool[i], self.TENDON_MIN), self.TENDON_MAX)
-            self.servo_speed[i] = min(max(self.servo_speed[i], self.SERVO_SPEED_MIN), self.SERVO_SPEED_MAX)
             cmd_change.append(self.cmd_spool[i] != self.cmd_spool_old[i])
             pos_error.append(motor_error > self.ARRIVAL_ERROR and self.working[i])
             self.cmd_spool_old[i] = deepcopy(self.cmd_spool[i])
@@ -284,12 +266,11 @@ class ReFlex(object):
             self.actuator_pub.publish(RadianServoPositions(pos_list))
 
     # Commands the preshape joint to move to a certain position
-    def move_preshape(self, goal_pos, speed=1.0):
+    def move_preshape(self, goal_pos):
         if not self.hand.palm.preshape == goal_pos:
             self.call_time[3] = rospy.get_time()
             self.reset_hist(True, 3)
             cmd = min(max(goal_pos, self.PRESHAPE_MIN), self.PRESHAPE_MAX)
-            speed = min(max(speed, self.SERVO_SPEED_MIN), self.SERVO_SPEED_MAX)
             pos_list = [self.hand.finger[0].spool,
                         self.hand.finger[1].spool,
                         self.hand.finger[2].spool,
@@ -318,12 +299,11 @@ class ReFlex(object):
             return
 
     # Commands a finger to move to a certain position
-    def move_finger(self, finger_index, goal_pos, speed=1.0):
+    def move_finger(self, finger_index, goal_pos):
         self.control_mode[finger_index] = 'goto'
         self.call_time[finger_index] = rospy.get_time()
         self.working[finger_index] = True
         self.cmd_spool[finger_index] = goal_pos
-        self.servo_speed[finger_index] = speed
         return
 
     # Parses modes and turns them into control_mode for control_loop
@@ -353,14 +333,11 @@ class ReFlex(object):
         elif mode == 'hold':
             self.working[i] = False
             self.control_mode[i] = 'hold'
-        elif mode == 'loose':
-            self.working[i] = False
-            self.control_mode[i] = 'loose'
         else:
             rospy.logwarn("reflex_base:__command_base_finger: received an unknown finger command: %s", mode)
         self.reset_hist(self.working[i], i)
 
-    def command_base(self, speed, *args):
+    def command_base(self, *args):
         # 1 arg = hand command
         # 3 arg = finger commands
         # 2, 4, 6 arg = [finger, mode, (finger, mode, (finger, mode))]
@@ -370,7 +347,6 @@ class ReFlex(object):
             self.__command_base_finger('f1', args[0]) 
             self.__command_base_finger('f2', args[0])
             self.__command_base_finger('f3', args[0])
-            self.servo_speed = [speed, speed, speed]
 
             if args[0] not in self.BASE_FINGER_COMMANDS:
                 flag = True
@@ -379,7 +355,6 @@ class ReFlex(object):
             self.__command_base_finger('f1', args[0])
             self.__command_base_finger('f2', args[1])
             self.__command_base_finger('f3', args[2])
-            self.servo_speed = [speed, speed, speed]
 
             for arg in args:
                 if arg not in self.BASE_FINGER_COMMANDS:
@@ -390,7 +365,6 @@ class ReFlex(object):
             modes = [args[2*(j+1)-1] for j in range(len(args)/2)]
             for j in range(len(fingers)):
                 self.__command_base_finger(fingers[j], modes[j])
-                self.servo_speed[j] = speed
 
             for mode in modes:
                 if mode not in self.BASE_FINGER_COMMANDS:
@@ -467,9 +441,6 @@ class ReFlex(object):
 
     def hold(self):
         self.__command_base('hold')
-
-    def loose(self):
-        self.__command_base('loose')
 
     def get_subscriptions(self):
         rospy.loginfo("hand_publishing = %s", self.hand_publishing)

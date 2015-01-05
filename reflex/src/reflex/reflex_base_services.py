@@ -150,12 +150,12 @@ class CommandSmartService:
         rospy.loginfo("reflex_base:CommandSmartService:")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
-            return (0, -1)
+            return (0, -1, -1)
         else:
             self.locked = True
             rospy.loginfo("\tRequested action %s is about to run", req.action)
             start_time = rospy.Time.now()
-            flag = self.obj.command_smarts(1.0, *req.action.split(' '))
+            flag = self.obj.command_smarts(*req.action.split(' '))
             end_time = rospy.Time.now()
             self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
