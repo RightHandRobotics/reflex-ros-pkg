@@ -49,11 +49,12 @@ add_message_files(
   Hand.msg
   Palm.msg
   Finger.msg
-  Event.msg
-  DebugInfo.msg
   Dynamixel.msg
   RawServoPositions.msg
   RadianServoPositions.msg
+  MotorDebug.msg
+  StateDebug.msg
+  TrackState.msg
 )
 
 ## Generate services in the 'srv' folder

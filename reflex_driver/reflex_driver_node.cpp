@@ -29,7 +29,8 @@
 #include <reflex_msgs/RawServoPositions.h>
 #include <reflex_msgs/RadianServoPositions.h>
 #include <reflex_msgs/Hand.h>
-#include <reflex_msgs/DebugInfo.h>
+#include <reflex_msgs/MotorDebug.h>
+#include <reflex_msgs/StateDebug.h>
 using namespace std;
 
 
@@ -335,7 +336,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   }
 
   char buffer [10];
-  reflex_msgs::DebugInfo debug_msg;
+  reflex_msgs::MotorDebug debug_msg;
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     debug_msg.encoder[i] = state->encoders_[i];
   }
@@ -422,8 +423,8 @@ int main(int argc, char **argv)
   // Advertising necessary topics
   hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_hand", 10);
   ROS_INFO("Advertising the /reflex_hand topic");
-  debug_pub = nh.advertise<reflex_msgs::DebugInfo>("/reflex/debug_info", 10);
-  ROS_INFO("Advertising the /reflex/debug_info topic");
+  debug_pub = nh.advertise<reflex_msgs::MotorDebug>("/reflex/motor_debug", 10);
+  ROS_INFO("Advertising the /reflex/motor_debug topic");
   raw_pub = nh.advertise<reflex_msgs::RawServoPositions>("/set_reflex_raw", 1);
 
   // Intializes the reflex_hand object
