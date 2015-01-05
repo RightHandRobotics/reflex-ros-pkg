@@ -57,6 +57,9 @@ int encoder_last_value[] = {0, 0, 0};
 int encoder_offset[] = {-1, -1, -1};
 // The encoder error at which the fingers consider themself zeroed during calibration
 float ZERO_ERROR = 0.05;
+int MOTOR_CAL_MIN = 1200;
+int REVERSE_MOTOR_CAL_MIN = 2900;
+double calibration_error[] = {0.0, 0.0, 0.0};
 
 void signal_handler(int signum)
 {
@@ -309,20 +312,39 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
       ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
       // Write to variable
       int offset = 300;
-      for (int i = 0; i<4; i++)
-      {
+      for (int i = 0; i<4; i++) {
         if (i == 3) offset = 0;
         dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_inversion[i]*offset))*
-              reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+                       reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
         if (dyn_zero[i] > 4*3.1415)
         {
           ROS_WARN("Something went wrong in calibration - motor %d was set anomalously high", i+1);
-          ROS_WARN("\tMotor zero reference value: %4f radians (nothing should be over 2*pi)", dyn_zero[i]);
-          ROS_WARN("\tTry redoing the calibration, depowering/repowering if it repeats");
+          ROS_WARN("  Motor zero reference value: %4f radians (nothing should be over 2*pi)", dyn_zero[i]);
+          ROS_WARN("  Try redoing the calibration, depowering/repowering if it repeats");
         }
 
         servo_pos.raw_positions[i] = state->dynamixel_angles_[i] - (motor_inversion[i]*offset);
       }
+
+      for (int i=0; i<3; i++) {
+        if ((motor_inversion[i] > 0 && servo_pos.raw_positions[i] > MOTOR_CAL_MIN) || 
+            (motor_inversion[i] < 0 && servo_pos.raw_positions[i] < REVERSE_MOTOR_CAL_MIN)) {
+          if (motor_inversion[i] > 0 && servo_pos.raw_positions[i]) {
+            calibration_error[i] = (servo_pos.raw_positions[i] - MOTOR_CAL_MIN) *
+                                    reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+          } else {
+            calibration_error[i] = (REVERSE_MOTOR_CAL_MIN - servo_pos.raw_positions[i]) *
+                                    reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+          }
+          ROS_WARN("Finger %d has been calibrated so that it won't", i+1);
+          ROS_WARN("  be able to fully close. Check - is the tendon");
+          ROS_WARN("  out of the groove? If not, the finger will");
+          ROS_WARN("  probably need to have the tendon re-strung.");
+          ROS_WARN("  Finger %d has been calibrated %4f radians", i+1, calibration_error[i]);
+          ROS_WARN("  out of bounds");
+        }
+      }
+
       // Write to file
       finger_file << "motor_zero_reference: ["
                             << dyn_zero[0] << ", "
