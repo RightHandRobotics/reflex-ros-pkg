@@ -4,8 +4,6 @@
 # Services for basic reflex package commands
 # Eric Schneider
 ###########################################################
-# TODO: Setting servo speed is implemented here but not in firmware.
-# Uncomment speed code here and in srv message when implemented
 
 import rospy
 
@@ -25,12 +23,12 @@ class CommandSmartService:
         rospy.loginfo("reflex_base:CommandSmartService:")
         if self.locked:
             rospy.loginfo("\tService locked at the moment (in use), try later")
-            return (0, -1)
+            return (0, -1, -1)
         else:
             self.locked = True
             rospy.loginfo("\tRequested action %s is about to run", req.action)
             start_time = rospy.Time.now()
-            flag = self.obj.command_smarts(1.0, *req.action.split(' '))
+            flag = self.obj.command_smarts(*req.action.split(' '))
             end_time = rospy.Time.now()
             self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
@@ -65,8 +63,8 @@ class MoveFingerService:
                               self.obj.TENDON_MAX)
             else:
                 rospy.loginfo("\treflex_f%d is moving to %f radians",
-                              req.finger_index+1, req.goal_pos)
-                self.obj.move_finger(req.finger_index, req.goal_pos, 1.0)
+                              req.finger_index + 1, req.goal_pos)
+                self.obj.move_finger(req.finger_index, req.goal_pos)
             end_time = rospy.Time.now()
             self.locked = False
 # TODO: Use more in-depth return statements than 1 and 0
@@ -95,7 +93,7 @@ class MovePreshapeService:
                               self.obj.PRESHAPE_MAX)
             else:
                 rospy.loginfo("\tpreshape moving to %f radians", req.goal_pos)
-                self.obj.move_preshape(req.goal_pos, 1.0)
+                self.obj.move_preshape(req.goal_pos)
 
             end_time = rospy.Time.now()
             self.locked = False
@@ -112,5 +110,5 @@ class KillService:
         rospy.loginfo("\tSetting all fingers to working = False")
         rospy.loginfo("\tcommanding 'hold'")
         self.obj.working = [False, False, False]
-        self.obj.command_base(1.0, 'hold')
+        self.obj.command_base('hold')
         return []

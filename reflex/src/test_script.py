@@ -24,7 +24,7 @@ std_wait = 2
 # Calibrate the hand and check the raw values
 raw_input("== When ready to calibrate the hand, press [Enter]\n")
 zero_fingers()
-raw_input("== Open a terminal and rostopic echo the /reflex/debug_info\n\
+raw_input("== Open a terminal and rostopic echo the /reflex/motor_debug\n\
 == topic. Check that the raw angle values are correct:\n\
 == F1: less than 900 -- F2: greater than 3200 -- F3: less than 900\n\
 == If all is good, hit [Enter]. If not, cancel the script and redo tendons\n")
@@ -38,9 +38,9 @@ for finger in range(3):
     rospy.sleep(std_wait)
     reflex_hand.open(finger)
 rospy.sleep(std_wait)
-reflex_hand.command_smarts(1, 'close')
+reflex_hand.command_smarts('close')
 rospy.sleep(std_wait)
-reflex_hand.command_smarts(1, 'open')
+reflex_hand.command_smarts('open')
 raw_input("== If all went well, continue to next test by pressing [Enter]\n")
 
 ###############################################################################
@@ -52,7 +52,7 @@ rospy.sleep(std_wait)
 for finger in range(3):
     reflex_hand.move_finger(finger, 2)
     rospy.sleep(std_wait)    
-reflex_hand.command_smarts(1, 'open')
+reflex_hand.command_smarts('open')
 raw_input("== If all went well, continue to next test by pressing [Enter]\n")
 
 ###############################################################################
@@ -69,7 +69,7 @@ rospy.sleep(std_wait)
 for finger in range(2):
     reflex_hand.move_finger(finger, 2)
 rospy.sleep(std_wait)
-reflex_hand.command_smarts(1, 'open')
+reflex_hand.command_smarts('open')
 rospy.sleep(std_wait)
 reflex_hand.set_cylindrical()
 raw_input("== If all went well, continue to next test by pressing [Enter]\n")
@@ -80,9 +80,9 @@ while not rospy.is_shutdown():
     raw_input("== When ready to test tactile sensors, press [Enter]\n")
     zero_tactile()
     rospy.sleep(std_wait)
-    res = reflex_hand.command_smarts(1, 'guarded_move')
+    res = reflex_hand.command_smarts('guarded_move')
     rospy.sleep(std_wait)
-    reflex_hand.command_smarts(1, 'open')
+    reflex_hand.command_smarts('open')
     command = raw_input("== To rerun test, press [Enter]. To move on, press [q][Enter]\n")
     if len(command) > 0 and (command[0] == 'q' or command[0] == 'Q'):
         break
