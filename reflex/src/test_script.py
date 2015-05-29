@@ -1,14 +1,15 @@
-#!/usr/bin/env python
-
 # Test code for the ReFlex hand
 # Note: you must connect a hand by running "roslaunch reflex
 # reflex.launch" before you can run this script
+
 
 import rospy
 from std_srvs.srv import Empty
 
 # Imports the code to control the hand using smart actions
 from reflex import reflex_smarts
+
+
 rospy.init_node('TestHandNode')
 
 # Starts up hand and publishes the command data

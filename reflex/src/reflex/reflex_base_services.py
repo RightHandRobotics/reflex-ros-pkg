@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 
-###########################################################
-# Services for basic reflex package commands
-###########################################################
-
 import rospy
-
 from std_srvs.srv import Empty
 
 from reflex_base import ReFlex

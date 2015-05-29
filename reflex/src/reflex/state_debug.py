@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-##########################################################
-# Class to track state changes for debugging purposes
-##########################################################
+from copy import deepcopy
 
 import rospy
-from copy import deepcopy
+
 from reflex_msgs.msg import StateDebug
+
 
 class StateDebugger():
     def __init__(self):

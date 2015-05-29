@@ -430,7 +430,7 @@ bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
   printf("This process assumes the fingers zeroed (opened as much as possible)\n");
   printf("and that the hand in aligned in a cylindrical grasp. The preshape joint\n");
   printf("will be set to zero just as it is now. If you don't like this position,\n");
-  printf("reset and rer;un the calibration after this is finished...\n");
+  printf("reset and rerun the calibration after this is finished...\n");
   return true;
 }
 
@@ -480,15 +480,15 @@ int main(int argc, char **argv)
   ros::ServiceServer zero_fingers_srv = nh.advertiseService("/zero_fingers", zero_fingers);
   ROS_INFO("Advertising the /zero_fingers service");
 
-  ROS_INFO("entering main loop...");
+  ROS_INFO("Entering main loop...");
   while (!g_done)
   {
     ros::spinOnce();
     if (!rh.listen(0.001))
-      ROS_ERROR("error in listen");
+      ROS_ERROR("Error in listen");
   }
   rh.setServoControlModes(reflex_hand::ReflexHand::CM_IDLE);
   ros::Duration(0.01).sleep();
-  ROS_INFO("have a nice day");
+  ROS_INFO("Have a nice day");
   return 0;
 }

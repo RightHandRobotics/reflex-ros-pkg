@@ -7,7 +7,7 @@
 #include <string>
 using namespace std;
 
-//int palm_map[] = {5, 7, 6, 8, 2, 3, 8, 9, 9, 0, 1};
+
 int palm_map[] = {5, 8, 6, 7, 2, 3, 8, 9, 9, 0, 1};
 
 ros::Publisher joint_pub;

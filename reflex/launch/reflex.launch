@@ -1,4 +1,3 @@
-<!-- nodes and parameters for reflex -->
 <launch>
   <rosparam file="$(find reflex)/yaml/reflex.yaml" command="load"/>
   <rosparam file="$(find reflex)/yaml/takktile_cal.yaml" command="load"/>

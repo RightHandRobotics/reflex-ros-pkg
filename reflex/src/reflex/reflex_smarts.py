@@ -1,18 +1,14 @@
 #!/usr/bin/env python
 
-##########################################################
-# This extends the ReFlex class and adds a series
-# of preset moves
-##########################################################
-
-import rospy
-from math import floor
 from copy import deepcopy
+from math import floor
 import sys
 
+import rospy
 from std_msgs.msg import Float64
 
 from reflex_base_services import *
+
 
 # interface
 # 1 arguments       = apply to whole hand

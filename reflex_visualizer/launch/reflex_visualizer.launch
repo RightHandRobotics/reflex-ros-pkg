@@ -1,4 +1,3 @@
-<!-- Launches the RightHand Robotics visualizer, which reads data on the /reflex_hand topic -->
 <launch>
 	<param name="robot_description" command="$(find xacro)/xacro.py '$(find reflex_visualizer)/urdf/full_reflex_model.urdf.xacro'" />
 

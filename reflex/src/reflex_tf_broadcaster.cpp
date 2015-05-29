@@ -1,13 +1,7 @@
-/* ##########################################################
-# 
-# This subscribres to the /reflex_hand topic and uses the joint
-# angles found there to publish the hand tf transforms
-# 
-########################################################## */
-
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <reflex_msgs/Hand.h>
+
 
 void poseCallback(const reflex_msgs::HandConstPtr& msg) {
   static tf::TransformBroadcaster br;
@@ -113,6 +107,7 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
   }
 
 }
+
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "reflex_tf_broadcaster");
