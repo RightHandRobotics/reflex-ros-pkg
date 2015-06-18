@@ -11,8 +11,9 @@ gccarm.installed:
 	touch gccarm.installed
 
 openocd-source:
-	git clone git://git.code.sf.net/p/openocd/code openocd-source
+	# git clone git://git.code.sf.net/p/openocd/code openocd-source
+	git clone https://github.com/ntfreak/openocd.git openocd-source
 
 openocd: openocd-source
 	sudo apt-get install automake texinfo libusb-1.0-0-dev texi2html
-	cd openocd-source && ./bootstrap && ./configure --prefix=$(shell pwd)/openocd --enable-ftdi && make && make install
+	cd openocd-source && ./bootstrap && ./configure --prefix=$(shell pwd)/openocd --enable-ftdi && make && sudo make install
