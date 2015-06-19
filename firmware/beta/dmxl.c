@@ -408,6 +408,7 @@ void dmxl_process_rings()
     dmxl_process_ring(i);
 }
 
+// See Dynamixel addresses here: http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm
 void dmxl_set_led(const uint8_t port_idx, const uint8_t dmxl_id,
                   const uint8_t enable)
 {
@@ -432,6 +433,21 @@ void dmxl_set_angle_limits(const uint8_t port_idx, const uint8_t dmxl_id,
   d[2] = ccw_limit & 0xff;
   d[3] = (ccw_limit >> 8) & 0xff;
   dmxl_write_data(port_idx, dmxl_id, 4, 6, d);
+}
+
+void dmxl_set_res_divider(const uint8_t port_idx, const uint8_t dmxl_id,
+                          const uint8_t res_divider)
+{
+  dmxl_write_data(port_idx, dmxl_id, 1, 22, &res_divider);
+}
+
+void dmxl_set_multiturn_offset(const uint8_t port_idx, const uint8_t dmxl_id,
+                               const uint16_t offset)
+{
+  uint8_t d[2];
+  d[0] = offset & 0xff;
+  d[1] = (offset >> 8) & 0xff;
+  dmxl_write_data(port_idx, dmxl_id, 2, 20, d);
 }
 
 void dmxl_set_speed_dir(const uint8_t port_idx, const uint8_t dmxl_id,
@@ -466,6 +482,10 @@ void dmxl_set_control_mode(const uint8_t port_idx,
     dmxl_set_led(port_idx, DMXL_DEFAULT_ID, 1);
     delay_us(1);
     dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 1);
+    dmxl_set_angle_limits(port_idx, DMXL_DEFAULT_ID, 4095, 4095);  // Enables multi-turn mode w/ position control
+    // http://support.robotis.com/en/product/dynamixel/mx_series/mx-64.htm#Actuator_Address_0B1
+    dmxl_set_res_divider(port_idx, DMXL_DEFAULT_ID, 4);
+    dmxl_set_multiturn_offset(port_idx, DMXL_DEFAULT_ID, 3070);  // Places motor close enough to middle of 0-28672 range
   }
 }
 

@@ -26,6 +26,10 @@ void dmxl_set_led(const uint8_t port_idx, const uint8_t dmxl_id,
                   const uint8_t enable);
 void dmxl_set_angle_limits(const uint8_t port_idx, const uint8_t dmxl_id,
                            const uint16_t cw_limit, const uint16_t ccw_limit);
+void dmxl_set_res_divider(const uint8_t port_idx, const uint8_t dmxl_id,
+                          const uint8_t res_divider);
+void dmxl_set_multiturn_offset(const uint8_t port_idx, const uint8_t dmxl_id,
+                               const uint16_t offset);
 void dmxl_set_speed_dir(const uint8_t port_idx, const uint8_t dmxl_id,
                         const uint16_t speed, const uint8_t dir);
 void dmxl_set_control_mode(const uint8_t port_idx, 
