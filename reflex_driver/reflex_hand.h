@@ -52,10 +52,10 @@ public:
   const static int PORT_BASE = 11333;
   static const uint16_t DYN_MIN_RAW = 0;
   static const uint16_t DYN_MAX_RAW = 4095;
-  static const uint16_t DYN_MIN_RAW_WRAPPED = 16384;  //Allows for checking wraps around 0
-  static const float DYN_SCALE = (2*3.141596)/4095;
-  static const float ENC_SCALE = (2*3.141596)/16383;
-  enum ControlMode { CM_IDLE = 0, CM_VELOCITY = 1, CM_POSITION = 2 };
+  static const uint16_t DYN_MIN_RAW_WRAPPED = 16384;  // For checking negative wraps
+  static const float DYN_SCALE = (2 * 3.141596) / 4095;
+  static const float ENC_SCALE = (2 * 3.141596) / 16383;
+  enum ControlMode{CM_IDLE = 0, CM_VELOCITY = 1, CM_POSITION = 2};
 
   typedef boost::function<void(const ReflexHandState * const)> StateCallback;
   void setStateCallback(StateCallback callback);
