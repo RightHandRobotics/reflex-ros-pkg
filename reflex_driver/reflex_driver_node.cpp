@@ -16,21 +16,24 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-#include <ros/ros.h>
-#include <algorithm>
-#include <fstream>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-#include <vector>
-#include <std_srvs/Empty.h>
-#include "reflex_hand.h"
+
 #include <reflex_msgs/RawServoPositions.h>
 #include <reflex_msgs/RadianServoPositions.h>
 #include <reflex_msgs/Hand.h>
 #include <reflex_msgs/MotorDebug.h>
 #include <reflex_msgs/StateDebug.h>
+#include <ros/ros.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <std_srvs/Empty.h>
+
+#include <algorithm>
+#include <fstream>
+#include <string>
+#include <vector>
+
+#include "./reflex_hand.h"
 using namespace std;
 
 
@@ -61,6 +64,7 @@ int MOTOR_CAL_MIN = 1200;
 int REVERSE_MOTOR_CAL_MIN = 2900;
 double calibration_error[] = {0.0, 0.0, 0.0};
 
+
 void signal_handler(int signum)
 {
   if (signum == SIGINT || signum == SIGTERM)
@@ -68,7 +72,6 @@ void signal_handler(int signum)
 }
 
 
-// Loads necessary parameters
 void load_params(ros::NodeHandle nh)
 {
   string topic = "no error";
@@ -124,11 +127,6 @@ void set_radian_positions_cb(reflex_hand::ReflexHand *rh, const reflex_msgs::Rad
                (int16_t) targets[i], reflex_hand::ReflexHand::DYN_MIN_RAW);
       targets[i] = reflex_hand::ReflexHand::DYN_MIN_RAW;
     }
-    else if (targets[i] > reflex_hand::ReflexHand::DYN_MAX_RAW) {
-      ROS_WARN("Finger %d set out of range (%d), reset to %d", i+1,
-               targets[i], reflex_hand::ReflexHand::DYN_MAX_RAW);
-      targets[i] = reflex_hand::ReflexHand::DYN_MAX_RAW;
-    }
   }
   rh->setServoTargets(targets);
 }
@@ -147,7 +145,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     // TODO: Remove these if statements when the firmware order is fixed
     if (i == 0) val = 0;
     else if (i == 1) val = 2*9;
-    else val = 1*9;
+    else val = 1 * 9;
     const int tactile_base_idx = val;  
     // const int tactile_base_idx = i * 9;
     // TODO: Remove the (2-i) statement when the firmware order is fixed
@@ -165,7 +163,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     hand_msg.finger[i].proximal = ((state->encoders_[2-i] + encoder_offset[i])*reflex_hand::ReflexHand::ENC_SCALE - enc_zero[i]);
     hand_msg.finger[i].spool = motor_inversion[i]*((state->dynamixel_angles_[i] * reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
     double diff = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
-    hand_msg.finger[i].distal = (diff<0)?0:diff;
+    hand_msg.finger[i].distal = (diff < 0) ? 0 : diff;
 
     for (int j=0; j < 9; j++)
     {
@@ -276,7 +274,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     }
 
     // Check whether the fingers have moved and set the next movement if they haven't
-    uint16_t increase[] = {20, 20, 50, 0}; // dynamixel step in counts out of 4095
+    uint16_t increase[] = {5, 5, 5, 0}; // dynamixel step in counts out of 4095
     last_capture = true;
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
     {
@@ -311,12 +309,12 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
     {
       ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
       // Write to variable
-      int offset = 300;
+      int offset = 50;
       for (int i = 0; i<4; i++) {
         if (i == 3) offset = 0;
         dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_inversion[i]*offset))*
                        reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
-        if (dyn_zero[i] > 4*3.1415)
+        if (dyn_zero[i] > 14*3.1415)
         {
           ROS_WARN("Something went wrong in calibration - motor %d was set anomalously high", i+1);
           ROS_WARN("  Motor zero reference value: %4f radians (nothing should be over 2*pi)", dyn_zero[i]);
@@ -324,25 +322,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
         }
 
         servo_pos.raw_positions[i] = state->dynamixel_angles_[i] - (motor_inversion[i]*offset);
-      }
-
-      for (int i=0; i<3; i++) {
-        if ((motor_inversion[i] > 0 && servo_pos.raw_positions[i] > MOTOR_CAL_MIN) || 
-            (motor_inversion[i] < 0 && servo_pos.raw_positions[i] < REVERSE_MOTOR_CAL_MIN)) {
-          if (motor_inversion[i] > 0 && servo_pos.raw_positions[i]) {
-            calibration_error[i] = (servo_pos.raw_positions[i] - MOTOR_CAL_MIN) *
-                                    reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
-          } else {
-            calibration_error[i] = (REVERSE_MOTOR_CAL_MIN - servo_pos.raw_positions[i]) *
-                                    reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
-          }
-          ROS_WARN("Finger %d has been calibrated so that it won't", i+1);
-          ROS_WARN("  be able to fully close. Check - is the tendon");
-          ROS_WARN("  out of the groove? If not, the finger will");
-          ROS_WARN("  probably need to have the tendon re-strung.");
-          ROS_WARN("  Finger %d has been calibrated %4f radians", i+1, calibration_error[i]);
-          ROS_WARN("  out of bounds");
-        }
       }
 
       // Write to file
@@ -373,36 +352,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state)
   }
   debug_pub.publish(debug_msg);
 
-  // for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-  // {
-  //   const int tactile_base_idx = i * 9;
-  //   ROS_INFO("finger %d tactile pressures: "
-  //            "%4u %4u %4u %4u %4u %4u %4u %4u %4u",
-  //            i,
-  //            state->tactile_pressures_[tactile_base_idx + 0],
-  //            state->tactile_pressures_[tactile_base_idx + 1],
-  //            state->tactile_pressures_[tactile_base_idx + 2],
-  //            state->tactile_pressures_[tactile_base_idx + 3],
-  //            state->tactile_pressures_[tactile_base_idx + 4],
-  //            state->tactile_pressures_[tactile_base_idx + 5],
-  //            state->tactile_pressures_[tactile_base_idx + 6],
-  //            state->tactile_pressures_[tactile_base_idx + 7],
-  //            state->tactile_pressures_[tactile_base_idx + 8]);
-  // }
-  // ROS_INFO("palm tactile pressures: "
-  //          "%4u %4u %4u %4u %4u %4u %4u %4u %4u %4u %4u",
-  //          state->tactile_pressures_[palm_tactile_base_idx + 0],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 1],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 2],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 3],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 4],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 5],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 6],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 7],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 8],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 9],
-  //          state->tactile_pressures_[palm_tactile_base_idx + 10]);
-
   return;
 }
 
@@ -422,15 +371,15 @@ bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 // Actual capturing is done in reflex_hand_state_cb
 bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 {
-  aqcuire_fingers = true;
-  first_capture = true;
-  last_capture = false;
   ROS_INFO("Beginning finger zero sequence...");
   ROS_INFO("finger_file_address: %s", finger_file_address.c_str());
   printf("This process assumes the fingers zeroed (opened as much as possible)\n");
   printf("and that the hand in aligned in a cylindrical grasp. The preshape joint\n");
   printf("will be set to zero just as it is now. If you don't like this position,\n");
   printf("reset and rerun the calibration after this is finished...\n");
+  aqcuire_fingers = true;
+  first_capture = true;
+  last_capture = false;
   return true;
 }
 
@@ -442,14 +391,14 @@ int main(int argc, char **argv)
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
 
-  // Advertising necessary topics
+  // Advertise necessary topics
   hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_hand", 10);
   ROS_INFO("Advertising the /reflex_hand topic");
   debug_pub = nh.advertise<reflex_msgs::MotorDebug>("/reflex/motor_debug", 10);
   ROS_INFO("Advertising the /reflex/motor_debug topic");
   raw_pub = nh.advertise<reflex_msgs::RawServoPositions>("/set_reflex_raw", 1);
 
-  // Intializes the reflex_hand object
+  // Intialize the reflex_hand object
   string network_interface;
   nh_private.param<string>("network_interface", network_interface, "eth0");
   ROS_INFO("starting reflex_hand_driver on network interface %s", network_interface.c_str());
@@ -464,13 +413,13 @@ int main(int argc, char **argv)
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
   
-  // Subscribing to the hand command topics
+  // Subscribe to the hand command topics
   ros::Subscriber raw_positions_sub = nh.subscribe<reflex_msgs::RawServoPositions>("set_reflex_raw",
                     1, boost::bind(set_raw_positions_cb, &rh, _1));
   ros::Subscriber radian_positions_sub = nh.subscribe<reflex_msgs::RadianServoPositions>("set_reflex_hand",
                     1, boost::bind(set_radian_positions_cb, &rh, _1));
   
-  // Initializing the /zero_tactile and /zero_finger services
+  // Initialize the /zero_tactile and /zero_finger services
   string buffer;
   nh.getParam("yaml_dir", buffer);
   tactile_file_address = buffer + "/tactile_calibrate.yaml";

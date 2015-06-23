@@ -53,7 +53,7 @@ public:
   static const uint16_t DYN_MIN_RAW = 0;
   static const uint16_t DYN_MAX_RAW = 4095;
   static const uint16_t DYN_MIN_RAW_WRAPPED = 16384;  // For checking negative wraps
-  static const float DYN_SCALE = (2 * 3.141596) / 4095;
+  static const float DYN_SCALE = (4 * 2 * 3.141596) / 4095;  // Assuming resolution divider of 4
   static const float ENC_SCALE = (2 * 3.141596) / 16383;
   enum ControlMode{CM_IDLE = 0, CM_VELOCITY = 1, CM_POSITION = 2};
 
