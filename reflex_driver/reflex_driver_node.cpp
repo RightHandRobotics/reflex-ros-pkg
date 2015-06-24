@@ -37,32 +37,34 @@
 using namespace std;
 
 
+#define CAL_ERROR 0.05  // Encoder delta signifying movement in calibration
+
+
 ros::Publisher hand_pub;
 ros::Publisher debug_pub;
 ros::Publisher raw_pub;
+
 ofstream tactile_file;
 string tactile_file_address;
 ofstream finger_file;
 string finger_file_address;
-bool aqcuire_tactile, aqcuire_fingers, first_capture, last_capture = false;
-bool g_done = false;
+
 vector<int> motor_inversion;
-vector<double> dyn_zero;
-vector<double> enc_zero;
 vector<double> dyn_ratio;
-int contact_threshold;
+int contact_threshold;  // TODO(Eric): Make this individual for every sensor
 vector<int> tactile_offset_f1;
 vector<int> tactile_offset_f2;
 vector<int> tactile_offset_f3;
 vector<int> tactile_offset_palm;
 int encoder_last_value[] = {0, 0, 0};
-// The encoders wrap around at 0-16383. This stores the offset at each wrap
 int encoder_offset[] = {-1, -1, -1};
-// Encoder error at which the fingers consider themself zeroed in calibration
-float ZERO_ERROR = 0.05;
-int MOTOR_CAL_MIN = 1200;
-int REVERSE_MOTOR_CAL_MIN = 2900;
+
+bool aqcuire_tactile, aqcuire_fingers, first_capture, last_capture = false;
+vector<double> dyn_zero;
+vector<double> enc_zero;
 double calibration_error[] = {0.0, 0.0, 0.0};
+
+bool g_done = false;
 
 
 void signal_handler(int signum) {
@@ -98,7 +100,7 @@ void load_params(ros::NodeHandle nh) {
     ROS_FATAL("they have been corrupted. If they were corrupted, they");
     ROS_FATAL("can be repaired by pasting the *_backup.yaml file text in");
   }
-  ROS_INFO("Loaded all parameters");
+  ROS_INFO("Succesfully loaded all parameters");
 }
 
 
@@ -114,7 +116,7 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
 
 
 // Commands the motors from radians, using the zero references from
-// yaml/finger_calibrate.yaml to translate into the raw Dyanmixel values
+// yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
 void set_radian_positions_cb(reflex_hand::ReflexHand *rh,
                              const reflex_msgs::RadianServoPositions::ConstPtr &msg) {
   uint16_t targets[4];
@@ -128,6 +130,32 @@ void set_radian_positions_cb(reflex_hand::ReflexHand *rh,
     }
   }
   rh->setServoTargets(targets);
+}
+
+
+// Sets the procedure to calibrate the tactile values in motion
+bool zero_tactile(std_srvs::Empty::Request &req,
+                  std_srvs::Empty::Response &res) {
+  aqcuire_tactile = true;
+  ROS_INFO("Zeroing tactile data at current values...");
+  ROS_INFO("tactile_file_address: %s", tactile_file_address.c_str());
+  return true;
+}
+
+
+// Sets the procedure to calibrate the fingers in motion
+bool zero_fingers(std_srvs::Empty::Request &req,
+                  std_srvs::Empty::Response &res) {
+  ROS_INFO("Beginning finger zero sequence...");
+  ROS_INFO("finger_file_address: %s", finger_file_address.c_str());
+  printf("This process assumes the fingers zeroed (opened as much as\n");
+  printf("and that the hand in aligned in a cylindrical grasp. The\n");
+  printf("preshape jointwill be set to zero just as it is now. If\n");
+  printf("reset and rerun the calibration after this is finished...\n");
+  aqcuire_fingers = true;
+  first_capture = true;
+  last_capture = false;
+  return true;
 }
 
 
@@ -258,7 +286,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
               i+1, enc_zero[i],
               state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE,
               state->dynamixel_angles_[i]*reflex_hand::ReflexHand::DYN_SCALE);
-      if (abs(enc_zero[i] - state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE) > ZERO_ERROR)
+      if (abs(enc_zero[i] - state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE) > CAL_ERROR)
         increase[i] = 0;
       else
         last_capture = false;
@@ -333,32 +361,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 }
 
 
-// Sets the procedure to calibrate the tactile values in motion
-bool zero_tactile(std_srvs::Empty::Request &req,
-                  std_srvs::Empty::Response &res) {
-  aqcuire_tactile = true;
-  ROS_INFO("Zeroing tactile data at current values...");
-  ROS_INFO("tactile_file_address: %s", tactile_file_address.c_str());
-  return true;
-}
-
-
-// Sets the procedure to calibrate the fingers in motion
-bool zero_fingers(std_srvs::Empty::Request &req,
-                  std_srvs::Empty::Response &res) {
-  ROS_INFO("Beginning finger zero sequence...");
-  ROS_INFO("finger_file_address: %s", finger_file_address.c_str());
-  printf("This process assumes the fingers zeroed (opened as much as\n");
-  printf("and that the hand in aligned in a cylindrical grasp. The\n");
-  printf("preshape jointwill be set to zero just as it is now. If\n");
-  printf("reset and rerun the calibration after this is finished...\n");
-  aqcuire_fingers = true;
-  first_capture = true;
-  last_capture = false;
-  return true;
-}
-
-
 int main(int argc, char **argv) {
   // Initialize ROS node
   ros::init(argc, argv, "reflex_hand_driver");
@@ -375,11 +377,11 @@ int main(int argc, char **argv) {
   // Intialize the reflex_hand object
   string network_interface;
   nh_private.param<string>("network_interface", network_interface, "eth0");
-  ROS_INFO("starting reflex_hand_driver on network interface %s",
+  ROS_INFO("Starting reflex_hand_driver on network interface %s",
            network_interface.c_str());
   reflex_hand::ReflexHand rh(network_interface);
   if (!rh.happy()) {
-    ROS_FATAL("error during initialization. bailing now. have a nice day.");
+    ROS_FATAL("Error during initialization. bailing now. have a nice day.");
     return 1;
   }
   rh.setStateCallback(reflex_hand_state_cb);
