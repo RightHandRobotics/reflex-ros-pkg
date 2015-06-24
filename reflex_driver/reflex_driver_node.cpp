@@ -56,6 +56,7 @@ vector<int> tactile_offset_f1;
 vector<int> tactile_offset_f2;
 vector<int> tactile_offset_f3;
 vector<int> tactile_offset_palm;
+int tactile_base_idx[] = {0, 18, 9};
 int encoder_last_value[] = {0, 0, 0};
 int encoder_offset[] = {-1, -1, -1};
 
@@ -101,6 +102,15 @@ void load_params(ros::NodeHandle nh) {
     ROS_FATAL("can be repaired by pasting the *_backup.yaml file text in");
   }
   ROS_INFO("Succesfully loaded all parameters");
+}
+
+int pressure_offset(int i, int j) {
+  if (i == 0)
+    return tactile_offset_f1[j];
+  else if (i == 1)
+    return tactile_offset_f2[j];
+  else
+    return tactile_offset_f3[j];
 }
 
 
@@ -160,32 +170,27 @@ bool zero_fingers(std_srvs::Empty::Request &req,
 
 
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
-  int val = 0;
-
-  // Sets and publishes the reflex_msgs/Hand message
   reflex_msgs::Hand hand_msg;
-  int pressure_offset;
-  // The dynamixel for F1 has index 0, F2 has index 1, F3 has index 3
+
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    // TODO(Eric): Remove these if statements when the firmware order is fixed
-    if (i == 0)       val = 0;
-    else if (i == 1)  val = 2*9;
-    else              val = 1 * 9;
-    const int tactile_base_idx = val;
-    // const int tactile_base_idx = i * 9;
-    // TODO(Eric): Remove the (2-i) statement when the firmware order is fixed
     // Checks whether the encoder value has wrapped around and corrects for it
     if (encoder_offset[i] == -1) {
       encoder_offset[i] = 0;
     } else {
+// TODO(Eric): Can we get rid of 2-i?
       if (encoder_last_value[i] - state->encoders_[2-i] > 5000)
+      // if (encoder_last_value[i] - state->encoders_[i] > 5000)
         encoder_offset[i] = encoder_offset[i] + 16383;
       else if (encoder_last_value[i] - state->encoders_[2-i] < -5000)
+      // else if (encoder_last_value[i] - state->encoders_[i] < -5000)
         encoder_offset[i] = encoder_offset[i] - 16383;
     }
     encoder_last_value[i] = state->encoders_[2-i];
+    // encoder_last_value[i] = state->encoders_[i];
+
     hand_msg.finger[i].proximal =
-      (state->encoders_[2-i] + encoder_offset[i]) *
+      // (state->encoders_[2-i] + encoder_offset[i]) *
+      (state->encoders_[i] + encoder_offset[i]) *
       reflex_hand::ReflexHand::ENC_SCALE - enc_zero[i];
     hand_msg.finger[i].spool =
       motor_inversion[i] *
@@ -195,17 +200,10 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     hand_msg.finger[i].distal = (diff < 0) ? 0 : diff;
 
     for (int j=0; j < 9; j++) {
-      if (i == 0)
-        pressure_offset = tactile_offset_f1[j];
-      else if (i == 1)
-        pressure_offset = tactile_offset_f2[j];
-      else
-        pressure_offset = tactile_offset_f3[j];
       hand_msg.finger[i].pressure[j] =
-        state->tactile_pressures_[tactile_base_idx + j] - pressure_offset;
-      hand_msg.finger[i].contact[j] = false;
-      if (abs(hand_msg.finger[i].pressure[j]) > contact_threshold)
-        hand_msg.finger[i].contact[j] = true;
+        state->tactile_pressures_[tactile_base_idx[i] + j] - pressure_offset(i, j);
+      hand_msg.finger[i].contact[j] =
+        abs(hand_msg.finger[i].pressure[j]) > contact_threshold;
     }
   }
   hand_msg.palm.preshape =
@@ -222,35 +220,26 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
     tactile_file << "# Captured sensor values from unloaded state\n";
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-      if (i == 0) {
-        val = 0;
-      } else if (i == 1) {
-        val = 2*9;
-      } else {
-        val = 1*9;
-      }
-      const int tactile_base_idx = val;
-      // const int tactile_base_idx = i * 9;
       for (int j = 0; j < 9; j++) {
         if (i == 0)
-          tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx+j];
+          tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
         else if (i == 1)
-          tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx+j];
+          tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
         else
-          tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx+j];
+          tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
       }
 
       // Write to file
       tactile_file << "tactile_offset_f" << i+1 << ": ["
-                   << state->tactile_pressures_[tactile_base_idx + 0] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 1] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 2] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 3] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 4] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 5] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 6] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 7] << ", "
-                   << state->tactile_pressures_[tactile_base_idx + 8] << "]\n";
+                   << state->tactile_pressures_[tactile_base_idx[i] + 0] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 1] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 2] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 3] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 4] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 5] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 6] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 7] << ", "
+                   << state->tactile_pressures_[tactile_base_idx[i] + 8] << "]\n";
     }
 
     aqcuire_tactile = false;
