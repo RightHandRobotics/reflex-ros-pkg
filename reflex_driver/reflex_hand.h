@@ -49,6 +49,7 @@ class ReflexHand
 {
 public:
   const static int NUM_SERVOS = 4;
+  const static int NUM_SENSORS_PER_FINGER = 9;
   const static int PORT_BASE = 11333;
   static const uint16_t DYN_MIN_RAW = 0;
   static const uint16_t DYN_MAX_RAW = 4095;

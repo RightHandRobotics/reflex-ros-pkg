@@ -104,15 +104,6 @@ void load_params(ros::NodeHandle nh) {
   ROS_INFO("Succesfully loaded all parameters");
 }
 
-int pressure_offset(int i, int j) {
-  if (i == 0)
-    return tactile_offset_f1[j];
-  else if (i == 1)
-    return tactile_offset_f2[j];
-  else
-    return tactile_offset_f3[j];
-}
-
 
 // Takes raw Dynamixel values (0-4095) and writes them directly to the motors
 void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
@@ -169,37 +160,78 @@ bool zero_fingers(std_srvs::Empty::Request &req,
 }
 
 
+int pressure_offset(int i, int j) {
+  if (i == 0)
+    return tactile_offset_f1[j];
+  else if (i == 1)
+    return tactile_offset_f2[j];
+  else
+    return tactile_offset_f3[j];
+}
+
+
+int update_encoder_offset(int raw_value, int last_value, int current_offset) {
+  int enc_offset = current_offset;
+  if (enc_offset == -1) {
+    // This case happens upon startup
+    enc_offset = 0;
+  } else {
+    // If the encoder value jumps, that means it has wrapped a revolution
+    if (last_value - raw_value > 5000)
+      enc_offset = enc_offset + 16383;
+    else if (last_value - raw_value < -5000)
+      enc_offset = enc_offset - 16383;
+  }
+  return enc_offset;
+}
+
+
+float calc_proximal_angle(int raw_enc_value, int offset, int zero) {
+  int wrapped_enc_value = raw_enc_value + offset;
+  float rad_value = wrapped_enc_value * reflex_hand::ReflexHand::ENC_SCALE;
+  return rad_value - zero;
+}
+
+
+float calc_spool_angle(int inversion, int raw_dyn_value, double ratio,
+                       double zero) {
+  float rad_value = raw_dyn_value * reflex_hand::ReflexHand::DYN_SCALE / ratio;
+  float zeroed_value = rad_value - zero;
+  return inversion * zeroed_value;
+}
+
+float calc_distal_angle(float spool, float proximal) {
+  float diff = spool - proximal;
+  return (diff < 0) ? 0 : diff;
+}
+
+
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   reflex_msgs::Hand hand_msg;
 
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    // Checks whether the encoder value has wrapped around and corrects for it
-    if (encoder_offset[i] == -1) {
-      encoder_offset[i] = 0;
-    } else {
 // TODO(Eric): Can we get rid of 2-i?
-      if (encoder_last_value[i] - state->encoders_[2-i] > 5000)
-      // if (encoder_last_value[i] - state->encoders_[i] > 5000)
-        encoder_offset[i] = encoder_offset[i] + 16383;
-      else if (encoder_last_value[i] - state->encoders_[2-i] < -5000)
-      // else if (encoder_last_value[i] - state->encoders_[i] < -5000)
-        encoder_offset[i] = encoder_offset[i] - 16383;
-    }
+    encoder_offset[i] = update_encoder_offset(state->encoders_[2-i],
+    // encoder_offset[i] = update_encoder_offset(state->encoders_[i],
+                                              encoder_last_value[i],
+                                              encoder_offset[i]);
     encoder_last_value[i] = state->encoders_[2-i];
     // encoder_last_value[i] = state->encoders_[i];
 
-    hand_msg.finger[i].proximal =
-      // (state->encoders_[2-i] + encoder_offset[i]) *
-      (state->encoders_[i] + encoder_offset[i]) *
-      reflex_hand::ReflexHand::ENC_SCALE - enc_zero[i];
-    hand_msg.finger[i].spool =
-      motor_inversion[i] *
-      ((state->dynamixel_angles_[i] *
-        reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i]) - dyn_zero[i]);
-    double diff = hand_msg.finger[i].spool - hand_msg.finger[i].proximal;
-    hand_msg.finger[i].distal = (diff < 0) ? 0 : diff;
+    hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[2-i],
+    // hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[i],
+                                                      encoder_offset[i],
+                                                      enc_zero[i]);
 
-    for (int j=0; j < 9; j++) {
+    hand_msg.finger[i].spool = calc_spool_angle(motor_inversion[i],
+                                                state->dynamixel_angles_[i],
+                                                dyn_ratio[i],
+                                                dyn_zero[i]);
+
+    hand_msg.finger[i].distal = calc_distal_angle(hand_msg.finger[i].spool,
+                                                  hand_msg.finger[i].proximal);
+
+    for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
       hand_msg.finger[i].pressure[j] =
         state->tactile_pressures_[tactile_base_idx[i] + j] - pressure_offset(i, j);
       hand_msg.finger[i].contact[j] =
@@ -220,7 +252,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
     tactile_file << "# Captured sensor values from unloaded state\n";
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-      for (int j = 0; j < 9; j++) {
+      for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
         if (i == 0)
           tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
         else if (i == 1)
