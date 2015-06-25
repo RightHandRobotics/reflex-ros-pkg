@@ -34,10 +34,8 @@
 #include <vector>
 
 #include "./reflex_hand.h"
+#include "./reflex_driver_node.h"
 using namespace std;
-
-
-#define CAL_ERROR 0.05  // Encoder delta signifying movement in calibration
 
 
 ros::Publisher hand_pub;
@@ -160,13 +158,13 @@ bool zero_fingers(std_srvs::Empty::Request &req,
 }
 
 
-int pressure_offset(int i, int j) {
-  if (i == 0)
-    return tactile_offset_f1[j];
-  else if (i == 1)
-    return tactile_offset_f2[j];
+int pressure_offset(int finger, int sensor) {
+  if (finger == 0)
+    return tactile_offset_f1[sensor];
+  else if (finger == 1)
+    return tactile_offset_f2[sensor];
   else
-    return tactile_offset_f3[j];
+    return tactile_offset_f3[sensor];
 }
 
 
@@ -255,33 +253,34 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 
   // Capture the current tactile data and save it as a zero reference
   if (aqcuire_tactile) {
-    tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
-    tactile_file << "# Captured sensor values from unloaded state\n";
-    for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-      for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
-        if (i == 0)
-          tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
-        else if (i == 1)
-          tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
-        else
-          tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
-      }
+    calibrate_tactile_sensors(state, hand_msg);
+    // tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
+    // tactile_file << "# Captured sensor values from unloaded state\n";
+    // for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    //   for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+    //     if (i == 0)
+    //       tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
+    //     else if (i == 1)
+    //       tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
+    //     else
+    //       tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
+    //   }
 
-      // Write to file
-      tactile_file << "tactile_offset_f" << i+1 << ": ["
-                   << state->tactile_pressures_[tactile_base_idx[i] + 0] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 1] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 2] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 3] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 4] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 5] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 6] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 7] << ", "
-                   << state->tactile_pressures_[tactile_base_idx[i] + 8] << "]\n";
-    }
+    //   // Write to file
+    //   tactile_file << "tactile_offset_f" << i+1 << ": ["
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 0] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 1] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 2] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 3] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 4] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 5] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 6] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 7] << ", "
+    //                << state->tactile_pressures_[tactile_base_idx[i] + 8] << "]\n";
+    // }
 
-    aqcuire_tactile = false;
-    tactile_file.close();
+    // aqcuire_tactile = false;
+    // tactile_file.close();
   }
 
   if (aqcuire_fingers) {
@@ -377,6 +376,44 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   debug_pub.publish(debug_msg);
 
   return;
+}
+
+
+void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
+                               reflex_msgs::Hand hand_msg) {
+  tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
+  tactile_file << "# Captured sensor values from unloaded state\n";
+  update_local_tactile_zero(state);
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    update_file_tactile_zero(state, i);
+  }
+
+  aqcuire_tactile = false;
+  tactile_file.close();
+}
+
+
+void update_local_tactile_zero(const reflex_hand::ReflexHandState* const state) {
+  for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+    tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[0] + j];
+    tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[1] + j];
+    tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[2] + j];
+  }
+}
+
+
+void update_file_tactile_zero(const reflex_hand::ReflexHandState* const state,
+                              int finger) {
+  tactile_file << "tactile_offset_f" << finger + 1 << ": ["
+               << state->tactile_pressures_[tactile_base_idx[finger] + 0] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 1] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 2] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 3] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 4] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 5] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 6] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 7] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 8] << "]\n";
 }
 
 
