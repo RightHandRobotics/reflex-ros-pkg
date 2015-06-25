@@ -56,8 +56,7 @@ void enc_poll()
     SPI4->DR = 0xffff; 
     while (!(SPI4->SR & SPI_SR_TXE)) { } // wait for buffer room
     while (!(SPI4->SR & SPI_SR_RXNE)) { }
-    g_state.encoders[i] = SPI4->DR & 0x3fff;
-    // g_state.encoders[NUM_ENC-1-i] = SPI4->DR & 0x3fff;  // Idx goes 2, 1, 0
+    g_state.encoders[NUM_ENC-1-i] = SPI4->DR & 0x3fff;  // Idx goes 2, 1, 0
   }
   for (volatile int i = 0; i < 1; i++) { } // needs at least 50 ns
   GPIOE->BSRRL = 1 << PORTE_ENC_CS; // de-assert (pull up) CS
@@ -93,8 +92,7 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
     case EPS_SPI_TXRX:
       if ((SPI4->SR & SPI_SR_TXE) && (SPI4->SR & SPI_SR_RXNE))
       {
-        g_state.encoders[enc_poll_state_word_idx++] = SPI4->DR & 0x3fff;
-        // g_state.encoders[NUM_ENC-1-(enc_poll_state_word_idx++)] = SPI4->DR & 0x3fff;
+        g_state.encoders[NUM_ENC-1-(enc_poll_state_word_idx++)] = SPI4->DR & 0x3fff;
         if (enc_poll_state_word_idx >= NUM_ENC)
         {
           enc_poll_state = EPS_SPI_TXRX_DONE;

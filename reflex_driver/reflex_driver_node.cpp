@@ -186,10 +186,10 @@ int update_encoder_offset(int raw_value, int last_value, int current_offset) {
 }
 
 
-float calc_proximal_angle(int raw_enc_value, int offset, int zero) {
+float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
   int wrapped_enc_value = raw_enc_value + offset;
-  float rad_value = wrapped_enc_value * reflex_hand::ReflexHand::ENC_SCALE;
-  return rad_value - zero;
+  float rad_value = (float) wrapped_enc_value * reflex_hand::ReflexHand::ENC_SCALE;
+  return (rad_value - zero);
 }
 
 
@@ -210,16 +210,12 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   reflex_msgs::Hand hand_msg;
 
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-// TODO(Eric): Can we get rid of 2-i?
-    encoder_offset[i] = update_encoder_offset(state->encoders_[2-i],
-    // encoder_offset[i] = update_encoder_offset(state->encoders_[i],
+    encoder_offset[i] = update_encoder_offset(state->encoders_[i],
                                               encoder_last_value[i],
                                               encoder_offset[i]);
-    encoder_last_value[i] = state->encoders_[2-i];
-    // encoder_last_value[i] = state->encoders_[i];
+    encoder_last_value[i] = state->encoders_[i];
 
-    hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[2-i],
-    // hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[i],
+    hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[i],
                                                       encoder_offset[i],
                                                       enc_zero[i]);
 
@@ -279,17 +275,12 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   }
 
   if (aqcuire_fingers) {
-    // Open the parameter file and capture the current encoder position
+    // Open parameter file, capture the current encoder position
     if (first_capture) {
       finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
       ROS_INFO("Capturing starter encoder positions");
-      // Write to variable
       for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-        // TODO(Eric): Remove the (2-i) statement when firmware order is fixed
-        enc_zero[i] = state->encoders_[2-i] *
-                      reflex_hand::ReflexHand::ENC_SCALE;
-
-      // Write to file
+        enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
       finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
       finger_file << "encoder_zero_reference: ["
                             << enc_zero[0] << ", "
@@ -299,16 +290,15 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     }
 
     // Check whether the fingers have moved, set the next movement if not
-    uint16_t increase[] = {5, 5, 5, 0};  // Dynamixel step
+    uint16_t dyn_increase[] = {5, 5, 5, 0};
     last_capture = true;
     for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-      // TODO(Eric): Remove the (2-i) statement when the firmware order is fixed
       ROS_INFO("Finger %d\tenc_zero: %4f\tEncoder:%4f\tSpool: %4f",
               i+1, enc_zero[i],
-              state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE,
+              state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE,
               state->dynamixel_angles_[i]*reflex_hand::ReflexHand::DYN_SCALE);
-      if (abs(enc_zero[i] - state->encoders_[2-i]*reflex_hand::ReflexHand::ENC_SCALE) > CAL_ERROR)
-        increase[i] = 0;
+      if (abs(enc_zero[i] - state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE) > CAL_ERROR)
+        dyn_increase[i] = 0;
       else
         last_capture = false;
     }
@@ -317,14 +307,14 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 
     // Move the fingers in
     ROS_INFO("Stepping the fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
-          state->dynamixel_angles_[0], increase[0],
-          state->dynamixel_angles_[1], increase[1],
-          state->dynamixel_angles_[2], increase[2],
-          state->dynamixel_angles_[3], increase[3]);
+          state->dynamixel_angles_[0], dyn_increase[0],
+          state->dynamixel_angles_[1], dyn_increase[1],
+          state->dynamixel_angles_[2], dyn_increase[2],
+          state->dynamixel_angles_[3], dyn_increase[3]);
     reflex_msgs::RawServoPositions servo_pos;
     for (int i=0; i < 4; i++) {
       servo_pos.raw_positions[i] = state->dynamixel_angles_[i] +
-                                   motor_inversion[i]*increase[i];
+                                   motor_inversion[i]*dyn_increase[i];
       ROS_INFO("Published position: %d", servo_pos.raw_positions[i]);
     }
     raw_pub.publish(servo_pos);
@@ -332,7 +322,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     // If all fingers have moved, capture their position and write it to file
     if (last_capture) {
       ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
-      // Write to variable
       int offset = 50;
       for (int i = 0; i < 4; i++) {
         if (i == 3) offset = 0;
@@ -350,7 +339,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
                                      (motor_inversion[i]*offset);
       }
 
-      // Write to file
       finger_file << "motor_zero_reference: ["
                             << dyn_zero[0] << ", "
                             << dyn_zero[1] << ", "
