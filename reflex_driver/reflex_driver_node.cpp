@@ -193,7 +193,7 @@ float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
 }
 
 
-float calc_spool_angle(int inversion, int raw_dyn_value, double ratio,
+float calc_motor_angle(int inversion, int raw_dyn_value, double ratio,
                        double zero) {
   float rad_value = raw_dyn_value * reflex_hand::ReflexHand::DYN_SCALE / ratio;
   float zeroed_value = rad_value - zero;
@@ -203,6 +203,18 @@ float calc_spool_angle(int inversion, int raw_dyn_value, double ratio,
 float calc_distal_angle(float spool, float proximal) {
   float diff = spool - proximal;
   return (diff < 0) ? 0 : diff;
+}
+
+int calc_pressure(const reflex_hand::ReflexHandState* const state,
+                  int finger, int sensor) {
+  int raw_value = state->tactile_pressures_[tactile_base_idx[finger] + sensor];
+  return raw_value - pressure_offset(finger, sensor);
+}
+
+
+int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
+  int pressure_value = abs(hand_msg.finger[finger].pressure[sensor]);
+  return pressure_value > contact_threshold;
 }
 
 
@@ -219,7 +231,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
                                                       encoder_offset[i],
                                                       enc_zero[i]);
 
-    hand_msg.finger[i].spool = calc_spool_angle(motor_inversion[i],
+    hand_msg.finger[i].spool = calc_motor_angle(motor_inversion[i],
                                                 state->dynamixel_angles_[i],
                                                 dyn_ratio[i],
                                                 dyn_zero[i]);
@@ -228,19 +240,17 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
                                                   hand_msg.finger[i].proximal);
 
     for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
-      hand_msg.finger[i].pressure[j] =
-        state->tactile_pressures_[tactile_base_idx[i] + j] - pressure_offset(i, j);
-      hand_msg.finger[i].contact[j] =
-        abs(hand_msg.finger[i].pressure[j]) > contact_threshold;
+      hand_msg.finger[i].pressure[j] = calc_pressure(state, i, j);
+      hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
   }
-  hand_msg.palm.preshape =
-    motor_inversion[3] *
-    ((state->dynamixel_angles_[3] *
-      reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[3]) - dyn_zero[3]);
+
+  hand_msg.palm.preshape = calc_motor_angle(motor_inversion[3],
+                                            state->dynamixel_angles_[3],
+                                            dyn_ratio[3],
+                                            dyn_zero[3]);
   hand_msg.joints_publishing = true;
   hand_msg.tactile_publishing = true;
-
   hand_pub.publish(hand_msg);
 
   // Capture the current tactile data and save it as a zero reference
