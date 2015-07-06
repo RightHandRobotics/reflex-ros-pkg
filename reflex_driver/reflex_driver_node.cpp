@@ -53,15 +53,16 @@ int contact_threshold;  // TODO(Eric): Make this individual for every sensor
 vector<int> tactile_offset_f1;
 vector<int> tactile_offset_f2;
 vector<int> tactile_offset_f3;
-vector<int> tactile_offset_palm;
 int tactile_base_idx[] = {0, 18, 9};
 int encoder_last_value[] = {0, 0, 0};
 int encoder_offset[] = {-1, -1, -1};
 
-bool aqcuire_tactile, aqcuire_fingers, first_capture, last_capture = false;
+bool aqcuire_tactile, aqcuire_fingers, first_capture, all_fingers_moved = false;
 vector<double> dyn_zero;
 vector<double> enc_zero;
 double calibration_error[] = {0.0, 0.0, 0.0};
+uint16_t calibration_dyn_increase[] = {5, 5, 5, 0};
+const uint16_t calibration_dyn_offset[] = {50, 50, 50, 0};
 
 bool g_done = false;
 
@@ -90,8 +91,6 @@ void load_params(ros::NodeHandle nh) {
     topic = "tactile_offset_f2";
   if (!nh.getParam("tactile_offset_f3", tactile_offset_f3))
     topic = "tactile_offset_f3";
-  if (!nh.getParam("tactile_offset_palm", tactile_offset_palm))
-    topic = "tactile_offset_palm";
   if (topic != "no error") {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
     ROS_FATAL("This is likely because the corresponding yaml file in");
@@ -106,7 +105,7 @@ void load_params(ros::NodeHandle nh) {
 // Takes raw Dynamixel values (0-4095) and writes them directly to the motors
 void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RawServoPositions::ConstPtr &msg) {
-  uint16_t targets[4];
+  uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = msg->raw_positions[i];
   }
@@ -153,11 +152,12 @@ bool zero_fingers(std_srvs::Empty::Request &req,
   printf("reset and rerun the calibration after this is finished...\n");
   aqcuire_fingers = true;
   first_capture = true;
-  last_capture = false;
+  all_fingers_moved = false;
   return true;
 }
 
 
+// Returns the correct pressure calibration offset for finger[sensor]
 int pressure_offset(int finger, int sensor) {
   if (finger == 0)
     return tactile_offset_f1[sensor];
@@ -168,6 +168,7 @@ int pressure_offset(int finger, int sensor) {
 }
 
 
+// Given raw value and a past value, tracks encoder wraps: enc_offset variable
 int update_encoder_offset(int raw_value, int last_value, int current_offset) {
   int enc_offset = current_offset;
   if (enc_offset == -1) {
@@ -184,6 +185,8 @@ int update_encoder_offset(int raw_value, int last_value, int current_offset) {
 }
 
 
+// Calculates actual proximal angle using raw sensor value, wrap offset
+// for that finger, and calibrated "zero" point for that encoder
 float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
   int wrapped_enc_value = raw_enc_value + offset;
   float rad_value = (float) wrapped_enc_value * reflex_hand::ReflexHand::ENC_SCALE;
@@ -191,6 +194,8 @@ float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
 }
 
 
+// Calculates motor angle (spool) from raw sensor value, motor gear ratio,
+// and calibrated "zero" point for the spool
 float calc_motor_angle(int inversion, int raw_dyn_value, double ratio,
                        double zero) {
   float rad_value = raw_dyn_value * reflex_hand::ReflexHand::DYN_SCALE / ratio;
@@ -198,11 +203,16 @@ float calc_motor_angle(int inversion, int raw_dyn_value, double ratio,
   return inversion * zeroed_value;
 }
 
+
+// Calculates distal angle, "tendon spooled out" - "proximal encoder" angles
+// Could be improved
 float calc_distal_angle(float spool, float proximal) {
   float diff = spool - proximal;
   return (diff < 0) ? 0 : diff;
 }
 
+
+// Takes hand state and returns calibrated tactile data for given finger
 int calc_pressure(const reflex_hand::ReflexHandState* const state,
                   int finger, int sensor) {
   int raw_value = state->tactile_pressures_[tactile_base_idx[finger] + sensor];
@@ -210,12 +220,15 @@ int calc_pressure(const reflex_hand::ReflexHandState* const state,
 }
 
 
+// Checks given finger/sensor for contact threshold
 int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
   int pressure_value = abs(hand_msg.finger[finger].pressure[sensor]);
   return pressure_value > contact_threshold;
 }
 
 
+// Takes in hand state data and publishes to reflex_hand topic
+// Also does calibration when certain booleans are enabled
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   reflex_msgs::Hand hand_msg;
 
@@ -254,111 +267,152 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   // Capture the current tactile data and save it as a zero reference
   if (aqcuire_tactile) {
     calibrate_tactile_sensors(state, hand_msg);
-    // tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
-    // tactile_file << "# Captured sensor values from unloaded state\n";
-    // for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    //   for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
-    //     if (i == 0)
-    //       tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
-    //     else if (i == 1)
-    //       tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
-    //     else
-    //       tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[i] + j];
-    //   }
-
-    //   // Write to file
-    //   tactile_file << "tactile_offset_f" << i+1 << ": ["
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 0] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 1] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 2] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 3] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 4] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 5] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 6] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 7] << ", "
-    //                << state->tactile_pressures_[tactile_base_idx[i] + 8] << "]\n";
-    // }
-
-    // aqcuire_tactile = false;
-    // tactile_file.close();
   }
 
   if (aqcuire_fingers) {
-    // Open parameter file, capture the current encoder position
     if (first_capture) {
-      finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
-      ROS_INFO("Capturing starter encoder positions");
-      for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-        enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
-      finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
-      finger_file << "encoder_zero_reference: ["
-                            << enc_zero[0] << ", "
-                            << enc_zero[1] << ", "
-                            << enc_zero[2] << "]\n";
+      calibrate_encoders(state);
       first_capture = false;
     }
-
-    // Check whether the fingers have moved, set the next movement if not
-    uint16_t dyn_increase[] = {5, 5, 5, 0};
-    last_capture = true;
-    for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-      ROS_INFO("Finger %d\tenc_zero: %4f\tEncoder:%4f\tSpool: %4f",
-              i+1, enc_zero[i],
-              state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE,
-              state->dynamixel_angles_[i]*reflex_hand::ReflexHand::DYN_SCALE);
-      if (abs(enc_zero[i] - state->encoders_[i]*reflex_hand::ReflexHand::ENC_SCALE) > CAL_ERROR)
-        dyn_increase[i] = 0;
-      else
-        last_capture = false;
-    }
-    ROS_INFO("Palm Spool: %4f",
-              state->dynamixel_angles_[3]*reflex_hand::ReflexHand::DYN_SCALE);
-
-    // Move the fingers in
-    ROS_INFO("Stepping the fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
-          state->dynamixel_angles_[0], dyn_increase[0],
-          state->dynamixel_angles_[1], dyn_increase[1],
-          state->dynamixel_angles_[2], dyn_increase[2],
-          state->dynamixel_angles_[3], dyn_increase[3]);
-    reflex_msgs::RawServoPositions servo_pos;
-    for (int i=0; i < 4; i++) {
-      servo_pos.raw_positions[i] = state->dynamixel_angles_[i] +
-                                   motor_inversion[i]*dyn_increase[i];
-      ROS_INFO("Published position: %d", servo_pos.raw_positions[i]);
-    }
-    raw_pub.publish(servo_pos);
-
-    // If all fingers have moved, capture their position and write it to file
-    if (last_capture) {
+    all_fingers_moved = check_for_finger_movement(state);
+    move_fingers_in(state);
+    if (all_fingers_moved) {
       ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
-      int offset = 50;
-      for (int i = 0; i < 4; i++) {
-        if (i == 3) offset = 0;
-        dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_inversion[i]*offset))*
-                       reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
-        if (dyn_zero[i] > 14 * 3.1415) {
-          ROS_WARN("Something went wrong in calibration - motor %d was", i+1);
-          ROS_WARN("  set anomalously high. Motor zero reference value:");
-          ROS_WARN("  %4f radians (nothing should be over 2*pi)", dyn_zero[i]);
-          ROS_WARN("  Try redoing the calibration, depowering/repowering");
-          ROS_WARN("  if it repeats");
-        }
-
-        servo_pos.raw_positions[i] = state->dynamixel_angles_[i] -
-                                     (motor_inversion[i]*offset);
-      }
-
-      finger_file << "motor_zero_reference: ["
-                            << dyn_zero[0] << ", "
-                            << dyn_zero[1] << ", "
-                            << dyn_zero[2] << ", "
-                            << dyn_zero[3] << "]\n";
+      log_motor_zero_locally(state);
+      check_anomalous_motor_values();
+      log_motor_zero_to_file_and_close();
       aqcuire_fingers = false;
-      finger_file.close();
-      raw_pub.publish(servo_pos);
     }
   }
 
+  publish_debug_message(state);
+  return;
+}
+
+
+// Opens tactile calibration data file, changes local tactile_offset, and saves
+// current tactile values to file as the new calibrated "zero"
+void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
+                               reflex_msgs::Hand hand_msg) {
+  tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
+  tactile_file << "# Captured sensor values from unloaded state\n";
+  log_current_tactile_locally(state);
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    log_current_tactile_to_file(state, i);
+  }
+  aqcuire_tactile = false;
+  tactile_file.close();
+}
+
+
+// Save local variables tactile_offset_f* with current tactile position
+void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state) {
+  for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+    tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[0] + j];
+    tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[1] + j];
+    tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[2] + j];
+  }
+}
+
+
+void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state,
+                                 int finger) {
+  tactile_file << "tactile_offset_f" << finger + 1 << ": ["
+               << state->tactile_pressures_[tactile_base_idx[finger] + 0] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 1] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 2] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 3] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 4] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 5] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 6] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 7] << ", "
+               << state->tactile_pressures_[tactile_base_idx[finger] + 8] << "]\n";
+}
+
+
+void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
+    enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
+  finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
+  finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
+  finger_file << "encoder_zero_reference: ["
+                        << enc_zero[0] << ", "
+                        << enc_zero[1] << ", "
+                        << enc_zero[2] << "]\n";
+}
+
+
+void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
+  reflex_msgs::RawServoPositions servo_pos;
+  int motor_step;
+  float motor_scalar;
+
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    motor_step = motor_inversion[i] * calibration_dyn_offset[i];
+    motor_scalar = reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+    dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_step)) * motor_scalar;
+
+    servo_pos.raw_positions[i] = state->dynamixel_angles_[i] -
+                                 (motor_inversion[i]*calibration_dyn_offset[i]);
+  }
+  raw_pub.publish(servo_pos);
+}
+
+
+void log_motor_zero_to_file_and_close() {
+  finger_file << "motor_zero_reference: ["
+              << dyn_zero[0] << ", "
+              << dyn_zero[1] << ", "
+              << dyn_zero[2] << ", "
+              << dyn_zero[3] << "]\n";
+  finger_file.close();
+}
+
+
+bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) {
+  bool all_fingers_moved = true;
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    float enc_pos = enc_zero[i] -
+                    state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
+    if (abs(enc_pos) > CALIBRATION_ERROR)
+      calibration_dyn_increase[i] = 0;
+    else
+      all_fingers_moved = false;
+  }
+  return all_fingers_moved;
+}
+
+
+void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
+  reflex_msgs::RawServoPositions servo_pos;
+  int motor_step;
+  ROS_INFO("Stepping the fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
+           state->dynamixel_angles_[0], calibration_dyn_increase[0],
+           state->dynamixel_angles_[1], calibration_dyn_increase[1],
+           state->dynamixel_angles_[2], calibration_dyn_increase[2],
+           state->dynamixel_angles_[3], calibration_dyn_increase[3]);
+  for (int i=0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    motor_step = motor_inversion[i] * calibration_dyn_increase[i];
+    servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_step;
+  }
+  raw_pub.publish(servo_pos);
+}
+
+
+void check_anomalous_motor_values() {
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    if (dyn_zero[i] > 14 * 3.1415) {
+        ROS_WARN("Something went wrong in calibration - motor %d was", i+1);
+        ROS_WARN("\tset anomalously high. Motor zero reference value:");
+        ROS_WARN("\t%4f radians (nothing should be over 2*pi)", dyn_zero[i]);
+        ROS_WARN("\tTry redoing the calibration, depowering/repowering");
+        ROS_WARN("\tif it repeats");
+    }
+  }
+}
+
+
+void publish_debug_message(const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
   reflex_msgs::MotorDebug debug_msg;
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
@@ -374,46 +428,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     debug_msg.motor[i].error_state = buffer;
   }
   debug_pub.publish(debug_msg);
-
-  return;
-}
-
-
-void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
-                               reflex_msgs::Hand hand_msg) {
-  tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
-  tactile_file << "# Captured sensor values from unloaded state\n";
-  update_local_tactile_zero(state);
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    update_file_tactile_zero(state, i);
-  }
-
-  aqcuire_tactile = false;
-  tactile_file.close();
-}
-
-
-void update_local_tactile_zero(const reflex_hand::ReflexHandState* const state) {
-  for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
-    tactile_offset_f1[j] = state->tactile_pressures_[tactile_base_idx[0] + j];
-    tactile_offset_f2[j] = state->tactile_pressures_[tactile_base_idx[1] + j];
-    tactile_offset_f3[j] = state->tactile_pressures_[tactile_base_idx[2] + j];
-  }
-}
-
-
-void update_file_tactile_zero(const reflex_hand::ReflexHandState* const state,
-                              int finger) {
-  tactile_file << "tactile_offset_f" << finger + 1 << ": ["
-               << state->tactile_pressures_[tactile_base_idx[finger] + 0] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 1] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 2] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 3] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 4] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 5] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 6] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 7] << ", "
-               << state->tactile_pressures_[tactile_base_idx[finger] + 8] << "]\n";
 }
 
 

@@ -1,7 +1,7 @@
 #ifndef REFLEX_DRIVER_NODE_H
 #define REFLEX_DRIVER_NODE_H
 
-#define CAL_ERROR 0.05  // Encoder delta signifying movement in calibration
+#define CALIBRATION_ERROR 0.05  // Encoder delta signifying movement in calibration
 
 void signal_handler(int signum);
 void load_params(ros::NodeHandle nh);
@@ -26,7 +26,14 @@ int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor);
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state);
 void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
                                reflex_msgs::Hand hand_msg);
-void update_local_tactile_zero(const reflex_hand::ReflexHandState* const state);
-void update_file_tactile_zero(const reflex_hand::ReflexHandState* const state, int finger);
+void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state);
+void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state, int finger);
+void calibrate_encoders(const reflex_hand::ReflexHandState* const state);
+bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state);
+void move_fingers_in(const reflex_hand::ReflexHandState* const state);
+void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state);
+void log_motor_zero_to_file_and_close();
+void check_anomalous_motor_values();
+void publish_debug_message(const reflex_hand::ReflexHandState* const state);
 
 #endif
