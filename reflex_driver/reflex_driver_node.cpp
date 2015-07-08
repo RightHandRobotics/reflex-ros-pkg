@@ -347,7 +347,7 @@ void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
 // write the dynamixels to the spot
 void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
   reflex_msgs::RawServoPositions servo_pos;
-  int motor_step;
+  int motor_offset;
   float motor_scalar;
 
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
