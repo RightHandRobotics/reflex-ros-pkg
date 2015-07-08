@@ -50,6 +50,7 @@ static volatile uint8_t  g_dmxl_ring[NUM_DMXL][DMXL_RING_LEN];
 static volatile uint16_t g_dmxl_ring_rpos[NUM_DMXL] = {0};
 static volatile uint16_t g_dmxl_ring_wpos[NUM_DMXL] = {0};
 static volatile uint8_t  g_dmxl_rx_pkt[NUM_DMXL][256];
+static volatile dmxl_control_mode_t dmxl_control_mode = DMXL_CM_IDLE;
 
 dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL] = 
   { DPS_DONE, DPS_DONE, DPS_DONE, DPS_DONE };
@@ -476,6 +477,7 @@ void dmxl_set_control_mode(const uint8_t port_idx,
     dmxl_set_led(port_idx, DMXL_DEFAULT_ID, 1);
     delay_us(1);
     dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 1);
+    dmxl_set_angle_limits(port_idx, DMXL_DEFAULT_ID, 0, 0);  // Enables velocity mode
   }
   else if (control_mode == DMXL_CM_POSITION)
   {
@@ -487,6 +489,7 @@ void dmxl_set_control_mode(const uint8_t port_idx,
     dmxl_set_res_divider(port_idx, DMXL_DEFAULT_ID, 4);
     dmxl_set_multiturn_offset(port_idx, DMXL_DEFAULT_ID, 3070);  // Places motor close enough to middle of 0-28672 range
   }
+  dmxl_control_mode = control_mode;
 }
 
 void dmxl_set_control_target(const uint8_t port_idx, 
@@ -498,7 +501,11 @@ void dmxl_set_control_target(const uint8_t port_idx,
   uint8_t d[2];
   d[0] = target & 0xff;
   d[1] = (target >> 8) & 0xff;
-  dmxl_write_data(port_idx, DMXL_DEFAULT_ID, 2, 30, d);
+  uint8_t start_addr = 30;  // position control
+  if (dmxl_control_mode == DMXL_CM_VELOCITY) {
+    start_addr = 32; // velocity control
+  }
+  dmxl_write_data(port_idx, DMXL_DEFAULT_ID, 2, start_addr, d);
 }
 
 void dmxl_set_all_control_targets(const uint16_t *targets)
@@ -515,7 +522,11 @@ void dmxl_set_all_control_targets(const uint16_t *targets)
     pkts[i][2] = DMXL_DEFAULT_ID;
     pkts[i][3] = 5; // write 2 bytes + 3 byte overhead
     pkts[i][4] = 3; // instruction: "write data"
-    pkts[i][5] = 30; // start address: control target
+    if (dmxl_control_mode == DMXL_CM_VELOCITY) {
+      pkts[i][5] = 32; // start address: control target (velocity)
+    } else {
+      pkts[i][5] = 30; // start address: control target (position)
+    }
     pkts[i][6] = targets[i] & 0xff; // LSB of control target
     pkts[i][7] = (targets[i] >> 8) & 0xff; // MSB of control target
     pkts[i][8] = 0; // checksum
@@ -643,4 +654,3 @@ bool dmxl_all_available()
       return false;
   return true;
 }
-
