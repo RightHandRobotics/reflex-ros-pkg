@@ -54,7 +54,8 @@ namespace reflex_hand
     static const uint16_t DYN_MIN_RAW = 0;
     static const uint16_t DYN_MAX_RAW = 4095;
     static const uint16_t DYN_MIN_RAW_WRAPPED = 16383;  // For checking negative wraps
-    static const float DYN_SCALE = (4 * 2 * 3.141596) / 4095;  // Assuming resolution divider of 4
+    static const float DYN_POS_SCALE = (4 * 2 * 3.141596) / 4095;  // Assuming resolution divider of 4
+    static const float DYN_VEL_SCALE = 0.01194;  // rad/s for every velocity command -- http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
     static const float ENC_SCALE = (2 * 3.141596) / 16383;
     enum ControlMode{CM_IDLE = 0, CM_VELOCITY = 1, CM_POSITION = 2};
 

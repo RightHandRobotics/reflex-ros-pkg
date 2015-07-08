@@ -4,7 +4,7 @@ import roslib; roslib.load_manifest('reflex_driver')
 import rospy
 
 from reflex_msgs.msg import RawServoPositions
-from reflex_msgs.msg import RadianServoPositions
+from reflex_msgs.msg import RadianServoCommands
 
 
 if __name__ == '__main__':
@@ -17,9 +17,9 @@ if __name__ == '__main__':
         print("  to the zero position found in yaml/finger_calibrate.yaml")
         sys.exit(1)
     
-    srp_pub = rospy.Publisher('set_reflex_hand', RadianServoPositions)
+    srp_pub = rospy.Publisher('set_reflex_hand', RadianServoCommands)
 
     rospy.sleep(0.3)
     pos_list = [float(args[1]), float(args[2]), float(args[3]), float(args[4])]
-    srp_pub.publish(RadianServoPositions(pos_list))
+    srp_pub.publish(RadianServoCommands(pos_list))
     rospy.sleep(0.1)

@@ -18,7 +18,7 @@
 
 
 #include <reflex_msgs/RawServoPositions.h>
-#include <reflex_msgs/RadianServoPositions.h>
+#include <reflex_msgs/RadianServoCommands.h>
 #include <reflex_msgs/Hand.h>
 #include <reflex_msgs/MotorDebug.h>
 #include <reflex_msgs/StateDebug.h>
@@ -116,19 +116,51 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
 // Commands the motors from radians, using the zero references from
 // yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
 void set_radian_positions_cb(reflex_hand::ReflexHand *rh,
-                             const reflex_msgs::RadianServoPositions::ConstPtr &msg) {
+                             const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
   uint16_t targets[4];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    targets[i] = (motor_inversion[i]*msg->radian_positions[i] + dyn_zero[i]) *
-                 (dyn_ratio[i]/reflex_hand::ReflexHand::DYN_SCALE);
-    if (targets[i] > reflex_hand::ReflexHand::DYN_MIN_RAW_WRAPPED) {
-      ROS_WARN("Finger %d set out of range (%d), reset to %d", i+1,
-               (int16_t) targets[i], reflex_hand::ReflexHand::DYN_MIN_RAW);
-      targets[i] = reflex_hand::ReflexHand::DYN_MIN_RAW;
-    }
+    targets[i] = calc_motor_pos_command(msg->radian_commands[i], i);
   }
   rh->setServoTargets(targets);
 }
+
+
+// Takes a rad/s command and returns Dynamixel command
+uint8_t calc_motor_pos_command(float rad_command, int motor_idx) {
+  float zeroed_command = motor_inversion[motor_idx] * rad_command + dyn_zero[motor_idx];
+  float motor_ratio = (dyn_ratio[motor_idx] / reflex_hand::ReflexHand::DYN_POS_SCALE);
+  uint8_t command = zeroed_command * motor_ratio;
+  if (command > reflex_hand::ReflexHand::DYN_MIN_RAW_WRAPPED) {
+    ROS_WARN("Finger %d set out of range (%d), reset to %d", motor_idx + 1,
+             (int16_t) command, reflex_hand::ReflexHand::DYN_MIN_RAW);
+    command = reflex_hand::ReflexHand::DYN_MIN_RAW;
+  }
+  return command;
+}
+
+
+// Commands the motors with radians / s, halting under harsh load
+void set_velocity_cb(reflex_hand::ReflexHand *rh,
+                     const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+  uint16_t targets[4];
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    targets[i] = calc_motor_vel_command(msg->radian_commands[i], i);
+  }
+}
+
+
+// Takes a rad/s command and returns Dynamixel command
+// http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
+uint8_t calc_motor_vel_command(float rad_per_s_command, int motor_idx) {
+  uint8_t command = abs(rad_per_s_command) *
+                    (dyn_ratio[motor_idx] / reflex_hand::ReflexHand::DYN_VEL_SCALE);
+  if (motor_inversion[motor_idx] * rad_per_s_command < 0) {
+    command += 1024;
+  }
+// TODO(Eric): Add speed bounds
+  return command;
+}
+
 
 
 // Sets the procedure to calibrate the tactile values in motion
@@ -198,7 +230,7 @@ float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
 // and calibrated "zero" point for the spool
 float calc_motor_angle(int inversion, int raw_dyn_value, double ratio,
                        double zero) {
-  float rad_value = raw_dyn_value * reflex_hand::ReflexHand::DYN_SCALE / ratio;
+  float rad_value = raw_dyn_value * reflex_hand::ReflexHand::DYN_POS_SCALE / ratio;
   float zeroed_value = rad_value - zero;
   return inversion * zeroed_value;
 }
@@ -352,7 +384,7 @@ void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
 
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     motor_offset = motor_inversion[i] * calibration_dyn_offset[i];
-    motor_scalar = reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
+    motor_scalar = reflex_hand::ReflexHand::DYN_POS_SCALE / dyn_ratio[i];
     dyn_zero[i] = (state->dynamixel_angles_[i] - motor_offset) * motor_scalar;
     servo_pos.raw_positions[i] = state->dynamixel_angles_[i] -
                                  (motor_inversion[i] * calibration_dyn_offset[i]);
@@ -472,8 +504,11 @@ int main(int argc, char **argv) {
     nh.subscribe<reflex_msgs::RawServoPositions>("set_reflex_raw",
                  1, boost::bind(set_raw_positions_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
-    nh.subscribe<reflex_msgs::RadianServoPositions>("set_reflex_hand",
+    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_pos",
                  1, boost::bind(set_radian_positions_cb, &rh, _1));
+  ros::Subscriber velocity_sub =
+    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_velocity",
+                 1, boost::bind(set_velocity_cb, &rh, _1));
 
   // Initialize the /zero_tactile and /zero_finger services
   string buffer;

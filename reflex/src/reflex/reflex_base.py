@@ -9,7 +9,7 @@ from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 
 from reflex_base_services import *
-from reflex_msgs.msg import Hand, RadianServoPositions
+from reflex_msgs.msg import Hand, RadianServoCommands
 from reflex_msgs.srv import CommandHand, MoveFinger, MovePreshape
 from state_debug import StateDebugger
 
@@ -78,7 +78,7 @@ class ReFlex(object):
 
         # Set up publishers
         self.actuator_pub = rospy.Publisher('/set_reflex_hand',
-                                            RadianServoPositions,
+                                            RadianServoCommands,
                                             queue_size=1)
 
         # Subscribe to sensor information
@@ -240,7 +240,7 @@ class ReFlex(object):
 
         if sum(cmd_change) or sum(pos_error):
             pos_list = [self.cmd_spool[0], self.cmd_spool[1], self.cmd_spool[2], min(max(self.hand.palm.preshape, self.PRESHAPE_MIN), self.PRESHAPE_MAX)]
-            self.actuator_pub.publish(RadianServoPositions(pos_list))
+            self.actuator_pub.publish(RadianServoCommands(pos_list))
         
         self.state_debugger.set_fingers_working(self.working)
         self.state_debugger.publish_state_if_changed()
@@ -257,7 +257,7 @@ class ReFlex(object):
                         self.hand.finger[1].spool,
                         self.hand.finger[2].spool,
                         cmd]
-            self.actuator_pub.publish(RadianServoPositions(pos_list))
+            self.actuator_pub.publish(RadianServoCommands(pos_list))
 
             motor_error = goal_pos - self.hand.palm.preshape
             blocked = False
@@ -275,7 +275,7 @@ class ReFlex(object):
                                     self.hand.finger[1].spool,
                                     self.hand.finger[2].spool,
                                     self.hand.palm.preshape]
-                        self.actuator_pub.publish(RadianServoPositions(pos_list))
+                        self.actuator_pub.publish(RadianServoCommands(pos_list))
                         rospy.logwarn('The preshape joint was blocked, stopping it')
                         blocked = True
 

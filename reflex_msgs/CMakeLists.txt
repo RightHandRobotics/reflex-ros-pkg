@@ -16,7 +16,7 @@ add_message_files(
   Finger.msg
   Dynamixel.msg
   RawServoPositions.msg
-  RadianServoPositions.msg
+  RadianServoCommands.msg
   MotorDebug.msg
   StateDebug.msg
   TrackState.msg

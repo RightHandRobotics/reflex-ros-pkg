@@ -4,7 +4,7 @@ import roslib; roslib.load_manifest('reflex_driver')
 import rospy
 
 from reflex_msgs.msg import RawServoPositions
-from reflex_msgs.msg import RadianServoPositions
+from reflex_msgs.msg import RadianServoCommands
 
 
 if __name__ == '__main__':
