@@ -330,6 +330,7 @@ void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state
 }
 
 
+// Capture current encoder position locally as "zero" and save to file
 void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
     enc_zero[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
@@ -342,18 +343,19 @@ void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
 }
 
 
+// Save current dynamixel location (plus an offset) as "zero" and then
+// write the dynamixels to the spot
 void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
   reflex_msgs::RawServoPositions servo_pos;
   int motor_step;
   float motor_scalar;
 
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    motor_step = motor_inversion[i] * calibration_dyn_offset[i];
+    motor_offset = motor_inversion[i] * calibration_dyn_offset[i];
     motor_scalar = reflex_hand::ReflexHand::DYN_SCALE / dyn_ratio[i];
-    dyn_zero[i] = (state->dynamixel_angles_[i] - (motor_step)) * motor_scalar;
-
+    dyn_zero[i] = (state->dynamixel_angles_[i] - motor_offset) * motor_scalar;
     servo_pos.raw_positions[i] = state->dynamixel_angles_[i] -
-                                 (motor_inversion[i]*calibration_dyn_offset[i]);
+                                 (motor_inversion[i] * calibration_dyn_offset[i]);
   }
   raw_pub.publish(servo_pos);
 }
@@ -369,20 +371,24 @@ void log_motor_zero_to_file_and_close() {
 }
 
 
+// Checks whether all fingers have moved more than CALIBRATION_ERROR, halts
+// the motion of fingers past that point
 bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) {
   bool all_fingers_moved = true;
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     float enc_pos = enc_zero[i] -
                     state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
-    if (abs(enc_pos) > CALIBRATION_ERROR)
+    if (abs(enc_pos) > CALIBRATION_ERROR) {
       calibration_dyn_increase[i] = 0;
-    else
+    } else {
       all_fingers_moved = false;
+    }
   }
   return all_fingers_moved;
 }
 
 
+// Steps the fingers in by a calibration amount
 void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
   reflex_msgs::RawServoPositions servo_pos;
   int motor_step;
@@ -399,6 +405,7 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
 }
 
 
+// Sometimes Dynamixels glitch and report very high values, this catches those
 void check_anomalous_motor_values() {
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     if (dyn_zero[i] > 14 * 3.1415) {
@@ -412,6 +419,7 @@ void check_anomalous_motor_values() {
 }
 
 
+// Captures the current hand state to a debug message and publishes
 void publish_debug_message(const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
   reflex_msgs::MotorDebug debug_msg;
