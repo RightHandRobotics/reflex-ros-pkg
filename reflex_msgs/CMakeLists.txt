@@ -14,7 +14,7 @@ add_message_files(
   Hand.msg
   Palm.msg
   Finger.msg
-  Dynamixel.msg
+  Motor.msg
   RawServoPositions.msg
   RadianServoCommands.msg
   MotorDebug.msg
