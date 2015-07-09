@@ -10,10 +10,10 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RawServoPositions::ConstPtr &msg);
 void set_radian_positions_cb(reflex_hand::ReflexHand *rh,
                              const reflex_msgs::RadianServoCommands::ConstPtr &msg);
-uint8_t calc_motor_pos_command(float rad_command, int motor_idx);
+uint16_t pos_rad_to_raw(float rad_command, int motor_idx);
 void set_velocity_cb(reflex_hand::ReflexHand *rh,
                      const reflex_msgs::RadianServoCommands::ConstPtr &msg);
-uint8_t calc_motor_vel_command(float rad_per_s_command, int motor_idx);
+uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx);
 bool zero_tactile(std_srvs::Empty::Request &req,
                   std_srvs::Empty::Response &res);
 bool zero_fingers(std_srvs::Empty::Request &req,

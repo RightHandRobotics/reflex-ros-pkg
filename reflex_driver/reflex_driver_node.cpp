@@ -117,19 +117,20 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
 // yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
 void set_radian_positions_cb(reflex_hand::ReflexHand *rh,
                              const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
   uint16_t targets[4];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    targets[i] = calc_motor_pos_command(msg->radian_commands[i], i);
+    targets[i] = pos_rad_to_raw(msg->radian_commands[i], i);
   }
   rh->setServoTargets(targets);
 }
 
 
 // Takes a rad/s command and returns Dynamixel command
-uint8_t calc_motor_pos_command(float rad_command, int motor_idx) {
+uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
   float zeroed_command = motor_inversion[motor_idx] * rad_command + dyn_zero[motor_idx];
   float motor_ratio = (dyn_ratio[motor_idx] / reflex_hand::ReflexHand::DYN_POS_SCALE);
-  uint8_t command = zeroed_command * motor_ratio;
+  uint16_t command = (uint16_t) (zeroed_command * motor_ratio);
   if (command > reflex_hand::ReflexHand::DYN_MIN_RAW_WRAPPED) {
     ROS_WARN("Finger %d set out of range (%d), reset to %d", motor_idx + 1,
              (int16_t) command, reflex_hand::ReflexHand::DYN_MIN_RAW);
@@ -142,17 +143,18 @@ uint8_t calc_motor_pos_command(float rad_command, int motor_idx) {
 // Commands the motors with radians / s, halting under harsh load
 void set_velocity_cb(reflex_hand::ReflexHand *rh,
                      const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
   uint16_t targets[4];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    targets[i] = calc_motor_vel_command(msg->radian_commands[i], i);
+    targets[i] = speed_rad_to_raw(msg->radian_commands[i], i);
   }
 }
 
 
 // Takes a rad/s command and returns Dynamixel command
 // http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
-uint8_t calc_motor_vel_command(float rad_per_s_command, int motor_idx) {
-  uint8_t command = abs(rad_per_s_command) *
+uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
+  uint16_t command = abs(rad_per_s_command) *
                     (dyn_ratio[motor_idx] / reflex_hand::ReflexHand::DYN_VEL_SCALE);
   if (motor_inversion[motor_idx] * rad_per_s_command < 0) {
     command += 1024;
@@ -501,25 +503,20 @@ int main(int argc, char **argv) {
 
   // Subscribe to the hand command topics
   ros::Subscriber raw_positions_sub =
-    nh.subscribe<reflex_msgs::RawServoPositions>("set_reflex_raw",
-                 1, boost::bind(set_raw_positions_cb, &rh, _1));
+    nh.subscribe<reflex_msgs::RawServoPositions>("set_reflex_raw", 1, boost::bind(set_raw_positions_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_pos",
-                 1, boost::bind(set_radian_positions_cb, &rh, _1));
+    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_pos", 1, boost::bind(set_radian_positions_cb, &rh, _1));
   ros::Subscriber velocity_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_velocity",
-                 1, boost::bind(set_velocity_cb, &rh, _1));
+    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_velocity", 1, boost::bind(set_velocity_cb, &rh, _1));
 
   // Initialize the /zero_tactile and /zero_finger services
   string buffer;
   nh.getParam("yaml_dir", buffer);
   tactile_file_address = buffer + "/tactile_calibrate.yaml";
   finger_file_address = buffer + "/finger_calibrate.yaml";
-  ros::ServiceServer zero_tactile_srv =
-    nh.advertiseService("/zero_tactile", zero_tactile);
+  ros::ServiceServer zero_tactile_srv = nh.advertiseService("/zero_tactile", zero_tactile);
   ROS_INFO("Advertising the /zero_tactile service");
-  ros::ServiceServer zero_fingers_srv =
-    nh.advertiseService("/zero_fingers", zero_fingers);
+  ros::ServiceServer zero_fingers_srv = nh.advertiseService("/zero_fingers", zero_fingers);
   ROS_INFO("Advertising the /zero_fingers service");
 
   ROS_INFO("Entering main loop...");

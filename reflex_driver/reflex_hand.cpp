@@ -247,8 +247,7 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_speeds_[i]   = rx_state_msg->dynamixel_speeds[i];
     rx_state_.dynamixel_loads_[i]    = rx_state_msg->dynamixel_loads[i];
     rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
-    rx_state_.dynamixel_temperatures_[i] =
-      rx_state_msg->dynamixel_temperatures[i];
+    rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
   }
   // now that we have stuff the rx_state_ struct, fire off our callback
   if (state_cb_)

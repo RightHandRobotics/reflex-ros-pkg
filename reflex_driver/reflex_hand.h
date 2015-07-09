@@ -31,7 +31,7 @@ namespace reflex_hand
   {
   public:
     static const int NUM_FINGERS = 3;
-    static const int NUM_TACTILE = NUM_FINGERS * 9 + 11;
+    static const int NUM_TACTILE = NUM_FINGERS * 9;
     uint32_t systime_us_;
     uint16_t tactile_pressures_[NUM_TACTILE];
     uint16_t tactile_temperatures_[NUM_TACTILE];
