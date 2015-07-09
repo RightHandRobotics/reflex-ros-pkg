@@ -147,13 +147,11 @@ class ReFlex_Smarts(ReFlex):
 
     def tighten(self, finger_index, spool_delta=HOW_HARDER):
         rospy.loginfo("reflex_smarts: Tighten finger %d", finger_index + 1)
-        self.move_finger(finger_index,
-                         self.hand.finger[finger_index].spool + spool_delta)
+        self.move_finger(finger_index, self.hand.finger[finger_index].spool + spool_delta)
 
     def loosen(self, finger_index, spool_delta=HOW_HARDER):
         rospy.loginfo("reflex_smarts: Tightening finger %d", finger_index + 1)
-        self.move_finger(finger_index,
-                         self.hand.finger[finger_index].spool - spool_delta)
+        self.move_finger(finger_index, self.hand.finger[finger_index].spool - spool_delta)
 
     def set_cylindrical(self):
         rospy.loginfo("reflex_smarts: Going to cylindrical pose")
@@ -257,20 +255,10 @@ if __name__ == '__main__':
     rospy.loginfo("Advertising %s service", s1)
     s1 = rospy.Service(s1, CommandHand, sh1)
 
-    sh2 = MoveFingerService(reflex_hand)
-    s2 = "/reflex/move_finger"
+    sh2 = KillService(reflex_hand)
+    s2 = "/reflex/kill_current"
     rospy.loginfo("Advertising %s service", s2)
-    s2 = rospy.Service(s2, MoveFinger, sh2)
-
-    sh3 = MovePreshapeService(reflex_hand)
-    s3 = "/reflex/move_preshape"
-    rospy.loginfo("Advertising %s service", s3)
-    s3 = rospy.Service(s3, MovePreshape, sh3)
-
-    sh4 = KillService(reflex_hand)
-    s4 = "/reflex/kill_current"
-    rospy.loginfo("Advertising %s service", s4)
-    s4 = rospy.Service(s4, Empty, sh4)
+    s2 = rospy.Service(s2, Empty, sh2)
 
     r_fast = rospy.Rate(50)
     r_slow = rospy.Rate(1)

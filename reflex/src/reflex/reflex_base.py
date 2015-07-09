@@ -77,9 +77,7 @@ class ReFlex(object):
         self.cmd_spool_old = deepcopy(self.cmd_spool)       # Previous cmd position. If current cmd position matches, give no command
 
         # Set up publishers
-        self.actuator_pub = rospy.Publisher('/set_reflex_hand',
-                                            RadianServoCommands,
-                                            queue_size=1)
+        self.actuator_pub = rospy.Publisher('/set_reflex_pos', RadianServoCommands, queue_size=1)
 
         # Subscribe to sensor information
         self.hand_publishing = True
