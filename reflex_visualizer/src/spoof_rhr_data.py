@@ -15,18 +15,18 @@ def spoof_rhr_data():
     rate_of_cycle = 40.0
 
     while not rospy.is_shutdown():
-        sine_signal = sin(counter/rate_of_cycle)
-        finger_angle = (1.4*sine_signal) + 1.4
-        preshape_angle = (-(pi/4)*sine_signal)+pi/4
+        sine_signal = sin(counter / rate_of_cycle)
+        finger_angle = (1.4 * sine_signal) + 1.4
+        preshape_angle = (-(pi / 4) * sine_signal)+pi/4
         if (sine_signal > 0):
             contact = True
         else:
             contact = False
-        scalar = (200*sine_signal) + 200
+        scalar = (200 * sine_signal) + 200
 
         for i in range(3):
             hand.finger[i].proximal = finger_angle  # Proximal joints
-            hand.finger[i].distal = 0.5*finger_angle  # Distal joints
+            hand.finger[i].distal_approx = 0.5 * finger_angle  # Distal joints
             for j in range(9):
                 hand.finger[i].contact[j] = contact  # Finger tactile contact
                 hand.finger[i].pressure[j] = scalar  # Finger pressure scalar
