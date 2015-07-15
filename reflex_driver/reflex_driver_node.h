@@ -38,6 +38,6 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state);
 void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state);
 void log_motor_zero_to_file_and_close();
 void check_anomalous_motor_values();
-void publish_debug_message(const reflex_hand::ReflexHandState* const state);
+void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state);
 
 #endif

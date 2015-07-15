@@ -26,8 +26,8 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
   for (int i=0; i<2; i++) {
     sprintf(s1, "tf_geometry/swivel_%d/origin", (i+1));
     node.getParam(s1, origin_param);
-    swivel_tf[i].setOrigin( tf::Vector3(origin_param[0], origin_param[1], origin_param[2]) );
-    swivel_tf[i].setRotation( tf::Quaternion(0.0, 0.0, msg->palm.preshape*pow(-1, i)));
+    swivel_tf[i].setOrigin(tf::Vector3(origin_param[0], origin_param[1], origin_param[2]));
+    swivel_tf[i].setRotation(tf::Quaternion(0.0, 0.0, msg->motor[3].joint_angle * pow(-1, i)));
   }
 
   for (int i=0; i<3; i++) {
@@ -35,14 +35,18 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
     sprintf(s2, "tf_geometry/proximal_%d/rotation", (i+1));
     node.getParam(s1, origin_param);
     node.getParam(s2, rotation_param);
-    proximal_tf[i].setOrigin( tf::Vector3(origin_param[0], origin_param[1], origin_param[2]) );
-    proximal_tf[i].setRotation( tf::Quaternion(msg->finger[i].proximal*pow(-1, floor(i/2.0)+1), rotation_param[1], rotation_param[2]) );
+    proximal_tf[i].setOrigin(tf::Vector3(origin_param[0], origin_param[1], origin_param[2]));
+    proximal_tf[i].setRotation(tf::Quaternion(msg->finger[i].proximal*pow(-1, floor(i/2.0)+1),
+                                              rotation_param[1],
+                                              rotation_param[2]));
   }
 
   node.getParam("tf_geometry/distal/origin", origin_param);
   for (int i=0; i<3; i++) {
-    distal_tf[i].setOrigin( tf::Vector3(origin_param[0]+0.008*cos(msg->finger[i].distal), origin_param[1], origin_param[2]+0.008*sin(msg->finger[i].distal)) );
-    distal_tf[i].setRotation( tf::Quaternion(-msg->finger[i].distal, 0.0, 0.0) );
+    distal_tf[i].setOrigin(tf::Vector3(origin_param[0] + 0.008 * cos(msg->finger[i].distal_approx),
+                                        origin_param[1],
+                                        origin_param[2] + 0.008 * sin(msg->finger[i].distal_approx)));
+    distal_tf[i].setRotation(tf::Quaternion(-msg->finger[i].distal_approx, 0.0, 0.0));
   }
 
   sprintf(s1, "tf_geometry/proximal_sensors/origin_x");
@@ -51,8 +55,8 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
   node.getParam(s2, origin_param_2);
   for (int i=0; i<3; i++) {
     for (int j=0; j<5; j++) {
-      proximal_sensor_tf[i][j].setOrigin( tf::Vector3(origin_param[j], 0.0, origin_param_2[j]) );
-      proximal_sensor_tf[i][j].setRotation( tf::Quaternion(0.0, 0.0, 0.0) );
+      proximal_sensor_tf[i][j].setOrigin(tf::Vector3(origin_param[j], 0.0, origin_param_2[j]));
+      proximal_sensor_tf[i][j].setRotation(tf::Quaternion(0.0, 0.0, 0.0));
     }
   }
 

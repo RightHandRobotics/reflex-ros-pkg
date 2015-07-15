@@ -228,10 +228,9 @@ float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
 }
 
 
-// Calculates motor angle (spool) from raw sensor value, motor gear ratio,
-// and calibrated "zero" point for the spool
-float calc_motor_angle(int inversion, int raw_dyn_value, double ratio,
-                       double zero) {
+// Calculates joint angle from raw sensor value, motor gear ratio,
+// and calibrated "zero" point for the joint
+float calc_motor_angle(int inversion, int raw_dyn_value, double ratio, double zero) {
   float rad_value = raw_dyn_value * reflex_hand::ReflexHand::DYN_POS_SCALE / ratio;
   float zeroed_value = rad_value - zero;
   return inversion * zeroed_value;
@@ -240,15 +239,14 @@ float calc_motor_angle(int inversion, int raw_dyn_value, double ratio,
 
 // Calculates distal angle, "tendon spooled out" - "proximal encoder" angles
 // Could be improved
-float calc_distal_angle(float spool, float proximal) {
-  float diff = spool - proximal;
+float calc_distal_angle(float joint_angle, float proximal) {
+  float diff = joint_angle - proximal;
   return (diff < 0) ? 0 : diff;
 }
 
 
 // Takes hand state and returns calibrated tactile data for given finger
-int calc_pressure(const reflex_hand::ReflexHandState* const state,
-                  int finger, int sensor) {
+int calc_pressure(const reflex_hand::ReflexHandState* const state, int finger, int sensor) {
   int raw_value = state->tactile_pressures_[tactile_base_idx[finger] + sensor];
   return raw_value - pressure_offset(finger, sensor);
 }
@@ -271,31 +269,25 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
                                               encoder_last_value[i],
                                               encoder_offset[i]);
     encoder_last_value[i] = state->encoders_[i];
-
+    hand_msg.motor[i].joint_angle = calc_motor_angle(motor_inversion[i],
+                                                     state->dynamixel_angles_[i],
+                                                     dyn_ratio[i],
+                                                     dyn_zero[i]);
     hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[i],
                                                       encoder_offset[i],
                                                       enc_zero[i]);
-
-    hand_msg.finger[i].spool = calc_motor_angle(motor_inversion[i],
-                                                state->dynamixel_angles_[i],
-                                                dyn_ratio[i],
-                                                dyn_zero[i]);
-
-    hand_msg.finger[i].distal = calc_distal_angle(hand_msg.finger[i].spool,
-                                                  hand_msg.finger[i].proximal);
-
+    hand_msg.finger[i].distal_approx = calc_distal_angle(hand_msg.motor[i].joint_angle,
+                                                         hand_msg.finger[i].proximal);
     for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
       hand_msg.finger[i].pressure[j] = calc_pressure(state, i, j);
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
   }
-
-  hand_msg.palm.preshape = calc_motor_angle(motor_inversion[3],
-                                            state->dynamixel_angles_[3],
-                                            dyn_ratio[3],
-                                            dyn_zero[3]);
-  hand_msg.joints_publishing = true;
-  hand_msg.tactile_publishing = true;
+  hand_msg.motor[3].joint_angle = calc_motor_angle(motor_inversion[3],
+                                                   state->dynamixel_angles_[3],
+                                                   dyn_ratio[3],
+                                                   dyn_zero[3]);
+  populate_motor_state(&hand_msg, state);
   hand_pub.publish(hand_msg);
 
   // Capture the current tactile data and save it as a zero reference
@@ -318,8 +310,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       aqcuire_fingers = false;
     }
   }
-
-  publish_debug_message(state);
   return;
 }
 
@@ -454,22 +444,17 @@ void check_anomalous_motor_values() {
 
 
 // Captures the current hand state to a debug message and publishes
-void publish_debug_message(const reflex_hand::ReflexHandState* const state) {
+void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
-  reflex_msgs::MotorDebug debug_msg;
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    debug_msg.encoder[i] = state->encoders_[i];
-  }
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    debug_msg.motor[i].raw_angle = state->dynamixel_angles_[i];
-    debug_msg.motor[i].speed = state->dynamixel_speeds_[i];
-    debug_msg.motor[i].load = state->dynamixel_loads_[i];
-    debug_msg.motor[i].voltage = state->dynamixel_voltages_[i];
-    debug_msg.motor[i].temperature = state->dynamixel_temperatures_[i];
+    hand_msg->motor[i].raw_angle = state->dynamixel_angles_[i];
+    hand_msg->motor[i].speed = state->dynamixel_speeds_[i];
+    hand_msg->motor[i].load = state->dynamixel_loads_[i];
+    hand_msg->motor[i].voltage = state->dynamixel_voltages_[i];
+    hand_msg->motor[i].temperature = state->dynamixel_temperatures_[i];
     sprintf(buffer, "0x%02x", state->dynamixel_error_states_[i]);
-    debug_msg.motor[i].error_state = buffer;
+    hand_msg->motor[i].error_state = buffer;
   }
-  debug_pub.publish(debug_msg);
 }
 
 
