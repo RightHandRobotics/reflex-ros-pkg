@@ -7,7 +7,7 @@ void signal_handler(int signum);
 void load_params(ros::NodeHandle nh);
 
 void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
-                        const reflex_msgs::RawServoPositions::ConstPtr &msg);
+                        const reflex_msgs::RawServoCommands::ConstPtr &msg);
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RadianServoCommands::ConstPtr &msg);
 uint16_t pos_rad_to_raw(float rad_command, int motor_idx);
