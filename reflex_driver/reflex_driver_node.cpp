@@ -17,11 +17,10 @@
 /////////////////////////////////////////////////////////////////////////////
 
 
+#include <reflex_msgs/Hand.h>
 #include <reflex_msgs/RawServoPositions.h>
 #include <reflex_msgs/RadianServoCommands.h>
-#include <reflex_msgs/Hand.h>
-#include <reflex_msgs/MotorDebug.h>
-#include <reflex_msgs/StateDebug.h>
+#include <reflex_msgs/SetSpeed.h>
 #include <ros/ros.h>
 #include <signal.h>
 #include <stdio.h>
@@ -103,7 +102,7 @@ void load_params(ros::NodeHandle nh) {
 
 
 // Takes raw Dynamixel values (0-4095) and writes them directly to the motors
-void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
+void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RawServoPositions::ConstPtr &msg) {
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
@@ -115,8 +114,8 @@ void set_raw_positions_cb(reflex_hand::ReflexHand *rh,
 
 // Commands the motors from radians, using the zero references from
 // yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
-void set_radian_positions_cb(reflex_hand::ReflexHand *rh,
-                             const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
+                          const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
   uint16_t targets[4];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
@@ -140,14 +139,18 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
 }
 
 
-// Commands the motors with radians / s, halting under harsh load
-void set_velocity_cb(reflex_hand::ReflexHand *rh,
-                     const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+// Sets motor speed as a service
+bool set_motor_speed(reflex_hand::ReflexHand *rh,
+                     reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
   uint16_t targets[4];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    targets[i] = speed_rad_to_raw(msg->radian_commands[i], i);
+    targets[i] = speed_rad_to_raw(req.motor[i], i);
   }
+  rh->setServoTargets(targets);
+  ros::Duration(0.05).sleep();
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
+  return true;
 }
 
 
@@ -164,10 +167,17 @@ uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
 }
 
 
+bool enable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
+}
+
+bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_IDLE);
+}
+
 
 // Sets the procedure to calibrate the tactile values in motion
-bool zero_tactile(std_srvs::Empty::Request &req,
-                  std_srvs::Empty::Response &res) {
+bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   aqcuire_tactile = true;
   ROS_INFO("Zeroing tactile data at current values...");
   ROS_INFO("tactile_file_address: %s", tactile_file_address.c_str());
@@ -176,8 +186,7 @@ bool zero_tactile(std_srvs::Empty::Request &req,
 
 
 // Sets the procedure to calibrate the fingers in motion
-bool zero_fingers(std_srvs::Empty::Request &req,
-                  std_srvs::Empty::Response &res) {
+bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   ROS_INFO("Beginning finger zero sequence...");
   ROS_INFO("finger_file_address: %s", finger_file_address.c_str());
   printf("This process assumes the fingers zeroed (opened as much as\n");
@@ -448,7 +457,7 @@ void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::Reflex
   char buffer[10];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     hand_msg->motor[i].raw_angle = state->dynamixel_angles_[i];
-    hand_msg->motor[i].speed = state->dynamixel_speeds_[i];
+    hand_msg->motor[i].velocity = state->dynamixel_speeds_[i];
     hand_msg->motor[i].load = state->dynamixel_loads_[i];
     hand_msg->motor[i].voltage = state->dynamixel_voltages_[i];
     hand_msg->motor[i].temperature = state->dynamixel_temperatures_[i];
@@ -465,11 +474,9 @@ int main(int argc, char **argv) {
   load_params(nh);
 
   // Advertise necessary topics
-  hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_hand", 10);
-  ROS_INFO("Advertising the /reflex_hand topic");
-  debug_pub = nh.advertise<reflex_msgs::MotorDebug>("/reflex/motor_debug", 10);
-  ROS_INFO("Advertising the /reflex/motor_debug topic");
-  raw_pub = nh.advertise<reflex_msgs::RawServoPositions>("/set_reflex_raw", 1);
+  hand_pub = nh.advertise<reflex_msgs::Hand>("/reflex_takktile/hand_state", 10);
+  ROS_INFO("Publishing the /reflex_takktile/hand_state topic");
+  raw_pub = nh.advertise<reflex_msgs::RawServoPositions>("/reflex_takktile/raw_hand_command", 1);
 
   // Intialize the reflex_hand object
   string network_interface;
@@ -488,11 +495,24 @@ int main(int argc, char **argv) {
 
   // Subscribe to the hand command topics
   ros::Subscriber raw_positions_sub =
-    nh.subscribe<reflex_msgs::RawServoPositions>("set_reflex_raw", 1, boost::bind(set_raw_positions_cb, &rh, _1));
+    nh.subscribe<reflex_msgs::RawServoPositions>("reflex_takktile/raw_hand_command", 1,
+                                                 boost::bind(receive_raw_cmd_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_pos", 1, boost::bind(set_radian_positions_cb, &rh, _1));
-  ros::Subscriber velocity_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>("set_reflex_velocity", 1, boost::bind(set_velocity_cb, &rh, _1));
+    nh.subscribe<reflex_msgs::RadianServoCommands>("reflex_takktile/radian_hand_command", 1,
+                                                   boost::bind(receive_angle_cmd_cb, &rh, _1));
+
+  // Initialize the hand command services
+  ros::ServiceServer set_speed_service =
+    nh.advertiseService<reflex_msgs::SetSpeed::Request, reflex_msgs::SetSpeed::Response>
+    ("/reflex_takktile/set_speed", boost::bind(set_motor_speed, &rh, _1, _2));
+  ros::ServiceServer enable_service =
+    nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
+      ("reflex_takktile/enable_torque", boost::bind(enable_torque, &rh, _1, _2));
+  ROS_INFO("Advertising the /enable_torque service");
+  ros::ServiceServer disable_service =
+    nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
+      ("reflex_takktile/disable_torque", boost::bind(disable_torque, &rh, _1, _2));
+  ROS_INFO("Advertising the /disable_torque service");
 
   // Initialize the /zero_tactile and /zero_finger services
   string buffer;
@@ -510,6 +530,7 @@ int main(int argc, char **argv) {
     if (!rh.listen(0.001))
       ROS_ERROR("Error in listen");
   }
+
   rh.setServoControlModes(reflex_hand::ReflexHand::CM_IDLE);
   ros::Duration(0.01).sleep();
   ROS_INFO("Have a nice day");

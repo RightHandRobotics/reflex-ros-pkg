@@ -7,3 +7,4 @@ add_library(reflex_hand reflex_hand.cpp)
 
 add_executable(reflex_driver_node reflex_driver_node.cpp)
 target_link_libraries(reflex_driver_node reflex_hand ${catkin_LIBRARIES})
+add_dependencies(reflex_driver_node std_srvs_gencpp reflex_msgs_gencpp)
