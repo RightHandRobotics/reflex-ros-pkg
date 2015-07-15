@@ -1,63 +1,92 @@
 #!/usr/bin/env python
-#
-# RightHand Robotics code for interfacing with a ReFlex SF hand
 
-
-from os.path import join
-import yaml
-
-from dynamixel_msgs.msg import JointState
 import rospy
-import rospkg
 from std_msgs.msg import Float64
+from std_srvs.srv import Empty
 
-from reflex_sf_msgs.msg import SFCommand
-from reflex_sf_msgs.msg import SFPose
-from reflex_sf_msgs.msg import SFVelocity
-from motor import Motor
+from reflex_msgs.msg import ReflexCommand
+from reflex_msgs.msg import PoseCommand
+from reflex_msgs.msg import VelocityCommand
+from reflex_msgs.msg import Hand
+from reflex_msgs.srv import SetSpeed
+import motor
 
 
-class ReflexSFHand(object):
+class ReflexTakktileHand():
     def __init__(self):
-        rospy.init_node('reflex_sf')
-        rospy.loginfo('Starting up the ReFlex SF hand')
-        self.motors = {'/reflex_sf_f1': Motor('/reflex_sf_f1'),
-                       '/reflex_sf_f2': Motor('/reflex_sf_f2'),
-                       '/reflex_sf_f3': Motor('/reflex_sf_f3'),
-                       '/reflex_sf_preshape': Motor('/reflex_sf_preshape')}
-        rospy.Subscriber('/reflex_sf/command', SFCommand, self.receiveCmdCb)
-        rospy.Subscriber('/reflex_sf/command_position', SFPose, self.receivePosCmdCb)
-        rospy.Subscriber('/reflex_sf/command_velocity', SFVelocity, self.receiveVelCmdCb)
-        rospy.loginfo('ReFlex SF hand has started, waiting for commands...')
+        self.namespace = '/reflex_takktile'
+        rospy.init_node('reflex_takktile')
+        rospy.loginfo('Starting up the ReFlex Takktile hand')
+        self.motors = {self.namespace + '_f1': motor.Motor(self.namespace + '_f1'),
+                       self.namespace + '_f2': motor.Motor(self.namespace + '_f2'),
+                       self.namespace + '_f3': motor.Motor(self.namespace + '_f3'),
+                       self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
+        self.torque_enable_service = rospy.ServiceProxy(self.namespace + '/torque_enable', Empty)
+        self.torque_disable_service = rospy.ServiceProxy(self.namespace + '/torque_disable', Empty)
+        self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', SetSpeed)
+        self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
+        self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
+        rospy.Subscriber(self.namespace + '/command', ReflexCommand, self.receive_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_position', PoseCommand, self.receive_angle_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_velocity', VelocityCommand, self.receive_vel_cmd_cb)
+        rospy.Subscriber(self.namespace + '/hand_state', Hand, self.receive_hand_state_cb)
+        rospy.loginfo('ReFlex Takktile hand has started, waiting for commands...')
 
-    def receiveCmdCb(self, data):
-        self.setSpeed(data.velocity)
-        self.setPosition(data.pose)
+    def receive_cmd_cb(self, data):
+        self.set_speeds(data.velocity)
+        self.set_angles(data.pose)
+        self.publish_motor_commands()
 
-    def setPosition(self, data):
-        self.motors['/reflex_sf_f1'].setMotorPosition(data.f1)
-        self.motors['/reflex_sf_f2'].setMotorPosition(data.f2)
-        self.motors['/reflex_sf_f3'].setMotorPosition(data.f3)
-        self.motors['/reflex_sf_preshape'].setMotorPosition(data.preshape)
+    def receive_angle_cmd_cb(self, data):
+        self.reset_speeds()
+        self.set_angles(data)
+        self.publish_motor_commands()
 
-    def setSpeed(self, data):
-        self.motors['/reflex_sf_f1'].setSpeed(data.f1)
-        self.motors['/reflex_sf_f2'].setSpeed(data.f2)
-        self.motors['/reflex_sf_f3'].setSpeed(data.f3)
-        self.motors['/reflex_sf_preshape'].setSpeed(data.preshape)
+    def receive_vel_cmd_cb(self, data):
+        self.set_velocities(data)
+        self.publish_motor_commands()
 
-    def disableTorque(self):
-        for motor in self.motors:
-            self.motors[motor].disableTorque()
+    def receive_hand_state_cb(self, data):
+        pass
 
-    def enableTorque(self):
-        for motor in self.motors:
-            self.motors[motor].enableTorque()
+    def set_angles(self, pose):
+        self.motors['/reflex_sf_f1'].set_motor_angle(pose.f1)
+        self.motors['/reflex_sf_f2'].set_motor_angle(pose.f2)
+        self.motors['/reflex_sf_f3'].set_motor_angle(pose.f3)
+        self.motors['/reflex_sf_preshape'].set_motor_angle(pose.preshape)
+
+    def set_velocities(self, velocity):
+        self.motors['/reflex_sf_f1'].set_motor_velocity(velocity.f1)
+        self.motors['/reflex_sf_f2'].set_motor_velocity(velocity.f2)
+        self.motors['/reflex_sf_f3'].set_motor_velocity(velocity.f3)
+        self.motors['/reflex_sf_preshape'].set_motor_velocity(velocity.preshape)
+
+    def set_speeds(self, speed):
+        self.motors['/reflex_sf_f1'].set_motor_speed(speed.f1)
+        self.motors['/reflex_sf_f2'].set_motor_speed(speed.f2)
+        self.motors['/reflex_sf_f3'].set_motor_speed(speed.f3)
+        self.motors['/reflex_sf_preshape'].set_motor_speed(speed.preshape)
+
+    def reset_speeds(self):
+        for ID, motor in self.motors.items():
+            motor.reset_motor_speed()
+
+    def enable_torque(self):
+        self.torque_enable_service()
+
+    def disable_torque(self):
+        self.torque_disable_service()
+
+    def calibrate_fingers(self):
+        self.calibrate_fingers_service()
+
+    def calibrate_tactile(self):
+        self.calibrate_tactile_service()
 
 
 def main():
     hand = ReflexSFHand()
-    rospy.on_shutdown(hand.disableTorque)
+    rospy.on_shutdown(hand.disable_torque)
     rospy.spin()
 
 
