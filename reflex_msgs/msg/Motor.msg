@@ -1,6 +1,7 @@
-int32 error
-int32 angle
-int32 speed
-int32 load
-int32 voltage
-int32 motor_temp
+float64 joint_angle
+float64 raw_angle
+float64 velocity
+float64 load
+float64 voltage
+int32 temperature
+string error_state

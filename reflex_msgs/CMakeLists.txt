@@ -12,14 +12,10 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Hand.msg
-  Palm.msg
   Finger.msg
   Motor.msg
   RawServoPositions.msg
   RadianServoCommands.msg
-  MotorDebug.msg
-  StateDebug.msg
-  TrackState.msg
 )
 
 ## Generate services in the 'srv' folder
