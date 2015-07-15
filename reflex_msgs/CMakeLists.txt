@@ -14,7 +14,10 @@ add_message_files(
   Hand.msg
   Finger.msg
   Motor.msg
-  RawServoPositions.msg
+  ReflexCommand.msg
+  PoseCommand.msg
+  VelocityCommand.msg
+  RawServoCommands.msg
   RadianServoCommands.msg
 )
 
