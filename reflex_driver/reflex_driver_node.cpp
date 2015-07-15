@@ -370,9 +370,9 @@ void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
   finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
   finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
   finger_file << "encoder_zero_reference: ["
-                        << enc_zero[0] << ", "
-                        << enc_zero[1] << ", "
-                        << enc_zero[2] << "]\n";
+              << enc_zero[0] << ", "
+              << enc_zero[1] << ", "
+              << enc_zero[2] << "]\n";
 }
 
 
@@ -456,10 +456,11 @@ void check_anomalous_motor_values() {
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    hand_msg->motor[i].raw_angle = state->dynamixel_angles_[i];
-    hand_msg->motor[i].velocity = state->dynamixel_speeds_[i];
-    hand_msg->motor[i].load = state->dynamixel_loads_[i];
-    hand_msg->motor[i].voltage = state->dynamixel_voltages_[i];
+    ROS_WARN("raw angle[%d]: %d", i, state->dynamixel_angles_[i]);
+    hand_msg->motor[i].raw_angle = (float) state->dynamixel_angles_[i];
+    hand_msg->motor[i].velocity = (float) state->dynamixel_speeds_[i];
+    hand_msg->motor[i].load = (float) state->dynamixel_loads_[i];
+    hand_msg->motor[i].voltage = (float) state->dynamixel_voltages_[i];
     hand_msg->motor[i].temperature = state->dynamixel_temperatures_[i];
     sprintf(buffer, "0x%02x", state->dynamixel_error_states_[i]);
     hand_msg->motor[i].error_state = buffer;

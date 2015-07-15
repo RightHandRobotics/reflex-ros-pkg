@@ -224,10 +224,10 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
               msg[0]);
     return;
   }
-  if (msg_len != sizeof(mcu_state_format_1_t))
+  if (msg_len - 44 != sizeof(mcu_state_format_1_t))  // The leftover palm data adds 44 bytes
   {
     ROS_ERROR("expected packet length %d, but saw %d instead",
-              (int)sizeof(mcu_state_format_1_t), msg_len);
+              (int)sizeof(mcu_state_format_1_t), msg_len - 44);
     return;
   }
   mcu_state_format_1_t *rx_state_msg = (mcu_state_format_1_t *)msg;
