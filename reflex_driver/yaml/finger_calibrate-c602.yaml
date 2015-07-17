@@ -1,0 +1,2 @@
+# Calbration constants for joints [f1, f2, f3, preshape]
+encoder_zero_reference: [6.28319, 6.28319, 6.28319]

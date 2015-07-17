@@ -57,8 +57,8 @@ int encoder_last_value[] = {0, 0, 0};
 int encoder_offset[] = {-1, -1, -1};
 
 bool aqcuire_tactile, aqcuire_fingers, first_capture, all_fingers_moved = false;
-vector<double> dyn_zero_point;
-vector<double> enc_zero_point;
+vector<double> dynamixel_zero_point;
+vector<double> encoder_zero_point;
 uint16_t calibration_dyn_increase[] = {5, 5, 5, 0};
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};
 
@@ -73,14 +73,14 @@ void signal_handler(int signum) {
 
 void load_params(ros::NodeHandle nh) {
   string topic = "no error";
-  if (!nh.getParam("motor_zero_reference", dyn_zero_point))
+  if (!nh.getParam("motor_zero_reference", dynamixel_zero_point))
     topic = "motor_zero_reference";
-  if (!nh.getParam("encoder_zero_reference", enc_zero_point))
+  if (!nh.getParam("encoder_zero_reference", encoder_zero_point))
     topic = "encoder_zero_reference";
-  if (!nh.getParam("MOTOR_TO_JOINT_INVERTED", MOTOR_TO_JOINT_INVERTED))
-    topic = "MOTOR_TO_JOINT_INVERTED";
-  if (!nh.getParam("motor_gear_ratio", MOTOR_TO_JOINT_GEAR_RATIO))
-    topic = "motor_gear_ratio";
+  if (!nh.getParam("motor_to_joint_inverted", MOTOR_TO_JOINT_INVERTED))
+    topic = "motor_to_joint_inverted";
+  if (!nh.getParam("motor_to_joint_gear_ratio", MOTOR_TO_JOINT_GEAR_RATIO))
+    topic = "motor_to_joint_gear_ratio";
   if (!nh.getParam("contact_threshold", contact_threshold))
     topic = "contact_threshold";
   if (!nh.getParam("tactile_offset_f1", tactile_offset_f1))
@@ -127,7 +127,7 @@ void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
 
 // Takes a rad/s command and returns Dynamixel command
 uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
-  float zeroed_command = MOTOR_TO_JOINT_INVERTED[motor_idx] * rad_command + dyn_zero_point[motor_idx];
+  float zeroed_command = MOTOR_TO_JOINT_INVERTED[motor_idx] * rad_command + dynamixel_zero_point[motor_idx];
   float motor_ratio = (MOTOR_TO_JOINT_GEAR_RATIO[motor_idx] / reflex_hand::ReflexHand::DYN_POS_SCALE);
   uint16_t command = (uint16_t) (zeroed_command * motor_ratio);
   if (command > reflex_hand::ReflexHand::DYN_MIN_RAW_WRAPPED) {
@@ -276,10 +276,10 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     hand_msg.motor[i].joint_angle = calc_motor_angle(MOTOR_TO_JOINT_INVERTED[i],
                                                      state->dynamixel_angles_[i],
                                                      MOTOR_TO_JOINT_GEAR_RATIO[i],
-                                                     dyn_zero_point[i]);
+                                                     dynamixel_zero_point[i]);
     hand_msg.finger[i].proximal = calc_proximal_angle(state->encoders_[i],
                                                       encoder_offset[i],
-                                                      enc_zero_point[i]);
+                                                      encoder_zero_point[i]);
     hand_msg.finger[i].distal_approx = calc_distal_angle(hand_msg.motor[i].joint_angle,
                                                          hand_msg.finger[i].proximal);
     for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
@@ -290,7 +290,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   hand_msg.motor[3].joint_angle = calc_motor_angle(MOTOR_TO_JOINT_INVERTED[3],
                                                    state->dynamixel_angles_[3],
                                                    MOTOR_TO_JOINT_GEAR_RATIO[3],
-                                                   dyn_zero_point[3]);
+                                                   dynamixel_zero_point[3]);
   populate_motor_state(&hand_msg, state);
   hand_pub.publish(hand_msg);
 
@@ -361,13 +361,13 @@ void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state
 // Capture current encoder position locally as "zero" and save to file
 void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
-    enc_zero_point[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
+    encoder_zero_point[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
   finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
   finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
   finger_file << "encoder_zero_reference: ["
-              << enc_zero_point[0] << ", "
-              << enc_zero_point[1] << ", "
-              << enc_zero_point[2] << "]\n";
+              << encoder_zero_point[0] << ", "
+              << encoder_zero_point[1] << ", "
+              << encoder_zero_point[2] << "]\n";
 }
 
 
@@ -381,7 +381,7 @@ void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     motor_offset = MOTOR_TO_JOINT_INVERTED[i] * CALIBRATION_DYN_OFFSET[i];
     motor_scalar = reflex_hand::ReflexHand::DYN_POS_SCALE / MOTOR_TO_JOINT_GEAR_RATIO[i];
-    dyn_zero_point[i] = (state->dynamixel_angles_[i] - motor_offset) * motor_scalar;
+    dynamixel_zero_point[i] = (state->dynamixel_angles_[i] - motor_offset) * motor_scalar;
     servo_pos.raw_positions[i] = state->dynamixel_angles_[i] -
                                  (MOTOR_TO_JOINT_INVERTED[i] * CALIBRATION_DYN_OFFSET[i]);
   }
@@ -391,10 +391,10 @@ void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
 
 void log_motor_zero_to_file_and_close() {
   finger_file << "motor_zero_reference: ["
-              << dyn_zero_point[0] << ", "
-              << dyn_zero_point[1] << ", "
-              << dyn_zero_point[2] << ", "
-              << dyn_zero_point[3] << "]\n";
+              << dynamixel_zero_point[0] << ", "
+              << dynamixel_zero_point[1] << ", "
+              << dynamixel_zero_point[2] << ", "
+              << dynamixel_zero_point[3] << "]\n";
   finger_file.close();
 }
 
@@ -404,7 +404,7 @@ void log_motor_zero_to_file_and_close() {
 bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) {
   bool all_fingers_moved = true;
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    float enc_pos = enc_zero_point[i] -
+    float enc_pos = encoder_zero_point[i] -
                     state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
     if (abs(enc_pos) > CALIBRATION_ERROR) {
       calibration_dyn_increase[i] = 0;
@@ -436,10 +436,10 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
 // Sometimes Dynamixels glitch and report very high values, this catches those
 void check_anomalous_motor_values() {
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    if (dyn_zero_point[i] > 14 * 3.1415) {
+    if (dynamixel_zero_point[i] > 14 * 3.1415) {
         ROS_WARN("Something went wrong in calibration - motor %d was", i+1);
         ROS_WARN("\tset anomalously high. Motor zero reference value:");
-        ROS_WARN("\t%4f radians (nothing should be over 2*pi)", dyn_zero_point[i]);
+        ROS_WARN("\t%4f radians (nothing should be over 2*pi)", dynamixel_zero_point[i]);
         ROS_WARN("\tTry redoing the calibration, depowering/repowering");
         ROS_WARN("\tif it repeats");
     }
