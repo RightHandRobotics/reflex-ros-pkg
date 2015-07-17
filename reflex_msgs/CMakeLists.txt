@@ -16,6 +16,7 @@ add_message_files(
   Motor.msg
   ReflexCommand.msg
   PoseCommand.msg
+  TorqueCommand.msg
   VelocityCommand.msg
   RawServoCommands.msg
   RadianServoCommands.msg
