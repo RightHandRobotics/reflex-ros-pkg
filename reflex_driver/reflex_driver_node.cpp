@@ -471,9 +471,9 @@ int main(int argc, char **argv) {
   string ns = "/reflex_takktile";
 
   // Advertise necessary topics
-  hand_pub = nh.advertise<reflex_msgs::Hand>(ns.append("/hand_state"), 10);
+  hand_pub = nh.advertise<reflex_msgs::Hand>(ns + "/hand_state", 10);
   ROS_INFO("Publishing the /hand_state topic");
-  raw_pub = nh.advertise<reflex_msgs::RawServoCommands>(ns.append("/raw_hand_command"), 1);
+  raw_pub = nh.advertise<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 1);
 
   // Intialize the reflex_hand object
   string network_interface;
@@ -492,23 +492,23 @@ int main(int argc, char **argv) {
 
   // Subscribe to the hand command topics
   ros::Subscriber raw_positions_sub =
-    nh.subscribe<reflex_msgs::RawServoCommands>(ns.append("/raw_hand_command"), 1,
+    nh.subscribe<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 1,
                                                  boost::bind(receive_raw_cmd_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>(ns.append("/radian_hand_command"), 1,
+    nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 1,
                                                    boost::bind(receive_angle_cmd_cb, &rh, _1));
 
   // Initialize the hand command services
   ros::ServiceServer set_speed_service =
     nh.advertiseService<reflex_msgs::SetSpeed::Request, reflex_msgs::SetSpeed::Response>
-    (ns.append("/set_speed"), boost::bind(set_motor_speed, &rh, _1, _2));
+    (ns + "/set_speed", boost::bind(set_motor_speed, &rh, _1, _2));
   ros::ServiceServer enable_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
-      (ns.append("/enable_torque"), boost::bind(enable_torque, &rh, _1, _2));
+      (ns + "/enable_torque", boost::bind(enable_torque, &rh, _1, _2));
   ROS_INFO("Advertising the /enable_torque service");
   ros::ServiceServer disable_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
-      (ns.append("/disable_torque"), boost::bind(disable_torque, &rh, _1, _2));
+      (ns + "/disable_torque", boost::bind(disable_torque, &rh, _1, _2));
   ROS_INFO("Advertising the /disable_torque service");
 
   // Initialize the /zero_tactile and /zero_finger services
@@ -516,9 +516,9 @@ int main(int argc, char **argv) {
   nh.getParam("yaml_dir", buffer);
   tactile_file_address = buffer + "/tactile_calibrate.yaml";
   finger_file_address = buffer + "/finger_calibrate.yaml";
-  ros::ServiceServer zero_tactile_srv = nh.advertiseService(ns.append("/zero_tactile"), zero_tactile);
+  ros::ServiceServer zero_tactile_srv = nh.advertiseService(ns + "/zero_tactile", zero_tactile);
   ROS_INFO("Advertising the /zero_tactile service");
-  ros::ServiceServer zero_fingers_srv = nh.advertiseService(ns.append("/zero_fingers"), zero_fingers);
+  ros::ServiceServer zero_fingers_srv = nh.advertiseService(ns + "/zero_fingers", zero_fingers);
   ROS_INFO("Advertising the /zero_fingers service");
 
   ROS_INFO("Entering main loop...");
