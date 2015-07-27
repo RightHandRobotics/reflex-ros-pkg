@@ -59,7 +59,7 @@ int encoder_offset[] = {-1, -1, -1};
 bool aqcuire_tactile, aqcuire_fingers, first_capture, all_fingers_moved = false;
 vector<double> dynamixel_zero_point;
 vector<double> encoder_zero_point;
-uint16_t calibration_dyn_increase[] = {5, 5, 5, 0};
+uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};
 
 bool g_done = false;
@@ -169,11 +169,13 @@ uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
 
 bool enable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
+  return true;
 }
 
 
 bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_IDLE);
+  return true;
 }
 
 
@@ -306,8 +308,9 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     }
     all_fingers_moved = check_for_finger_movement(state);
     move_fingers_in(state);
+    ros::Duration(0.05).sleep();
     if (all_fingers_moved) {
-      ROS_INFO("FINISHED ZEROING: Finger movement detected, zeroing motors");
+      ROS_INFO("FINISHED FINGER CALIBRATION: Encoder movement detected");
       log_motor_zero_locally(state);
       check_anomalous_motor_values();
       log_motor_zero_to_file_and_close();
@@ -420,7 +423,7 @@ bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) 
 void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
   reflex_msgs::RawServoCommands servo_pos;
   int motor_step;
-  ROS_INFO("Stepping the fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
+  ROS_INFO("Step fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
            state->dynamixel_angles_[0], calibration_dyn_increase[0],
            state->dynamixel_angles_[1], calibration_dyn_increase[1],
            state->dynamixel_angles_[2], calibration_dyn_increase[2],
