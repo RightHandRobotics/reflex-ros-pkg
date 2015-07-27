@@ -451,7 +451,6 @@ void check_anomalous_motor_values() {
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    ROS_WARN("raw angle[%d]: %d", i, state->dynamixel_angles_[i]);
     hand_msg->motor[i].raw_angle = (float) state->dynamixel_angles_[i];
     hand_msg->motor[i].velocity = (float) state->dynamixel_speeds_[i];
     hand_msg->motor[i].load = (float) state->dynamixel_loads_[i];
