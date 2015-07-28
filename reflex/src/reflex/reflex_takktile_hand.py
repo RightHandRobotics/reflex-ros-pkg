@@ -84,16 +84,19 @@ class ReflexTakktileHand():
         Queries the motors for their speed and position setpoints and publishes
         those to the appropriate topics for reflex_driver
         '''
-        motor_pos_cmd = RadianServoCommands(
-            [self.motors['/reflex_takktile_f1'].get_commanded_position(),
-             self.motors['/reflex_takktile_f2'].get_commanded_position(),
-             self.motors['/reflex_takktile_f3'].get_commanded_position(),
-             self.motors['/reflex_takktile_preshape'].get_commanded_position()])
         motor_speed_cmd = SetSpeedRequest(
             [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
              self.motors['/reflex_takktile_f2'].get_commanded_speed(),
              self.motors['/reflex_takktile_f3'].get_commanded_speed(),
              self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
+        motor_pos_cmd = RadianServoCommands(
+            [self.motors['/reflex_takktile_f1'].get_commanded_position(),
+             self.motors['/reflex_takktile_f2'].get_commanded_position(),
+             self.motors['/reflex_takktile_f3'].get_commanded_position(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_position()])
+        self.set_speed_service(motor_speed_cmd)
+        rospy.sleep(0.03)  # Without a sleep the hand freezes up
+        self.motor_cmd_pub.publish(motor_pos_cmd)
 
 
 def main():
