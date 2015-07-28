@@ -139,7 +139,7 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
 }
 
 
-// Sets motor speed as a service
+// Changes the travel speed of the motor
 bool set_motor_speed(reflex_hand::ReflexHand *rh,
                      reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
@@ -160,16 +160,16 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
 uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
   uint16_t command = abs(rad_per_s_command) *
                      (MOTOR_TO_JOINT_GEAR_RATIO[motor_idx] / reflex_hand::ReflexHand::DYN_VEL_SCALE);
+  if (command > 1023) {
+    command = 1023;
+  }
   if (MOTOR_TO_JOINT_INVERTED[motor_idx] * rad_per_s_command < 0) {
     command += 1024;
   }
+  if (command == 0) {
+    command = 1;  // 0 doesn't actually stop the motor
+  }
   return command;
-}
-
-
-bool enable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
-  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
-  return true;
 }
 
 
@@ -504,10 +504,6 @@ int main(int argc, char **argv) {
   ros::ServiceServer set_speed_service =
     nh.advertiseService<reflex_msgs::SetSpeed::Request, reflex_msgs::SetSpeed::Response>
     (ns + "/set_speed", boost::bind(set_motor_speed, &rh, _1, _2));
-  ros::ServiceServer enable_service =
-    nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
-      (ns + "/enable_torque", boost::bind(enable_torque, &rh, _1, _2));
-  ROS_INFO("Advertising the /enable_torque service");
   ros::ServiceServer disable_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
       (ns + "/disable_torque", boost::bind(disable_torque, &rh, _1, _2));

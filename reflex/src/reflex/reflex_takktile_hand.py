@@ -21,7 +21,6 @@ class ReflexTakktileHand():
                        self.namespace + '_f2': motor.Motor(self.namespace + '_f2'),
                        self.namespace + '_f3': motor.Motor(self.namespace + '_f3'),
                        self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
-        self.torque_enable_service = rospy.ServiceProxy(self.namespace + '/torque_enable', Empty)
         self.torque_disable_service = rospy.ServiceProxy(self.namespace + '/torque_disable', Empty)
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
@@ -70,9 +69,6 @@ class ReflexTakktileHand():
     def reset_speeds(self):
         for ID, motor in self.motors.items():
             motor.reset_motor_speed()
-
-    def enable_torque(self):
-        self.torque_enable_service()
 
     def disable_torque(self):
         self.torque_disable_service()
