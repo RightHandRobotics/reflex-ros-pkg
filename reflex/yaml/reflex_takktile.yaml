@@ -1,0 +1,23 @@
+reflex_takktile_f1:
+    default_motor_speed: 2.0
+    max_motor_speed: 3.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+
+reflex_takktile_f2:
+    default_motor_speed: 2.0
+    max_motor_speed: 3.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+
+reflex_takktile_f3:
+    default_motor_speed: 2.0
+    max_motor_speed: 3.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+
+reflex_takktile_preshape:
+    default_motor_speed: 2.0
+    max_motor_speed: 3.0
+    max_motor_travel: 1.75
+    overload_threshold: 0.15
