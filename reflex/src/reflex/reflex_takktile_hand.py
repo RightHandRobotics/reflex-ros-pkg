@@ -7,8 +7,9 @@ from std_srvs.srv import Empty
 from reflex_msgs.msg import ReflexCommand
 from reflex_msgs.msg import PoseCommand
 from reflex_msgs.msg import VelocityCommand
+from reflex_msgs.msg import RadianServoCommands
 from reflex_msgs.msg import Hand
-from reflex_msgs.srv import SetSpeed
+from reflex_msgs.srv import SetSpeed, SetSpeedRequest
 import motor
 
 
@@ -21,7 +22,8 @@ class ReflexTakktileHand():
                        self.namespace + '_f2': motor.Motor(self.namespace + '_f2'),
                        self.namespace + '_f3': motor.Motor(self.namespace + '_f3'),
                        self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
-        self.torque_disable_service = rospy.ServiceProxy(self.namespace + '/torque_disable', Empty)
+        self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
+                                             RadianServoCommands, queue_size=10)
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
@@ -46,32 +48,30 @@ class ReflexTakktileHand():
         self.publish_motor_commands()
 
     def receive_hand_state_cb(self, data):
+        # Todo(Eric): Do something about tactile data here
         pass
 
     def set_angles(self, pose):
-        self.motors['/reflex_sf_f1'].set_motor_angle(pose.f1)
-        self.motors['/reflex_sf_f2'].set_motor_angle(pose.f2)
-        self.motors['/reflex_sf_f3'].set_motor_angle(pose.f3)
-        self.motors['/reflex_sf_preshape'].set_motor_angle(pose.preshape)
+        self.motors['/reflex_takktile_f1'].set_motor_angle(pose.f1)
+        self.motors['/reflex_takktile_f2'].set_motor_angle(pose.f2)
+        self.motors['/reflex_takktile_f3'].set_motor_angle(pose.f3)
+        self.motors['/reflex_takktile_preshape'].set_motor_angle(pose.preshape)
 
     def set_velocities(self, velocity):
-        self.motors['/reflex_sf_f1'].set_motor_velocity(velocity.f1)
-        self.motors['/reflex_sf_f2'].set_motor_velocity(velocity.f2)
-        self.motors['/reflex_sf_f3'].set_motor_velocity(velocity.f3)
-        self.motors['/reflex_sf_preshape'].set_motor_velocity(velocity.preshape)
+        self.motors['/reflex_takktile_f1'].set_motor_velocity(velocity.f1)
+        self.motors['/reflex_takktile_f2'].set_motor_velocity(velocity.f2)
+        self.motors['/reflex_takktile_f3'].set_motor_velocity(velocity.f3)
+        self.motors['/reflex_takktile_preshape'].set_motor_velocity(velocity.preshape)
 
     def set_speeds(self, speed):
-        self.motors['/reflex_sf_f1'].set_motor_speed(speed.f1)
-        self.motors['/reflex_sf_f2'].set_motor_speed(speed.f2)
-        self.motors['/reflex_sf_f3'].set_motor_speed(speed.f3)
-        self.motors['/reflex_sf_preshape'].set_motor_speed(speed.preshape)
+        self.motors['/reflex_takktile_f1'].set_motor_speed(speed.f1)
+        self.motors['/reflex_takktile_f2'].set_motor_speed(speed.f2)
+        self.motors['/reflex_takktile_f3'].set_motor_speed(speed.f3)
+        self.motors['/reflex_takktile_preshape'].set_motor_speed(speed.preshape)
 
     def reset_speeds(self):
         for ID, motor in self.motors.items():
             motor.reset_motor_speed()
-
-    def disable_torque(self):
-        self.torque_disable_service()
 
     def calibrate_fingers(self):
         self.calibrate_fingers_service()
@@ -79,10 +79,25 @@ class ReflexTakktileHand():
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
 
+    def publish_motor_commands(self):
+        '''
+        Queries the motors for their speed and position setpoints and publishes
+        those to the appropriate topics for reflex_driver
+        '''
+        motor_pos_cmd = RadianServoCommands(
+            [self.motors['/reflex_takktile_f1'].get_commanded_position(),
+             self.motors['/reflex_takktile_f2'].get_commanded_position(),
+             self.motors['/reflex_takktile_f3'].get_commanded_position(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_position()])
+        motor_speed_cmd = SetSpeedRequest(
+            [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
+             self.motors['/reflex_takktile_f2'].get_commanded_speed(),
+             self.motors['/reflex_takktile_f3'].get_commanded_speed(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
+
 
 def main():
-    hand = ReflexSFHand()
-    rospy.on_shutdown(hand.disable_torque)
+    hand = ReflexTakktileHand()
     rospy.spin()
 
 

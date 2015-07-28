@@ -14,13 +14,14 @@ class Motor(object):
         slash, e.g. /reflex_takktile_f1
         '''
         self.name = name[1:]
-        self.DEFAULT_MOTOR_SPEED = rospy.get_param(self.name + '/default_motor_speed')
-        self.MAX_MOTOR_SPEED = rospy.get_param(self.name + '/max_motor_speed')
-        self.MAX_MOTOR_TRAVEL = rospy.get_param(self.name + '/max_motor_travel')
-        self.OVERLOAD_THRESHOLD = rospy.get_param(self.name + '/overload_thresh')
+        self.DEFAULT_MOTOR_SPEED = rospy.get_param(name + '/default_motor_speed')
+        self.MAX_MOTOR_SPEED = rospy.get_param(name + '/max_motor_speed')
+        self.MAX_MOTOR_TRAVEL = rospy.get_param(name + '/max_motor_travel')
+        self.OVERLOAD_THRESHOLD = rospy.get_param(name + '/overload_threshold')
         self.motor_msg = reflex_msgs.msg.Motor()
         self.motor_cmd = 0.0
         self.speed = 0.0
+        self.reset_motor_speed()
 
     def get_current_joint_angle(self):
         return self.motor_msg.joint_angle
@@ -31,28 +32,25 @@ class Motor(object):
     def get_motor_msg(self):
         return self.motor_msg
 
+    def get_commanded_position(self):
+        return self.motor_cmd
+
+    def get_commanded_speed(self):
+        return self.speed
+
     def set_motor_angle(self, goal_pos):
         '''
         Bounds the given position command and sets it to the motor
         '''
-        self.motor_cmd_pub.publish(self.check_motor_angle_command(goal_pos))
+        self.motor_cmd = self.check_motor_angle_command(goal_pos)
 
     def check_motor_angle_command(self, angle_command):
         '''
-        Returns given command if within the allowable range, returns bounded command if out of range
+        Returns given command if within the allowable range,
+        returns bounded command if out of range
         '''
-        bounded_command = max(min(angle_command, 0.0), self.MAX_MOTOR_TRAVEL)
+        bounded_command = min(max(angle_command, 0.0), self.MAX_MOTOR_TRAVEL)
         return bounded_command
-
-    def command_based_on_velocity(self, goal_vel):
-        '''
-        Sets speed and commands finger in or out based on sign of velocity
-        '''
-        self.speed = goal_vel
-        if goal_vel > 0.0:
-            self.motor_cmd_pub.publish(self.check_motor_angle_command(self.MAX_MOTOR_TRAVEL))
-        elif goal_vel < 0.0:
-            self.motor_cmd_pub.publish(self.check_motor_angle_command(0.0))
 
     def set_motor_speed(self, goal_speed):
         '''
@@ -62,8 +60,8 @@ class Motor(object):
 
     def check_motor_speed_command(self, goal_speed):
         '''
-        Returns absolute of given command if within the allowable range, returns bounded command if out of range
-        Always returns positive (speed)
+        Returns absolute of given command if within the allowable range,
+        returns bounded command if out of range. Always returns positive
         '''
         bounded_command = min(abs(goal_speed), self.MAX_MOTOR_SPEED)
         return bounded_command
@@ -73,6 +71,16 @@ class Motor(object):
         Resets speed to default
         '''
         self.speed = self.DEFAULT_MOTOR_SPEED
+
+    def set_motor_velocity(self, goal_vel):
+        '''
+        Sets speed and commands finger in or out based on sign of velocity
+        '''
+        self.set_motor_speed(goal_vel)
+        if goal_vel > 0.0:
+            self.set_motor_angle(self.MAX_MOTOR_TRAVEL)
+        elif goal_vel <= 0.0:
+            self.set_motor_angle(0.0)
 
     def loosen_if_overloaded(self, load):
         if abs(load) > self.OVERLOAD_THRESHOLD:
