@@ -494,10 +494,10 @@ int main(int argc, char **argv) {
 
   // Subscribe to the hand command topics
   ros::Subscriber raw_positions_sub =
-    nh.subscribe<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 1,
+    nh.subscribe<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 10,
                                                  boost::bind(receive_raw_cmd_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 1,
+    nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 10,
                                                    boost::bind(receive_angle_cmd_cb, &rh, _1));
 
   // Initialize the hand command services
