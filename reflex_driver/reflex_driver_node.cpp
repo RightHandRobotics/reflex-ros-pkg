@@ -456,12 +456,22 @@ void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::Reflex
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     hand_msg->motor[i].raw_angle = (float) state->dynamixel_angles_[i];
     hand_msg->motor[i].velocity = (float) state->dynamixel_speeds_[i];
-    hand_msg->motor[i].load = (float) state->dynamixel_loads_[i];
+    hand_msg->motor[i].load = load_raw_to_signed(state->dynamixel_loads_[i], i);
     hand_msg->motor[i].voltage = (float) state->dynamixel_voltages_[i];
     hand_msg->motor[i].temperature = state->dynamixel_temperatures_[i];
     sprintf(buffer, "0x%02x", state->dynamixel_error_states_[i]);
     hand_msg->motor[i].error_state = buffer;
   }
+}
+
+
+float load_raw_to_signed(int load, int motor_id) {
+  if (load > 1023) {
+    load = (load - 1023);
+  } else {
+    load = -1 * load;
+  }
+  return (float) (MOTOR_TO_JOINT_INVERTED[motor_id] * load);
 }
 
 
