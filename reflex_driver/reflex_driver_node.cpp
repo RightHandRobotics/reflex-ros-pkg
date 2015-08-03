@@ -417,6 +417,7 @@ bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) 
     if (abs(enc_pos) > CALIBRATION_ERROR) {
       calibration_dyn_increase[i] = 0;
     } else {
+      calibration_dyn_increase[i] = 6;
       all_fingers_moved = false;
     }
   }
