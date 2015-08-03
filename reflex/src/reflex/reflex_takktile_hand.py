@@ -27,6 +27,8 @@ class ReflexTakktileHand():
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
+        self.latest_update = rospy.get_rostime()
+        self.comms_timeout = 5.0  # Seconds with no communications until hand stops
         rospy.Subscriber(self.namespace + '/command', ReflexCommand, self.receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position', PoseCommand, self.receive_angle_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_velocity', VelocityCommand, self.receive_vel_cmd_cb)
@@ -48,6 +50,11 @@ class ReflexTakktileHand():
         self.publish_motor_commands()
 
     def receive_hand_state_cb(self, data):
+        self.latest_update = rospy.get_rostime()
+        self.motors['/reflex_takktile_f1'].receive_state_cb(data.motor[0])
+        self.motors['/reflex_takktile_f2'].receive_state_cb(data.motor[1])
+        self.motors['/reflex_takktile_f3'].receive_state_cb(data.motor[2])
+        self.motors['/reflex_takktile_preshape'].receive_state_cb(data.motor[3])
         # Todo(Eric): Do something about tactile data here
         pass
 
@@ -101,8 +108,12 @@ class ReflexTakktileHand():
 
 def main():
     hand = ReflexTakktileHand()
-    rospy.spin()
-
+    while not rospy.is_shutdown():
+        now = rospy.get_rostime()
+        if (now.secs > (hand.latest_update.secs + hand.comms_timeout)):
+            rospy.logfatal('reflex_takktile_hand going down, no hand data for %d seconds', hand.comms_timeout)
+            rospy.signal_shutdown('Comms timeout')
+        rospy.sleep(0.5)
 
 if __name__ == '__main__':
     main()
