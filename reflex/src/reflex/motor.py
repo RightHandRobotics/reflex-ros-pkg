@@ -22,6 +22,7 @@ class Motor(object):
         self.motor_cmd = 0.0
         self.speed = 0.0
         self.in_control_torque_mode = False
+        self.update_occurred = False
         self.reset_motor_speed()
 
     def get_current_joint_angle(self):
@@ -90,6 +91,7 @@ class Motor(object):
         if abs(load) > self.OVERLOAD_THRESHOLD:
             rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.name, load))
             self.loosen()
+            self.update_occurred = True
 
     def tighten(self, tighten_angle=0.05):
         '''
@@ -107,7 +109,7 @@ class Motor(object):
         self.motor_msg.joint_angle = data.joint_angle
         self.motor_msg.raw_angle = data.raw_angle
         self.motor_msg.velocity = data.velocity
-        # self.handle_motor_load(data.load)
+        self.handle_motor_load(data.load)
         self.motor_msg.voltage = data.voltage
         self.motor_msg.temperature = data.temperature
         self.motor_msg.error_state = data.error_state
@@ -115,9 +117,6 @@ class Motor(object):
     def handle_motor_load(self, load):
         # Rolling filter of noisy data
         load_filter = 0.25
-        self.motor_msg.load = load_filter * load + (1 - load_filter) * self.motor_msg.load
-        self.loosen_if_overloaded(self.motor_msg.load)
-        load_filter = 0.25  # Rolling filter of noisy data
         self.motor_msg.load = load_filter * load + (1 - load_filter) * self.motor_msg.load
         if self.in_control_torque_mode:
             self.control_torque(self.motor_msg.load)

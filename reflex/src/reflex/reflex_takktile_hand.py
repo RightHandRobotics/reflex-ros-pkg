@@ -86,6 +86,18 @@ class ReflexTakktileHand():
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
 
+    def publish_motor_commands_on_state_update(self):
+        '''
+        Checks whether motors have updated their states and, if so, publishes
+        their commands
+        '''
+        update_occurred = False
+        for ID, motor in self.motors.items():
+            if motor.update_occurred:
+                update_occurred = True
+        if update_occurred:
+            self.publish_motor_commands()
+
     def publish_motor_commands(self):
         '''
         Queries the motors for their speed and position setpoints and publishes
@@ -104,16 +116,20 @@ class ReflexTakktileHand():
         self.set_speed_service(motor_speed_cmd)
         rospy.sleep(0.03)  # Without a sleep the hand freezes up
         self.motor_cmd_pub.publish(motor_pos_cmd)
+        for ID, motor in self.motors.items():
+            motor.update_occurred = False
 
 
 def main():
+    rospy.sleep(5.0)  # To allow services and parameters to load
     hand = ReflexTakktileHand()
     while not rospy.is_shutdown():
+        hand.publish_motor_commands_on_state_update()
         now = rospy.get_rostime()
         if (now.secs > (hand.latest_update.secs + hand.comms_timeout)):
             rospy.logfatal('reflex_takktile_hand going down, no hand data for %d seconds', hand.comms_timeout)
             rospy.signal_shutdown('Comms timeout')
-        rospy.sleep(0.5)
+        rospy.sleep(0.03)
 
 if __name__ == '__main__':
     main()
