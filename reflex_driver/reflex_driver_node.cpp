@@ -303,7 +303,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 
   if (aqcuire_fingers) {
     if (first_capture) {
-      calibrate_encoders(state);
+      calibrate_encoders_locally(state);
       first_capture = false;
     }
     all_fingers_moved = check_for_finger_movement(state);
@@ -311,8 +311,9 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     ros::Duration(0.05).sleep();
     if (all_fingers_moved) {
       ROS_INFO("FINISHED FINGER CALIBRATION: Encoder movement detected");
-      log_motor_zero_locally(state);
+      calibrate_motors_locally(state);
       check_anomalous_motor_values();
+      log_encoder_zero_to_file();
       log_motor_zero_to_file_and_close();
       aqcuire_fingers = false;
     }
@@ -362,21 +363,15 @@ void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state
 
 
 // Capture current encoder position locally as "zero" and save to file
-void calibrate_encoders(const reflex_hand::ReflexHandState* const state) {
+void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state) {
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
     encoder_zero_point[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
-  finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
-  finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
-  finger_file << "encoder_zero_reference: ["
-              << encoder_zero_point[0] << ", "
-              << encoder_zero_point[1] << ", "
-              << encoder_zero_point[2] << "]\n";
 }
 
 
 // Save current dynamixel location (plus an offset) as "zero" and then
 // write the dynamixels to the spot
-void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
+void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state) {
   reflex_msgs::RawServoCommands servo_pos;
   int motor_offset;
   float motor_scalar;
@@ -389,6 +384,16 @@ void log_motor_zero_locally(const reflex_hand::ReflexHandState* const state) {
                                  (MOTOR_TO_JOINT_INVERTED[i] * CALIBRATION_DYN_OFFSET[i]);
   }
   raw_pub.publish(servo_pos);
+}
+
+
+void log_encoder_zero_to_file() {
+  finger_file.open(finger_file_address.c_str(), ios::out|ios::trunc);
+  finger_file << "# Calbration constants for [f1, f2, f3, preshape]\n";
+  finger_file << "encoder_zero_reference: ["
+              << encoder_zero_point[0] << ", "
+              << encoder_zero_point[1] << ", "
+              << encoder_zero_point[2] << "]\n";
 }
 
 
