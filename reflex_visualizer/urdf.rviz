@@ -11,7 +11,7 @@ Panels:
         - /MarkerArray1
         - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.550336
-    Tree Height: 595
+    Tree Height: 359
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -330,8 +330,7 @@ Visualization Manager:
       Marker Topic: visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        contact_markers: true
-        pressure_markers: true
+        {}
       Queue Size: 1
       Value: true
   Enabled: true
@@ -358,22 +357,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.148417
+      Distance: 0.296388
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.0188082
-        Y: -0.0310706
-        Z: 0.117334
+        X: -0.0217317
+        Y: -0.00592975
+        Z: 0.0766131
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.1848
+      Pitch: 0.5048
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.83723
+      Yaw: 2.16223
     Saved: ~
 Window Geometry:
   Displays:
