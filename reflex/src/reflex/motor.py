@@ -22,6 +22,9 @@ class Motor(object):
         self.motor_cmd = 0.0
         self.speed = 0.0
         self.in_control_torque_mode = False
+        self.torque_cmd = 0.0
+        self.previous_load_control_output = 0.0
+        self.previous_load_control_error = 0.0
         self.update_occurred = False
         self.reset_motor_speed()
 
@@ -83,6 +86,29 @@ class Motor(object):
             self.set_motor_angle(self.MAX_MOTOR_TRAVEL)
         elif goal_vel <= 0.0:
             self.set_motor_angle(0.0)
+
+    def enable_torque_control(self):
+        self.in_control_torque_mode = True
+        self.previous_load_control_output = self.get_current_joint_angle()
+        self.previous_load_control_error = 0.0
+
+    def disable_torque_control(self):
+        self.in_control_torque_mode = False
+
+    def set_torque_cmd(self, torque_cmd):
+        '''
+        Bounds the given goal load and sets it as the goal
+        '''
+        self.torque_cmd = min(max(torque_cmd, 0.0), self.OVERLOAD_THRESHOLD)
+
+    def control_torque(self, current_torque):
+        current_error = self.torque_cmd - current_torque
+        k = 4e-5  # Compensator gain - higher gain has faster response and is more unstable
+        output = self.previous_load_control_output + k * (current_error + self.previous_load_control_error)
+        self.set_motor_angle(output)
+        self.previous_load_control_output = output
+        self.previous_load_control_error = current_error
+        self.update_occurred = True
 
     def loosen_if_overloaded(self, load):
         '''
