@@ -107,7 +107,8 @@ class Motor(object):
 
     def control_torque(self, current_torque):
         current_error = self.torque_cmd - current_torque
-        k = 4e-5  # Compensator gain - higher gain has faster response and is more unstable
+        k = 16e-4 * 0.025  # Compensator gain - higher gain has faster response and is more unstable
+                            # The 0.025 accounts for a 20Hz update rate
         output = self.previous_load_control_output + k * (current_error + self.previous_load_control_error)
         self.set_motor_angle(output)
         self.previous_load_control_output = output
