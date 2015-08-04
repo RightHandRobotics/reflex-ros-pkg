@@ -55,6 +55,7 @@ vector<int> tactile_offset_f3;
 const int TACTILE_BASE_IDX[] = {0, 18, 9};
 int encoder_last_value[] = {0, 0, 0};
 int encoder_offset[] = {-1, -1, -1};
+float load_last_value[] = {0, 0, 0, 0};
 
 bool aqcuire_tactile, aqcuire_fingers, first_capture, all_fingers_moved = false;
 vector<double> dynamixel_zero_point;
@@ -364,8 +365,10 @@ void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state
 
 // Capture current encoder position locally as "zero" and save to file
 void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state) {
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++)
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     encoder_zero_point[i] = state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
+    encoder_offset[i] = 0;
+  }
 }
 
 
@@ -471,13 +474,18 @@ void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::Reflex
 }
 
 
-float load_raw_to_signed(int load, int motor_id) {
+// Takes the load, converts it to a float, then does a rolling filter
+float load_raw_to_signed(int load, int motor_idx) {
   if (load > 1023) {
     load = (load - 1023);
   } else {
     load = -1 * load;
   }
-  return (float) (MOTOR_TO_JOINT_INVERTED[motor_id] * load);
+  float signed_load = (float) (MOTOR_TO_JOINT_INVERTED[motor_idx] * load);
+  float load_filter = 0.25;  // Rolling filter of noisy data
+  float filter_load = load_filter * signed_load + (1 - load_filter) * load_last_value[motor_idx];
+  load_last_value[motor_idx] = filter_load;
+  return filter_load;
 }
 
 

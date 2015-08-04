@@ -25,7 +25,8 @@ class Motor(object):
         self.torque_cmd = 0.0
         self.previous_load_control_output = 0.0
         self.previous_load_control_error = 0.0
-        self.update_occurred = False
+        self.position_update_occurred = False
+        self.speed_update_occurred = False
         self.reset_motor_speed()
 
     def get_current_joint_angle(self):
@@ -48,6 +49,7 @@ class Motor(object):
         Bounds the given position command and sets it to the motor
         '''
         self.motor_cmd = self.check_motor_angle_command(goal_pos)
+        self.position_update_occurred = True
 
     def check_motor_angle_command(self, angle_command):
         '''
@@ -62,6 +64,7 @@ class Motor(object):
         Bounds the given position command and sets it to the motor
         '''
         self.speed = self.check_motor_speed_command(goal_speed)
+        self.speed_update_occurred = True
 
     def check_motor_speed_command(self, goal_speed):
         '''
@@ -76,6 +79,7 @@ class Motor(object):
         Resets speed to default
         '''
         self.speed = self.DEFAULT_MOTOR_SPEED
+        self.speed_update_occurred = True
 
     def set_motor_velocity(self, goal_vel):
         '''
@@ -108,7 +112,6 @@ class Motor(object):
         self.set_motor_angle(output)
         self.previous_load_control_output = output
         self.previous_load_control_error = current_error
-        self.update_occurred = True
 
     def loosen_if_overloaded(self, load):
         '''
@@ -117,7 +120,6 @@ class Motor(object):
         if abs(load) > self.OVERLOAD_THRESHOLD:
             rospy.logwarn("Motor %s overloaded at %f, loosening" % (self.name, load))
             self.loosen()
-            self.update_occurred = True
 
     def tighten(self, tighten_angle=0.05):
         '''
@@ -141,9 +143,7 @@ class Motor(object):
         self.motor_msg.error_state = data.error_state
 
     def handle_motor_load(self, load):
-        # Rolling filter of noisy data
-        load_filter = 0.25
-        self.motor_msg.load = load_filter * load + (1 - load_filter) * self.motor_msg.load
+        self.motor_msg.load = load
         if self.in_control_torque_mode:
             self.control_torque(self.motor_msg.load)
         self.loosen_if_overloaded(self.motor_msg.load)

@@ -38,23 +38,21 @@ class ReflexTakktileHand():
         rospy.loginfo('ReFlex Takktile hand has started, waiting for commands...')
 
     def receive_cmd_cb(self, data):
+        self.disable_torque_control()
         self.set_speeds(data.velocity)
         self.set_angles(data.pose)
-        self.publish_motor_commands()
-        self.disable_torque_control()
 
     def receive_angle_cmd_cb(self, data):
+        self.disable_torque_control()
         self.reset_speeds()
         self.set_angles(data)
-        self.publish_motor_commands()
-        self.disable_torque_control()
 
     def receive_vel_cmd_cb(self, data):
-        self.set_velocities(data)
-        self.publish_motor_commands()
         self.disable_torque_control()
+        self.set_velocities(data)
 
     def receive_torque_cmd_cb(self, data):
+        self.disable_torque_control()
         self.reset_speeds()
         self.set_torque_cmds(data)
         self.enable_torque_control()
@@ -105,24 +103,30 @@ class ReflexTakktileHand():
     def disable_torque_control(self):
         for ID, motor in self.motors.items():
             motor.disable_torque_control()
+        rospy.sleep(0.05)  # Lets commands stop before allowing any other actions
 
     def enable_torque_control(self):
+        rospy.sleep(0.05)  # Lets other actions happen before beginning constant torque commands
         for ID, motor in self.motors.items():
             motor.enable_torque_control()
 
-    def publish_motor_commands_on_state_update(self):
+    def publish_motor_commands(self):
         '''
         Checks whether motors have updated their states and, if so, publishes
         their commands
         '''
-        update_occurred = False
+        speed_update_occurred = False
         for ID, motor in self.motors.items():
-            if motor.update_occurred:
-                update_occurred = True
-        if update_occurred:
-            self.publish_motor_commands()
+            speed_update_occurred |= motor.speed_update_occurred
+        position_update_occurred = False
+        for ID, motor in self.motors.items():
+            position_update_occurred |= motor.position_update_occurred
+        if speed_update_occurred:
+            self.publish_speed_commands()
+        if position_update_occurred:
+            self.publish_position_commands()
 
-    def publish_motor_commands(self):
+    def publish_speed_commands(self):
         '''
         Queries the motors for their speed and position setpoints and publishes
         those to the appropriate topics for reflex_driver
@@ -132,29 +136,37 @@ class ReflexTakktileHand():
              self.motors['/reflex_takktile_f2'].get_commanded_speed(),
              self.motors['/reflex_takktile_f3'].get_commanded_speed(),
              self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
+        self.set_speed_service(motor_speed_cmd)
+        rospy.sleep(0.02)  # Without a sleep the hand freezes up
+        for ID, motor in self.motors.items():
+            motor.speed_update_occurred = False
+
+    def publish_position_commands(self):
+        '''
+        Queries the motors for their speed and position setpoints and publishes
+        those to the appropriate topics for reflex_driver
+        '''
         motor_pos_cmd = RadianServoCommands(
             [self.motors['/reflex_takktile_f1'].get_commanded_position(),
              self.motors['/reflex_takktile_f2'].get_commanded_position(),
              self.motors['/reflex_takktile_f3'].get_commanded_position(),
              self.motors['/reflex_takktile_preshape'].get_commanded_position()])
-        rospy.sleep(0.02)  # Without a sleep the hand freezes up
-        self.set_speed_service(motor_speed_cmd)
-        rospy.sleep(0.02)
         self.motor_cmd_pub.publish(motor_pos_cmd)
+        rospy.sleep(0.01)
         for ID, motor in self.motors.items():
-            motor.update_occurred = False
+            motor.position_update_occurred = False
 
 
 def main():
     rospy.sleep(2.0)  # To allow services and parameters to load
     hand = ReflexTakktileHand()
     while not rospy.is_shutdown():
-        hand.publish_motor_commands_on_state_update()
+        hand.publish_motor_commands()
         now = rospy.get_rostime()
         if (now.secs > (hand.latest_update.secs + hand.comms_timeout)):
             rospy.logfatal('reflex_takktile_hand going down, no hand data for %d seconds', hand.comms_timeout)
             rospy.signal_shutdown('Comms timeout')
-        rospy.sleep(0.05)
+        rospy.sleep(0.01)
 
 if __name__ == '__main__':
     main()
