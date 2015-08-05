@@ -6,6 +6,7 @@ from std_srvs.srv import Empty
 
 import reflex_msgs.msg
 import reflex_msgs.srv
+import finger
 import motor
 
 
@@ -20,6 +21,9 @@ class ReflexTakktileHand():
                        self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
                                              reflex_msgs.msg.RadianServoCommands, queue_size=10)
+        self.fingers = {self.namespace + '_f1': finger.Finger(),
+                        self.namespace + '_f2': finger.Finger(),
+                        self.namespace + '_f3': finger.Finger()}
         rospy.Subscriber(self.namespace + '/command',
                          reflex_msgs.msg.ReflexCommand, self.receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position',
@@ -63,8 +67,9 @@ class ReflexTakktileHand():
         self.motors['/reflex_takktile_f2'].receive_state_cb(data.motor[1])
         self.motors['/reflex_takktile_f3'].receive_state_cb(data.motor[2])
         self.motors['/reflex_takktile_preshape'].receive_state_cb(data.motor[3])
-        # Todo(Eric): Do something about tactile data here
-        pass
+        self.fingers['/reflex_takktile_f1'].receive_state_cb(data.finger[0])
+        self.fingers['/reflex_takktile_f2'].receive_state_cb(data.finger[1])
+        self.fingers['/reflex_takktile_f3'].receive_state_cb(data.finger[2])
 
     def set_angles(self, pose):
         self.motors[self.namespace + '_f1'].set_motor_angle(pose.f1)

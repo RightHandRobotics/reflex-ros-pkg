@@ -131,18 +131,13 @@ class Motor(object):
         '''
         self.set_motor_angle(self.motor_msg.joint_angle - loosen_angle)
 
+# TODO: Test with hand!
     def receive_state_cb(self, data):
-        self.motor_msg.joint_angle = data.joint_angle
-        self.motor_msg.raw_angle = data.raw_angle
-        self.motor_msg.velocity = data.velocity
+        self.motor_msg = data
         self.handle_motor_load(data.load)
-        self.motor_msg.voltage = data.voltage
-        self.motor_msg.temperature = data.temperature
-        self.motor_msg.error_state = data.error_state
 
     def handle_motor_load(self, load):
-        self.motor_msg.load = load
         if self.in_control_torque_mode:
-            self.control_torque(self.motor_msg.load)
-        self.loosen_if_overloaded(self.motor_msg.load)
+            self.control_torque(load)
+        self.loosen_if_overloaded(load)
 
