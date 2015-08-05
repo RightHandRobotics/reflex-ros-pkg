@@ -21,6 +21,7 @@
 #include <reflex_msgs/RawServoCommands.h>
 #include <reflex_msgs/RadianServoCommands.h>
 #include <reflex_msgs/SetSpeed.h>
+#include <reflex_msgs/SetTactileThreshold.h>
 #include <ros/ros.h>
 #include <signal.h>
 #include <stdio.h>
@@ -48,7 +49,8 @@ string finger_file_address;
 
 vector<int> MOTOR_TO_JOINT_INVERTED;
 vector<double> MOTOR_TO_JOINT_GEAR_RATIO;
-int contact_threshold;  // TODO(Eric): Make this individual for every sensor
+int default_contact_threshold;
+reflex_msgs::SetTactileThreshold::Request contact_thresholds;
 vector<int> tactile_offset_f1;
 vector<int> tactile_offset_f2;
 vector<int> tactile_offset_f3;
@@ -82,8 +84,8 @@ void load_params(ros::NodeHandle nh) {
     topic = "motor_to_joint_inverted";
   if (!nh.getParam("motor_to_joint_gear_ratio", MOTOR_TO_JOINT_GEAR_RATIO))
     topic = "motor_to_joint_gear_ratio";
-  if (!nh.getParam("contact_threshold", contact_threshold))
-    topic = "contact_threshold";
+  if (!nh.getParam("default_contact_threshold", default_contact_threshold))
+    topic = "default_contact_threshold";
   if (!nh.getParam("tactile_offset_f1", tactile_offset_f1))
     topic = "tactile_offset_f1";
   if (!nh.getParam("tactile_offset_f2", tactile_offset_f2))
@@ -198,6 +200,24 @@ bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 }
 
 
+// Sets the tactile threshold levels to be all one value
+void populate_tactile_threshold(int threshold) {
+  for(int i=0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+      contact_thresholds.finger[i].sensor[j] = threshold;
+    }
+  }
+}
+
+
+// Sets the threshold levels on tactile sensors for reporting contact
+bool set_tactile_threshold(reflex_msgs::SetTactileThreshold::Request &req,
+                           reflex_msgs::SetTactileThreshold::Response &res) {
+  contact_thresholds = req;
+  return true;
+}
+
+
 // Returns the correct pressure calibration offset for finger[sensor]
 int pressure_offset(int finger, int sensor) {
   if (finger == 0)
@@ -261,8 +281,8 @@ int calc_pressure(const reflex_hand::ReflexHandState* const state, int finger, i
 
 // Checks given finger/sensor for contact threshold
 int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
-  int pressure_value = abs(hand_msg.finger[finger].pressure[sensor]);
-  return pressure_value > contact_threshold;
+  int pressure_value = hand_msg.finger[finger].pressure[sensor];
+  return pressure_value > contact_thresholds.finger[finger].sensor[sensor];
 }
 
 
@@ -494,6 +514,7 @@ int main(int argc, char **argv) {
   ros::init(argc, argv, "reflex_takktile_driver");
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
+  populate_tactile_threshold(default_contact_threshold);
   string ns = "/reflex_takktile";
 
   // Advertise necessary topics
@@ -519,7 +540,7 @@ int main(int argc, char **argv) {
   // Subscribe to the hand command topics
   ros::Subscriber raw_positions_sub =
     nh.subscribe<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 10,
-                                                 boost::bind(receive_raw_cmd_cb, &rh, _1));
+                                                boost::bind(receive_raw_cmd_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
     nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 10,
                                                    boost::bind(receive_angle_cmd_cb, &rh, _1));
@@ -536,14 +557,16 @@ int main(int argc, char **argv) {
   // Initialize the /zero_tactile and /zero_finger services
   string buffer;
   nh.getParam("yaml_dir", buffer);
-  tactile_file_address = buffer + "/tactile_calibrate.yaml";
   finger_file_address = buffer + "/finger_calibrate.yaml";
-  ros::ServiceServer zero_tactile_srv = nh.advertiseService(ns + "/zero_tactile", zero_tactile);
-  ROS_INFO("Advertising the /zero_tactile service");
-  ros::ServiceServer zero_fingers_srv = nh.advertiseService(ns + "/zero_fingers", zero_fingers);
+  tactile_file_address = buffer + "/tactile_calibrate.yaml";
+  ros::ServiceServer zero_fingers_service = nh.advertiseService(ns + "/zero_fingers", zero_fingers);
   ROS_INFO("Advertising the /zero_fingers service");
+  ros::ServiceServer zero_tactile_service = nh.advertiseService(ns + "/zero_tactile", zero_tactile);
+  ROS_INFO("Advertising the /zero_tactile service");
+  ros::ServiceServer set_thresh_service = nh.advertiseService(ns + "/set_tactile_threshold", set_tactile_threshold);
+  ROS_INFO("Advertising the /set_tactile_threshold service");
 
-  ROS_INFO("Entering main loop...");
+  ROS_INFO("Entering main reflex_driver loop...");
   while (!g_done) {
     ros::spinOnce();
     if (!rh.listen(0.001))

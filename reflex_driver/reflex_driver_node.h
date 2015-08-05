@@ -18,6 +18,9 @@ bool enable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, s
 bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+void populate_tactile_threshold(int threshold);
+bool set_tactile_threshold(reflex_msgs::SetTactileThreshold::Request &req,
+                           reflex_msgs::SetTactileThreshold::Response &res);
 int pressure_offset(int finger, int sensor);
 int update_encoder_offset(int raw_value, int last_value, int current_offset);
 float calc_proximal_angle(int raw_enc_value, int offset, double zero);

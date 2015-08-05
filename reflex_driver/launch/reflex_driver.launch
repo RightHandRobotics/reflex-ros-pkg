@@ -1,5 +1,5 @@
 <launch>
-	<param name="contact_threshold" value="100" />
+	<param name="default_contact_threshold" value="20" />
 	<param name="yaml_dir" value="$(find reflex_driver)/yaml" />
 	<rosparam file="$(find reflex_driver)/yaml/motor_constants.yaml" command="load"/>
 	<rosparam file="$(find reflex_driver)/yaml/finger_calibrate.yaml" command="load"/>
