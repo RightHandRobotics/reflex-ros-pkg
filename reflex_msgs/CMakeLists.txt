@@ -13,6 +13,7 @@ add_message_files(
   FILES
   Hand.msg
   Finger.msg
+  FingerPressure.msg
   Motor.msg
   ReflexCommand.msg
   PoseCommand.msg
@@ -26,6 +27,7 @@ add_message_files(
 add_service_files(
   FILES
   SetSpeed.srv
+  SetTactileThreshold.srv
 )
 
 ## Generate added messages and services with any dependencies listed here
