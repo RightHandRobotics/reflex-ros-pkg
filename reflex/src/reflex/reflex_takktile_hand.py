@@ -4,13 +4,8 @@ import rospy
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 
-from reflex_msgs.msg import ReflexCommand
-from reflex_msgs.msg import PoseCommand
-from reflex_msgs.msg import VelocityCommand
-from reflex_msgs.msg import TorqueCommand
-from reflex_msgs.msg import RadianServoCommands
-from reflex_msgs.msg import Hand
-from reflex_msgs.srv import SetSpeed, SetSpeedRequest
+import reflex_msgs.msg
+import reflex_msgs.srv
 import motor
 
 
@@ -24,17 +19,22 @@ class ReflexTakktileHand():
                        self.namespace + '_f3': motor.Motor(self.namespace + '_f3'),
                        self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
-                                             RadianServoCommands, queue_size=10)
-        self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', SetSpeed)
+                                             reflex_msgs.msg.RadianServoCommands, queue_size=10)
+        rospy.Subscriber(self.namespace + '/command',
+                         reflex_msgs.msg.ReflexCommand, self.receive_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_position',
+                         reflex_msgs.msg.PoseCommand, self.receive_angle_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_velocity',
+                         reflex_msgs.msg.VelocityCommand, self.receive_vel_cmd_cb)
+        rospy.Subscriber(self.namespace + '/command_motor_torque',
+                         reflex_msgs.msg.TorqueCommand, self.receive_torque_cmd_cb)
+        rospy.Subscriber(self.namespace + '/hand_state',
+                         reflex_msgs.msg.Hand, self.receive_hand_state_cb)
+        self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs.srv.SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
-        self.latest_update = rospy.get_rostime()
         self.comms_timeout = 5.0  # Seconds with no communications until hand stops
-        rospy.Subscriber(self.namespace + '/command', ReflexCommand, self.receive_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_position', PoseCommand, self.receive_angle_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_velocity', VelocityCommand, self.receive_vel_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_motor_torque', TorqueCommand, self.receive_torque_cmd_cb)
-        rospy.Subscriber(self.namespace + '/hand_state', Hand, self.receive_hand_state_cb)
+        self.latest_update = rospy.get_rostime()
         rospy.loginfo('ReFlex Takktile hand has started, waiting for commands...')
 
     def receive_cmd_cb(self, data):
@@ -67,22 +67,22 @@ class ReflexTakktileHand():
         pass
 
     def set_angles(self, pose):
-        self.motors['/reflex_takktile_f1'].set_motor_angle(pose.f1)
-        self.motors['/reflex_takktile_f2'].set_motor_angle(pose.f2)
-        self.motors['/reflex_takktile_f3'].set_motor_angle(pose.f3)
-        self.motors['/reflex_takktile_preshape'].set_motor_angle(pose.preshape)
+        self.motors[self.namespace + '_f1'].set_motor_angle(pose.f1)
+        self.motors[self.namespace + '_f2'].set_motor_angle(pose.f2)
+        self.motors[self.namespace + '_f3'].set_motor_angle(pose.f3)
+        self.motors[self.namespace + '_preshape'].set_motor_angle(pose.preshape)
 
     def set_velocities(self, velocity):
-        self.motors['/reflex_takktile_f1'].set_motor_velocity(velocity.f1)
-        self.motors['/reflex_takktile_f2'].set_motor_velocity(velocity.f2)
-        self.motors['/reflex_takktile_f3'].set_motor_velocity(velocity.f3)
-        self.motors['/reflex_takktile_preshape'].set_motor_velocity(velocity.preshape)
+        self.motors[self.namespace + '_f1'].set_motor_velocity(velocity.f1)
+        self.motors[self.namespace + '_f2'].set_motor_velocity(velocity.f2)
+        self.motors[self.namespace + '_f3'].set_motor_velocity(velocity.f3)
+        self.motors[self.namespace + '_preshape'].set_motor_velocity(velocity.preshape)
 
     def set_speeds(self, speed):
-        self.motors['/reflex_takktile_f1'].set_motor_speed(speed.f1)
-        self.motors['/reflex_takktile_f2'].set_motor_speed(speed.f2)
-        self.motors['/reflex_takktile_f3'].set_motor_speed(speed.f3)
-        self.motors['/reflex_takktile_preshape'].set_motor_speed(speed.preshape)
+        self.motors[self.namespace + '_f1'].set_motor_speed(speed.f1)
+        self.motors[self.namespace + '_f2'].set_motor_speed(speed.f2)
+        self.motors[self.namespace + '_f3'].set_motor_speed(speed.f3)
+        self.motors[self.namespace + '_preshape'].set_motor_speed(speed.preshape)
 
     def set_torque_cmds(self, torque):
         self.motors[self.namespace + '_f1'].set_torque_cmd(torque.f1)
@@ -94,12 +94,6 @@ class ReflexTakktileHand():
         for ID, motor in self.motors.items():
             motor.reset_motor_speed()
 
-    def calibrate_fingers(self):
-        self.calibrate_fingers_service()
-
-    def calibrate_tactile(self):
-        self.calibrate_tactile_service()
-
     def disable_torque_control(self):
         for ID, motor in self.motors.items():
             motor.disable_torque_control()
@@ -109,6 +103,12 @@ class ReflexTakktileHand():
         rospy.sleep(0.05)  # Lets other actions happen before beginning constant torque commands
         for ID, motor in self.motors.items():
             motor.enable_torque_control()
+
+    def calibrate_fingers(self):
+        self.calibrate_fingers_service()
+
+    def calibrate_tactile(self):
+        self.calibrate_tactile_service()
 
     def publish_motor_commands(self):
         '''
@@ -131,42 +131,42 @@ class ReflexTakktileHand():
         Queries the motors for their speed and position setpoints and publishes
         those to the appropriate topics for reflex_driver
         '''
-        motor_speed_cmd = SetSpeedRequest(
+        motor_speed_cmd = reflex_msgs.srv.SetSpeedRequest(
             [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
              self.motors['/reflex_takktile_f2'].get_commanded_speed(),
              self.motors['/reflex_takktile_f3'].get_commanded_speed(),
              self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
         self.set_speed_service(motor_speed_cmd)
-        rospy.sleep(0.02)  # Without a sleep the hand freezes up
         for ID, motor in self.motors.items():
             motor.speed_update_occurred = False
+        rospy.sleep(0.02)  # Without a sleep the hand freezes up
 
     def publish_position_commands(self):
         '''
         Queries the motors for their speed and position setpoints and publishes
         those to the appropriate topics for reflex_driver
         '''
-        motor_pos_cmd = RadianServoCommands(
+        motor_pos_cmd = reflex_msgs.msg.RadianServoCommands(
             [self.motors['/reflex_takktile_f1'].get_commanded_position(),
              self.motors['/reflex_takktile_f2'].get_commanded_position(),
              self.motors['/reflex_takktile_f3'].get_commanded_position(),
              self.motors['/reflex_takktile_preshape'].get_commanded_position()])
         self.motor_cmd_pub.publish(motor_pos_cmd)
-        rospy.sleep(0.01)
         for ID, motor in self.motors.items():
             motor.position_update_occurred = False
+        rospy.sleep(0.01)
 
 
 def main():
     rospy.sleep(2.0)  # To allow services and parameters to load
     hand = ReflexTakktileHand()
+    r = rospy.Rate(100)
     while not rospy.is_shutdown():
         hand.publish_motor_commands()
-        now = rospy.get_rostime()
-        if (now.secs > (hand.latest_update.secs + hand.comms_timeout)):
-            rospy.logfatal('reflex_takktile_hand going down, no hand data for %d seconds', hand.comms_timeout)
+        if (rospy.get_rostime().secs > (hand.latest_update.secs + hand.comms_timeout)):
+            rospy.logfatal('Hand going down, no ethernet data for %d seconds', hand.comms_timeout)
             rospy.signal_shutdown('Comms timeout')
-        rospy.sleep(0.01)
+        r.sleep()
 
 if __name__ == '__main__':
     main()

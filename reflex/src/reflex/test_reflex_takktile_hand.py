@@ -8,11 +8,12 @@ from reflex_msgs.srv import SetSpeedRequest
 
 
 class TestReflexTakktileHand(unittest.TestCase):
+    @mock.patch('rospy.get_rostime')
     @mock.patch('rospy.Subscriber')
     @mock.patch('motor.Motor')
     @mock.patch('rospy.loginfo')
     @mock.patch('rospy.init_node')
-    def setUp(self, init_mock, loginfo_mock, motor_mock, sub_mock):
+    def setUp(self, init_mock, loginfo_mock, motor_mock, sub_mock, rostime_mock):
         self.rh = reflex_takktile_hand.ReflexTakktileHand()
 
     @mock.patch('reflex_takktile_hand.ReflexTakktileHand.publish_motor_commands')
