@@ -1,6 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //
 //   Copyright 2014 Open Source Robotics Foundation, Inc.
+//   Copyright 2014-2015 Right Hand Robotics
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -98,6 +99,7 @@ void load_params(ros::NodeHandle nh) {
     ROS_FATAL("reflex_driver/yaml were never loaded, or because they");
     ROS_FATAL("have been corrupted. If they were corrupted, they can");
     ROS_FATAL("be repaired by pasting the *_backup.yaml file text in");
+    ros::shutdown();
   }
   ROS_INFO("Succesfully loaded all parameters");
 }

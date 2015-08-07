@@ -3,7 +3,5 @@
   <rosparam file="$(find reflex)/yaml/reflex_takktile.yaml" command="load"/>
 
   <include file="$(find reflex_driver)/launch/reflex_driver.launch"/>
-  <node name="reflex_takktile_hand" pkg="reflex" type="reflex_takktile_hand.py" output="screen" required="true" />
-  <!-- <include file="$(find reflex_visualizer)/launch/reflex_visualizer.launch"/> -->
-  
+  <node name="reflex_takktile_hand" pkg="reflex" type="reflex_takktile_hand.py" output="screen" required="true" />  
 </launch>

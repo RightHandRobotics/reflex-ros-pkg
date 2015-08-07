@@ -158,9 +158,9 @@ visualization_msgs::Marker makeContactMarker(bool val, int id)
     marker.color.b = 0.0;
   }
   else {
-    marker.scale.x = radius/2;
-    marker.scale.y = radius/2;
-    marker.scale.z = height-0.001;
+    marker.scale.x = radius / 2;
+    marker.scale.y = radius / 2;
+    marker.scale.z = height - 0.001;
     marker.color.r = 1.0;
     marker.color.g = 1.0;
     marker.color.b = 1.0;

@@ -5,5 +5,5 @@
 	<rosparam file="$(find reflex_driver)/yaml/finger_calibrate.yaml" command="load"/>
 	<rosparam file="$(find reflex_driver)/yaml/tactile_calibrate.yaml" command="load"/>
 
-	<node name="driver_node" pkg="reflex_driver" type="reflex_driver_node" output="screen"/>
+	<node name="driver_node" pkg="reflex_driver" type="reflex_driver_node" output="screen" required="true"/>
 </launch>
