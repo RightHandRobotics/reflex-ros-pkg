@@ -2,13 +2,13 @@
 
 import reflex_msgs.srv
 import finger
-import reflex_takktile_motor as motor
+from reflex_takktile_motor import ReflexTakktileMotor
 from reflex_hand import ReflexHand
 
 
 class ReflexTakktileHand(ReflexHand):
     def __init__(self):
-        super('/reflex_takktile')
+        super(ReflexTakktileHand, self).__init__('/reflex_takktile', ReflexTakktileMotor)
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
                                              reflex_msgs.msg.RadianServoCommands, queue_size=10)
         self.fingers = {self.namespace + '_f1': finger.Finger(),

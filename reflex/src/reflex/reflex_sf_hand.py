@@ -6,13 +6,13 @@ import yaml
 from dynamixel_msgs.msg import JointState
 import rospkg
 
-import reflex_sf_motor as motor
+from reflex_sf_motor import ReflexSFMotor
 from reflex_hand import ReflexHand
 
 
 class ReflexSFHand(ReflexHand):
     def __init__(self):
-        super('/reflex_sf')
+        super(ReflexTakktileHand, self).__init__('/reflex_sf', ReflexSFMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         rospy.Service(self.namespace + '/zero_fingers', Empty, self.calibrate)

@@ -2,7 +2,7 @@ from motor import Motor
 
 class ReflexTakktileMotor(Motor):
     def __init__(self, name):
-        super(name)
+        super(ReflexTakktileHand, self).__init__(name)
         self.motor_cmd = 0.0
         self.speed = 0.0
         self.finger = None

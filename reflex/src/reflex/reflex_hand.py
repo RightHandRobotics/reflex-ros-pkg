@@ -3,11 +3,10 @@ from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 
 import reflex_msgs.msg
-import motor
 
 
 class ReflexHand():
-    def __init__(self, name):
+    def __init__(self, name, MotorClass):
         '''
         Assumes that "name" is the name of the hand with a preceding
         slash, e.g. /reflex_takktile or /reflex_sf
@@ -15,10 +14,10 @@ class ReflexHand():
         self.namespace = name
         rospy.init_node('reflex_hand')
         rospy.loginfo('Starting up the hand')
-        self.motors = {self.namespace + '_f1': motor.Motor(self.namespace + '_f1'),
-                       self.namespace + '_f2': motor.Motor(self.namespace + '_f2'),
-                       self.namespace + '_f3': motor.Motor(self.namespace + '_f3'),
-                       self.namespace + '_preshape': motor.Motor(self.namespace + '_preshape')}
+        self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
+                       self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
+                       self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
+                       self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
         rospy.Subscriber(self.namespace + '/command',
                          reflex_msgs.msg.ReflexCommand, self.receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position',
