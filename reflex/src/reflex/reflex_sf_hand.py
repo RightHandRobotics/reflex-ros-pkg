@@ -5,37 +5,40 @@ import yaml
 
 from dynamixel_msgs.msg import JointState
 import rospkg
+import rospy
+from std_srvs.srv import Empty
 
-from reflex_sf_motor import ReflexSFMotor
 from reflex_hand import ReflexHand
+from reflex_sf_motor import ReflexSFMotor
+import reflex_msgs.msg
 
 
 class ReflexSFHand(ReflexHand):
     def __init__(self):
-        super(ReflexTakktileHand, self).__init__('/reflex_sf', ReflexSFMotor)
+        super(ReflexSFHand, self).__init__('/reflex_sf', ReflexSFMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         rospy.Service(self.namespace + '/zero_fingers', Empty, self.calibrate)
 
     def receive_cmd_cb(self, data):
-        self.disable_torque_control()
+        self.disable_force_control()
         self.set_speeds(data.velocity)
         self.set_angles(data.pose)
 
     def receive_angle_cmd_cb(self, data):
-        self.disable_torque_control()
+        self.disable_force_control()
         self.reset_speeds()
         self.set_angles(data)
 
     def receive_vel_cmd_cb(self, data):
-        self.disable_torque_control()
+        self.disable_force_control()
         self.set_velocities(data)
 
     def receive_force_cmd_cb(self, data):
-        self.disable_torque_control()
+        self.disable_force_control()
         self.reset_speeds()
-        self.set_torque_cmds(data)
-        self.enable_torque_control()
+        self.set_force_cmds(data)
+        self.enable_force_control()
 
     def disable_torque(self):
         for ID, motor in self.motors.items():
@@ -75,7 +78,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
     def write_zero_point_data_to_file(self, filename, data):
         rospack = rospkg.RosPack()
-        reflex_sf_path = rospack.get_path("reflex_sf")
+        reflex_sf_path = rospack.get_path("reflex")
         yaml_path = "yaml"
         file_path = join(reflex_sf_path, yaml_path, filename)
         with open(file_path, "w") as outfile:

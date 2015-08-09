@@ -1,20 +1,24 @@
 from dynamixel_msgs.msg import JointState
 from dynamixel_controllers.srv import TorqueEnable
 from dynamixel_controllers.srv import SetSpeed
+import rospy
+from std_msgs.msg import Float64
 
 from motor import Motor
 
 
 class ReflexSFMotor(Motor):
     def __init__(self, name):
-        super(ReflexTakktileHand, self).__init__(name)
+        super(ReflexSFMotor, self).__init__(name)
         self.zero_point = rospy.get_param(self.name + '/zero_point')
         self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.name + '/motor_to_joint_gear_ratio')
+        self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.name + '/motor_to_joint_inverted')
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)
         self.set_speed_service = rospy.ServiceProxy(name + '/set_speed', SetSpeed)
         self.torque_enable_service = rospy.ServiceProxy(name + '/torque_enable', TorqueEnable)
         self.torque_enable_service(True)
         self.state_subscriber = rospy.Subscriber(name + '/state', JointState, self.receive_state_cb)
+        self.reset_motor_speed()
 
     def get_current_raw_motor_angle(self):
         return self.motor_msg.raw_angle

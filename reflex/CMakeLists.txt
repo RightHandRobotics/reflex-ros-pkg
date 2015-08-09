@@ -25,7 +25,7 @@ include_directories(
 )
 
 ## Declare a cpp executable
-add_executable(reflex_tf_broadcaster src/reflex_tf_broadcaster.cpp)
+add_executable(tf_broadcaster src/tf_broadcaster.cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(reflex_tf_broadcaster ${catkin_LIBRARIES})
+target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})

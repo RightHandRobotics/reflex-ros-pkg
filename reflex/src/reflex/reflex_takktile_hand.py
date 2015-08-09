@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import rospy
+
 import reflex_msgs.srv
 import finger
 from reflex_takktile_motor import ReflexTakktileMotor

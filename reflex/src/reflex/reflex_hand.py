@@ -5,7 +5,7 @@ from std_srvs.srv import Empty
 import reflex_msgs.msg
 
 
-class ReflexHand():
+class ReflexHand(object):
     def __init__(self, name, MotorClass):
         '''
         Assumes that "name" is the name of the hand with a preceding
@@ -35,7 +35,7 @@ class ReflexHand():
         raise NotImplementedError
 
     def receive_vel_cmd_cb(self, data):
-        raise NotImplementedError)
+        raise NotImplementedError
 
     def receive_force_cmd_cb(self, data):
         raise NotImplementedError

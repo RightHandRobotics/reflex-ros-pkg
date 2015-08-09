@@ -16,7 +16,7 @@ class Motor(object):
         self.MAX_MOTOR_TRAVEL = rospy.get_param(name + '/max_motor_travel')
         self.OVERLOAD_THRESHOLD = rospy.get_param(name + '/overload_threshold')
         self.motor_msg = reflex_msgs.msg.Motor()
-        self.reset_motor_speed()
+        self.in_control_force_mode = False
 
     def get_current_joint_angle(self):
         return self.motor_msg.joint_angle

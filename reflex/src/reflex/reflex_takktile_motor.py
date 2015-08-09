@@ -1,14 +1,18 @@
+import rospy
+
 from motor import Motor
+
 
 class ReflexTakktileMotor(Motor):
     def __init__(self, name):
-        super(ReflexTakktileHand, self).__init__(name)
+        super(ReflexTakktileMotor, self).__init__(name)
         self.motor_cmd = 0.0
         self.speed = 0.0
         self.finger = None
         self.tactile_stops_enabled = False
         self.position_update_occurred = False
         self.speed_update_occurred = False
+        self.reset_motor_speed()
 
     def get_commanded_position(self):
         return self.motor_cmd
