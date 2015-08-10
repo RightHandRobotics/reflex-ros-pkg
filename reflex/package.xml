@@ -1,12 +1,11 @@
 <?xml version="1.0"?>
 <package>
   <name>reflex</name>
-  <version>0.0.0</version>
-  <description>The main reflex package</description>
-  <maintainer email="support@righthandrobotics.com">Right Hand Robotics</maintainer>
-  <license>MIT</license>
+  <version>3.0.0</version>
+  <description>Main command code for the Reflex hands</description>
+  <maintainer email="reflex-support@righthandrobotics.com">Right Hand Robotics</maintainer>
+  <license>Apache License 2.0</license>
   <url type="website">www.righthandrobotics.com</url>
-
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>reflex_msgs</build_depend>
   <build_depend>rospy</build_depend>

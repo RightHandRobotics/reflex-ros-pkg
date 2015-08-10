@@ -1,12 +1,11 @@
 <?xml version="1.0"?>
 <package>
   <name>reflex_visualizer</name>
-  <version>0.0.0</version>
-  <description>The reflex_visualizer package</description>
-  <maintainer email="support@righthandrobotics.com">Right Hand Robotics</maintainer>
-  <license>MIT</license>
+  <version>1.3.0</version>
+  <description>Visualizer for viewing Reflex hand state</description>
+  <maintainer email="reflex-support@righthandrobotics.com">Right Hand Robotics</maintainer>
+  <license>Apache License 2.0</license>
   <url type="website">www.righthandrobotics.com</url>
-
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>

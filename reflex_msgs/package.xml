@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <package>
   <name>reflex_msgs</name>
-  <version>0.0.0</version>
-  <description>The reflex_msgs package</description>
-
-  <maintainer email="support@righthandrobotics.com">Right Hand Robotics</maintainer>
-  <license>MIT</license>
+  <version>2.0.0</version>
+  <description>Messages used for data passage in the Reflex system</description>
+  <maintainer email="reflex-support@righthandrobotics.com">Right Hand Robotics</maintainer>
+  <license>Apache License 2.0</license>
   <url type="website">www.righthandrobotics.com</url>
-
   <build_depend>message_generation</build_depend>
   <run_depend>message_runtime</run_depend>
   <buildtool_depend>catkin</buildtool_depend>
@@ -15,5 +13,4 @@
   <build_depend>std_srvs</build_depend>
   <run_depend>std_msgs</run_depend>
   <run_depend>std_srvs</run_depend>
-
 </package>
