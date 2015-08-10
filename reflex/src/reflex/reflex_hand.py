@@ -1,3 +1,26 @@
+#############################################################################
+# Copyright 2015 Right Hand Robotics
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#############################################################################
+
+__author__ = 'Eric Schneider'
+__copyright__ = 'Copyright (c) 2015 RightHand Robotics'
+__license__ = 'Apache License 2.0'
+__maintainer__ = 'RightHand Robotics'
+__email__ = 'reflex-support@righthandrobotics.com'
+
+
 import rospy
 from std_msgs.msg import Float64
 from std_srvs.srv import Empty
@@ -19,25 +42,25 @@ class ReflexHand(object):
                        self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
                        self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
         rospy.Subscriber(self.namespace + '/command',
-                         reflex_msgs.msg.ReflexCommand, self.receive_cmd_cb)
+                         reflex_msgs.msg.ReflexCommand, self._receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position',
-                         reflex_msgs.msg.PoseCommand, self.receive_angle_cmd_cb)
+                         reflex_msgs.msg.PoseCommand, self._receive_angle_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_velocity',
-                         reflex_msgs.msg.VelocityCommand, self.receive_vel_cmd_cb)
+                         reflex_msgs.msg.VelocityCommand, self._receive_vel_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_motor_force',
-                         reflex_msgs.msg.ForceCommand, self.receive_force_cmd_cb)
+                         reflex_msgs.msg.ForceCommand, self._receive_force_cmd_cb)
         rospy.loginfo('ReFlex hand has started, waiting for commands...')
 
-    def receive_cmd_cb(self, data):
+    def _receive_cmd_cb(self, data):
         raise NotImplementedError
 
-    def receive_angle_cmd_cb(self, data):
+    def _receive_angle_cmd_cb(self, data):
         raise NotImplementedError
 
-    def receive_vel_cmd_cb(self, data):
+    def _receive_vel_cmd_cb(self, data):
         raise NotImplementedError
 
-    def receive_force_cmd_cb(self, data):
+    def _receive_force_cmd_cb(self, data):
         raise NotImplementedError
 
     def set_angles(self, pose):
