@@ -39,34 +39,49 @@
 using namespace std;
 
 
+// Public exposure by this driver
+// Published topics
+//      /hand_state             Contains the current state of the hand
+// Subscribed topics
+//      /radian_hand_command    Executes radian commands, assuming hand is calibrated
+// Advertised services
+//      /zero_tactile           Calibrates tactile sensors at current level
+//      /zero_finger            Calibrates encoder and motor values
+//      /disable_torque         Disables finger torque
+//      /disable_torque         Disables finger torque
+//      /set_tactile_threshold  Sets threshold for "contact" for each sensor individually
+
+
 ros::Publisher hand_pub;
-ros::Publisher debug_pub;
 ros::Publisher raw_pub;
 
-ofstream tactile_file;
-string tactile_file_address;
-ofstream finger_file;
-string finger_file_address;
+ofstream tactile_file;        // Accesses tactile calibration file
+string tactile_file_address;  // Set in main()
+ofstream finger_file;         // Accesses finger calibration file
+string finger_file_address;   // Set in main()
 
-vector<int> MOTOR_TO_JOINT_INVERTED;
-vector<double> MOTOR_TO_JOINT_GEAR_RATIO;
-int default_contact_threshold;
-reflex_msgs::SetTactileThreshold::Request contact_thresholds;
-vector<int> tactile_offset_f1;
-vector<int> tactile_offset_f2;
-vector<int> tactile_offset_f3;
-const int TACTILE_BASE_IDX[] = {0, 18, 9};
-int encoder_last_value[] = {0, 0, 0};
-int encoder_offset[] = {-1, -1, -1};
-float load_last_value[] = {0, 0, 0, 0};
+vector<int> MOTOR_TO_JOINT_INVERTED;        // Loaded from yaml
+vector<double> MOTOR_TO_JOINT_GEAR_RATIO;   // Loaded from yaml
+int default_contact_threshold;              // Loaded from yaml
+reflex_msgs::SetTactileThreshold::Request contact_thresholds;   // Set by /set_tactile_threshold ROS service
+vector<int> tactile_offset_f1;              // Loaded from yaml and reset during calibration
+vector<int> tactile_offset_f2;              // Loaded from yaml and reset during calibration
+vector<int> tactile_offset_f3;              // Loaded from yaml and reset during calibration
+const int TACTILE_BASE_IDX[] = {0, 18, 9};  // Constant
+int encoder_last_value[] = {0, 0, 0};       // Updated constantly in reflex_hand_state_cb()
+int encoder_offset[] = {-1, -1, -1};        // Updated constantly in reflex_hand_state_cb()
+float load_last_value[] = {0, 0, 0, 0};     // Updated constantly in reflex_hand_state_cb()
 
-bool aqcuire_tactile, aqcuire_fingers, first_capture, all_fingers_moved = false;
-vector<double> dynamixel_zero_point;
-vector<double> encoder_zero_point;
-uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};
-const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};
+bool acquire_tactile = false;         // Updated by /zero_tactile ROS service and in reflex_hand_state_cb()
+bool acquire_fingers = false;         // Updated by /zero_finger ROS service and in reflex_hand_state_cb()
+bool first_capture = false;           // Updated by /zero_finger ROS service and in reflex_hand_state_cb()
+bool all_fingers_moved = false;       // Updated in reflex_hand_state_cb()
+vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calibration
+vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
+uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated in reflex_hand_state_cb() during calibration
+const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};  // Constant
 
-bool g_done = false;
+bool g_done = false;    // Updated by the signum handler
 
 
 void signal_handler(int signum) {
@@ -106,6 +121,8 @@ void load_params(ros::NodeHandle nh) {
 
 
 // Takes raw Dynamixel values (0-4095) and writes them directly to the motors
+// NOTE: The Dynamixels have a resolution divider of 4. See what that means here:
+//     http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_0B1
 void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RawServoCommands::ConstPtr &msg) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
@@ -161,7 +178,7 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
 
 
 // Takes a rad/s command and returns Dynamixel command
-// http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
+//     http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
 uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
   uint16_t command = abs(rad_per_s_command) *
                      (MOTOR_TO_JOINT_GEAR_RATIO[motor_idx] / reflex_hand::ReflexHand::DYN_VEL_SCALE);
@@ -186,7 +203,7 @@ bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
 
 // Sets the procedure to calibrate the tactile values in motion
 bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
-  aqcuire_tactile = true;
+  acquire_tactile = true;
   ROS_INFO("Zeroing tactile data at current values...");
   return true;
 }
@@ -195,7 +212,7 @@ bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 // Sets the procedure to calibrate the fingers in motion
 bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   ROS_INFO("Beginning finger calibration sequence...");
-  aqcuire_fingers = true;
+  acquire_fingers = true;
   first_capture = true;
   all_fingers_moved = false;
   return true;
@@ -320,11 +337,11 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   hand_pub.publish(hand_msg);
 
   // Capture the current tactile data and save it as a zero reference
-  if (aqcuire_tactile) {
+  if (acquire_tactile) {
     calibrate_tactile_sensors(state, hand_msg);
   }
 
-  if (aqcuire_fingers) {
+  if (acquire_fingers) {
     if (first_capture) {
       calibrate_encoders_locally(state);
       first_capture = false;
@@ -338,7 +355,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       check_anomalous_motor_values();
       log_encoder_zero_to_file();
       log_motor_zero_to_file_and_close();
-      aqcuire_fingers = false;
+      acquire_fingers = false;
     }
   }
   return;
@@ -355,7 +372,7 @@ void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     log_current_tactile_to_file(state, i);
   }
-  aqcuire_tactile = false;
+  acquire_tactile = false;
   tactile_file.close();
 }
 
