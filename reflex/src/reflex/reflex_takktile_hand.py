@@ -24,11 +24,13 @@ __email__ = 'reflex-support@righthandrobotics.com'
 
 
 import rospy
+from std_srvs.srv import Empty
 
+import reflex_msgs.msg
 import reflex_msgs.srv
 import finger
-from reflex_takktile_motor import ReflexTakktileMotor
 from reflex_hand import ReflexHand
+from reflex_takktile_motor import ReflexTakktileMotor
 
 
 class ReflexTakktileHand(ReflexHand):
@@ -122,13 +124,59 @@ class ReflexTakktileHand(ReflexHand):
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
 
+    def _publish_motor_commands(self):
+        '''
+        Checks whether motors have updated their states and, if so, publishes
+        their commands
+        '''
+        speed_update_occurred = False
+        for ID, motor in self.motors.items():
+            speed_update_occurred |= motor.speed_update_occurred
+        position_update_occurred = False
+        for ID, motor in self.motors.items():
+            position_update_occurred |= motor.position_update_occurred
+        if speed_update_occurred:
+            self._publish_speed_commands()
+        if position_update_occurred:
+            self._publish_position_commands()
+
+    def _publish_speed_commands(self):
+        '''
+        Queries the motors for their speed and position setpoints and publishes
+        those to the appropriate topics for reflex_driver
+        '''
+        motor_speed_cmd = reflex_msgs.srv.SetSpeedRequest(
+            [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
+             self.motors['/reflex_takktile_f2'].get_commanded_speed(),
+             self.motors['/reflex_takktile_f3'].get_commanded_speed(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
+        self.set_speed_service(motor_speed_cmd)
+        for ID, motor in self.motors.items():
+            motor.speed_update_occurred = False
+        rospy.sleep(0.02)  # Without a sleep the hand freezes up
+
+    def _publish_position_commands(self):
+        '''
+        Queries the motors for their speed and position setpoints and publishes
+        those to the appropriate topics for reflex_driver
+        '''
+        motor_pos_cmd = reflex_msgs.msg.RadianServoCommands(
+            [self.motors['/reflex_takktile_f1'].get_commanded_position(),
+             self.motors['/reflex_takktile_f2'].get_commanded_position(),
+             self.motors['/reflex_takktile_f3'].get_commanded_position(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_position()])
+        self.motor_cmd_pub.publish(motor_pos_cmd)
+        for ID, motor in self.motors.items():
+            motor.position_update_occurred = False
+        rospy.sleep(0.01)
+
 
 def main():
     rospy.sleep(2.0)  # To allow services and parameters to load
     hand = ReflexTakktileHand()
     r = rospy.Rate(100)
     while not rospy.is_shutdown():
-        hand.publish_motor_commands()
+        hand._publish_motor_commands()
         if (rospy.get_rostime().secs > (hand.latest_update.secs + hand.comms_timeout)):
             rospy.logfatal('Hand going down, no ethernet data for %d seconds', hand.comms_timeout)
             rospy.signal_shutdown('Comms timeout')
