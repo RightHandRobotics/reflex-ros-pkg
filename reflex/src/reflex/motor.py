@@ -86,12 +86,12 @@ class Motor(object):
         return bounded_command
 
     def enable_force_control(self):
-        self._in__control_force_mode = True
+        self._in_control_force_mode = True
         self.previous_load_control_output = self.get_current_joint_angle()
         self.previous_load_control_error = 0.0
 
     def disable_force_control(self):
-        self._in__control_force_mode = False
+        self._in_control_force_mode = False
 
     def set_force_cmd(self, force_cmd):
         '''
