@@ -42,7 +42,7 @@ class ReflexHand(object):
                        self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
                        self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
         rospy.Subscriber(self.namespace + '/command',
-                         reflex_msgs.msg.ReflexCommand, self._receive_cmd_cb)
+                         reflex_msgs.msg.Command, self._receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position',
                          reflex_msgs.msg.PoseCommand, self._receive_angle_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_velocity',
