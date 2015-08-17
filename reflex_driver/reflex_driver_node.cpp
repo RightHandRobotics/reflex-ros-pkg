@@ -45,9 +45,8 @@ using namespace std;
 // Subscribed topics
 //      /radian_hand_command    Executes radian commands, assuming hand is calibrated
 // Advertised services
-//      /zero_tactile           Calibrates tactile sensors at current level
-//      /zero_finger            Calibrates encoder and motor values
-//      /disable_torque         Disables finger torque
+//      /calibrate_tactile      Calibrates tactile sensors at current level
+//      /calibrate_fingers      Calibrates encoder and motor values
 //      /disable_torque         Disables finger torque
 //      /set_tactile_threshold  Sets threshold for "contact" for each sensor individually
 
@@ -72,9 +71,9 @@ int encoder_last_value[] = {0, 0, 0};       // Updated constantly in reflex_hand
 int encoder_offset[] = {-1, -1, -1};        // Updated constantly in reflex_hand_state_cb()
 float load_last_value[] = {0, 0, 0, 0};     // Updated constantly in reflex_hand_state_cb()
 
-bool acquire_tactile = false;         // Updated by /zero_tactile ROS service and in reflex_hand_state_cb()
-bool acquire_fingers = false;         // Updated by /zero_finger ROS service and in reflex_hand_state_cb()
-bool first_capture = false;           // Updated by /zero_finger ROS service and in reflex_hand_state_cb()
+bool acquire_tactile = false;         // Updated by /calibrate_tactile ROS service and in reflex_hand_state_cb()
+bool acquire_fingers = false;         // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
+bool first_capture = false;           // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
 bool all_fingers_moved = false;       // Updated in reflex_hand_state_cb()
 vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calibration
 vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
@@ -202,7 +201,7 @@ bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
 
 
 // Sets the procedure to calibrate the tactile values in motion
-bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+bool calibrate_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   acquire_tactile = true;
   ROS_INFO("Zeroing tactile data at current values...");
   return true;
@@ -210,7 +209,7 @@ bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
 
 
 // Sets the procedure to calibrate the fingers in motion
-bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+bool calibrate_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   ROS_INFO("Beginning finger calibration sequence...");
   acquire_fingers = true;
   first_capture = true;
@@ -573,15 +572,15 @@ int main(int argc, char **argv) {
       (ns + "/disable_torque", boost::bind(disable_torque, &rh, _1, _2));
   ROS_INFO("Advertising the /disable_torque service");
 
-  // Initialize the /zero_tactile and /zero_finger services
+  // Initialize the /calibrate_tactile and /calibrate_fingers services
   string buffer;
   nh.getParam("yaml_dir", buffer);
   finger_file_address = buffer + "/finger_calibrate.yaml";
   tactile_file_address = buffer + "/tactile_calibrate.yaml";
-  ros::ServiceServer zero_fingers_service = nh.advertiseService(ns + "/zero_fingers", zero_fingers);
-  ROS_INFO("Advertising the /zero_fingers service");
-  ros::ServiceServer zero_tactile_service = nh.advertiseService(ns + "/zero_tactile", zero_tactile);
-  ROS_INFO("Advertising the /zero_tactile service");
+  ros::ServiceServer calibrate_fingers_service = nh.advertiseService(ns + "/calibrate_fingers", calibrate_fingers);
+  ROS_INFO("Advertising the /calibrate_fingers service");
+  ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", calibrate_tactile);
+  ROS_INFO("Advertising the /calibrate_tactile service");
   ros::ServiceServer set_thresh_service = nh.advertiseService(ns + "/set_tactile_threshold", set_tactile_threshold);
   ROS_INFO("Advertising the /set_tactile_threshold service");
 

@@ -35,8 +35,8 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
 uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx);
 bool enable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-bool zero_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
-bool zero_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+bool calibrate_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+bool calibrate_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 void populate_tactile_threshold(int threshold);
 bool set_tactile_threshold(reflex_msgs::SetTactileThreshold::Request &req,
                            reflex_msgs::SetTactileThreshold::Response &res);
