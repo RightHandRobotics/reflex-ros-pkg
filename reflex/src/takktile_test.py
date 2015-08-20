@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Test code for the ReFlex hand
 # Note: you must connect a hand by running "roslaunch reflex
 # reflex.launch" before you can run this script
