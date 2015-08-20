@@ -9,8 +9,13 @@ from math import pi, cos
 import rospy
 from std_srvs.srv import Empty
 
-from reflex_msgs.msg import Command, PoseCommand, VelocityCommand, ForceCommand, Hand
-from reflex_msgs.srv import SetTactileThreshold
+from reflex_msgs.msg import Command
+from reflex_msgs.msg import PoseCommand
+from reflex_msgs.msg import VelocityCommand
+from reflex_msgs.msg import ForceCommand
+from reflex_msgs.msg import Hand
+from reflex_msgs.msg import FingerPressure
+from reflex_msgs.srv import SetTactileThreshold, SetTactileThresholdRequest
 
 
 hand_state = Hand()
@@ -41,8 +46,7 @@ def main():
     ##################################################################################################################
     # Calibrate the fingers (make sure hand is opened in zero position)
     raw_input("== When ready to calibrate the hand, press [Enter]\n")
-    # calibrate_fingers()
-    print hand_state
+    calibrate_fingers()
     raw_input("...\n")
 
     ##################################################################################################################
@@ -70,11 +74,11 @@ def main():
     # Demonstration of blended control - asymptotic approach to goal - uses hand_state
     raw_input("== When ready to approach target positions with blended control, hit [Enter]\n")
     pose = PoseCommand(f1=3.5, f2=2.25, f3=1.0, preshape=0.0)
+    velocity = VelocityCommand()
     for i in range(1, 5):
-        f1_setpoint = round(pose.f1 - hand_state.motor[0].joint_angle, 1) + 0.5
-        f2_setpoint = round(pose.f2 - hand_state.motor[1].joint_angle, 1) + 0.5
-        f3_setpoint = round(pose.f3 - hand_state.motor[2].joint_angle, 1) + 0.5
-        velocity = VelocityCommand(f1=f1_setpoint, f2=f2_setpoint, f3=f3_setpoint, preshape=0.0)
+        velocity.f1 = round(pose.f1 - hand_state.motor[0].joint_angle, 1) + 0.5
+        velocity.f2 = round(pose.f2 - hand_state.motor[1].joint_angle, 1) + 0.5
+        velocity.f3 = round(pose.f3 - hand_state.motor[2].joint_angle, 1) + 0.5
         command_pub.publish(Command(pose, velocity))
         rospy.sleep(0.75)
     raw_input("...\n")
@@ -101,10 +105,25 @@ def main():
     rospy.sleep(2.0)
     raw_input("...\n")
 
+    ##################################################################################################################
+    # Demonstration of tactile feedback and setting sensor thresholds
+    raw_input("== When ready to calibrate tactile sensors and close until contact, hit [Enter]\n")
+    calibrate_tactile()
+    enable_tactile_stops()
+    f1 = FingerPressure([10, 10, 10, 10, 10, 10, 10, 10, 1000])
+    f2 = FingerPressure([15, 15, 15, 15, 15, 15, 15, 15, 1000])
+    f3 = FingerPressure([20, 20, 20, 20, 20, 20, 20, 20, 1000])
+    threshold = SetTactileThresholdRequest([f1, f2, f3])
+    set_tactile_threshold(threshold)
+    velocity = VelocityCommand(f1=1.0, f2=1.0, f3=1.0, preshape=0.0)
+    rospy.sleep(3.0)
+    raw_input("...\n")
+    pos_pub.publish(PoseCommand())
+    disable_tactile_stops()
+
 
 def hand_state_cb(data):
     global hand_state
-    print "GOT DATA"
     hand_state = data
 
 

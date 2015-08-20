@@ -1,4 +1,6 @@
 <launch>
+    <node pkg="rosbag" type="record" name="recorder" args="--all -O $(find reflex)/bagfiles/latest_takktile_run"/>
+
 	<param name="default_contact_threshold" value="20" />
 	<param name="yaml_dir" value="$(find reflex_driver)/yaml" />
 	<rosparam file="$(find reflex_driver)/yaml/motor_constants.yaml" command="load"/>
