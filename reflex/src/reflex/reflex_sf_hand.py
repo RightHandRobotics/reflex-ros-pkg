@@ -41,7 +41,7 @@ class ReflexSFHand(ReflexHand):
         super(ReflexSFHand, self).__init__('/reflex_sf', ReflexSFMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
-        rospy.Service(self.namespace + '/zero_fingers', Empty, self.calibrate)
+        rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate)
 
     def _receive_cmd_cb(self, data):
         self.disable_force_control()
