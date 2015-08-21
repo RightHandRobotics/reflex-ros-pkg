@@ -197,11 +197,11 @@ visualization_msgs::Marker makePressureMarker(float val, int id)
   float height = 0.003;
 
   marker.scale.x = radius;
-  marker.scale.y = radius*(4.0/5);
+  marker.scale.y = radius * (4.0 / 5);
   marker.scale.z = height;
 
-  // Assuming 400 is the max sensor value, that could be replaced with some MAX value
-  val = max(min((0.6*abs(val)/-100) + 0.6, 1.0), 0.0);
+  // Assuming 80 is the max sensor value, that could be replaced with some MAX value
+  val = max(min((val / -100.0) + 0.8, 1.0), 0.0);
   marker.color.r = val;
   marker.color.g = val;
   marker.color.b = val;
