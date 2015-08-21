@@ -59,6 +59,15 @@ def main():
     raw_input("...\n")
 
     ##################################################################################################################
+    # Demonstration of preshape joint
+    raw_input("== When ready to test preshape joint, hit [Enter]\n")
+    pos_pub.publish(PoseCommand(preshape=1.57))
+    rospy.sleep(2.0)
+    pos_pub.publish(PoseCommand())
+    rospy.sleep(2.0)
+    raw_input("...\n")
+
+    ##################################################################################################################
     # Demonstration of velocity control - variable closing speed
     raw_input("== When ready to open and close fingers with velocity control, hit [Enter]\n")
     for i in range(3):
