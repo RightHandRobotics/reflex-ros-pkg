@@ -57,7 +57,6 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state);
 void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state);
 void log_encoder_zero_to_file();
 void log_motor_zero_to_file_and_close();
-void check_anomalous_motor_values();
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state);
 float load_raw_to_signed(int load, int motor_idx);
 

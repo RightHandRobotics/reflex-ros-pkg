@@ -79,6 +79,7 @@ vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calib
 vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
 uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated in reflex_hand_state_cb() during calibration
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};  // Constant
+ros::Time latest_calibration_time;                          // Updated in reflex_hand_state_cb() during calibration
 
 bool g_done = false;    // Updated by the signum handler
 
@@ -269,7 +270,7 @@ int update_encoder_offset(int raw_value, int last_value, int current_offset) {
 float calc_proximal_angle(int raw_enc_value, int offset, double zero) {
   int wrapped_enc_value = raw_enc_value + offset;
   float rad_value = (float) wrapped_enc_value * reflex_hand::ReflexHand::ENC_SCALE;
-  return (rad_value - zero);
+  return (zero - rad_value);
 }
 
 
@@ -340,22 +341,22 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     calibrate_tactile_sensors(state, hand_msg);
   }
 
-  if (acquire_fingers) {
+  if (acquire_fingers && (ros::Time::now() > latest_calibration_time + ros::Duration(0.05))) {
     if (first_capture) {
       calibrate_encoders_locally(state);
       first_capture = false;
     }
     all_fingers_moved = check_for_finger_movement(state);
-    move_fingers_in(state);
-    ros::Duration(0.05).sleep();
     if (all_fingers_moved) {
+      acquire_fingers = false;
       ROS_INFO("FINISHED FINGER CALIBRATION: Encoder movement detected");
       calibrate_motors_locally(state);
-      check_anomalous_motor_values();
       log_encoder_zero_to_file();
       log_motor_zero_to_file_and_close();
-      acquire_fingers = false;
+    } else {
+      move_fingers_in(state);
     }
+    latest_calibration_time = ros::Time::now();
   }
   return;
 }
@@ -483,20 +484,6 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
 }
 
 
-// Sometimes Dynamixels glitch and report very high values, this catches those
-void check_anomalous_motor_values() {
-  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
-    if (dynamixel_zero_point[i] > 14 * 3.1415) {
-        ROS_WARN("Something went wrong in calibration - motor %d was", i+1);
-        ROS_WARN("\tset anomalously high. Motor zero reference value:");
-        ROS_WARN("\t%4f radians (nothing should be over 2*pi)", dynamixel_zero_point[i]);
-        ROS_WARN("\tTry redoing the calibration, depowering/repowering");
-        ROS_WARN("\tif it repeats");
-    }
-  }
-}
-
-
 // Captures the current hand state to a debug message and publishes
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
@@ -578,6 +565,7 @@ int main(int argc, char **argv) {
   finger_file_address = buffer + "/finger_calibrate.yaml";
   tactile_file_address = buffer + "/tactile_calibrate.yaml";
   ros::ServiceServer calibrate_fingers_service = nh.advertiseService(ns + "/calibrate_fingers", calibrate_fingers);
+  latest_calibration_time = ros::Time::now();
   ROS_INFO("Advertising the /calibrate_fingers service");
   ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", calibrate_tactile);
   ROS_INFO("Advertising the /calibrate_tactile service");
