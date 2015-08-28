@@ -145,36 +145,36 @@ class ReflexTakktileHand(ReflexHand):
         Queries the motors for their speed and position setpoints and publishes
         those to the appropriate topics for reflex_driver
         '''
+        for ID, motor in self.motors.items():
+            motor.speed_update_occurred = False
         motor_speed_cmd = reflex_msgs.srv.SetSpeedRequest(
             [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
              self.motors['/reflex_takktile_f2'].get_commanded_speed(),
              self.motors['/reflex_takktile_f3'].get_commanded_speed(),
              self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
         self.set_speed_service(motor_speed_cmd)
-        for ID, motor in self.motors.items():
-            motor.speed_update_occurred = False
-        rospy.sleep(0.02)  # Without a sleep the hand freezes up
 
     def _publish_position_commands(self):
         '''
         Queries the motors for their speed and position setpoints and publishes
         those to the appropriate topics for reflex_driver
         '''
+        for ID, motor in self.motors.items():
+            motor.position_update_occurred = False
         motor_pos_cmd = reflex_msgs.msg.RadianServoCommands(
             [self.motors['/reflex_takktile_f1'].get_commanded_position(),
              self.motors['/reflex_takktile_f2'].get_commanded_position(),
              self.motors['/reflex_takktile_f3'].get_commanded_position(),
              self.motors['/reflex_takktile_preshape'].get_commanded_position()])
         self.motor_cmd_pub.publish(motor_pos_cmd)
-        for ID, motor in self.motors.items():
-            motor.position_update_occurred = False
         rospy.sleep(0.01)
 
 
 def main():
     rospy.sleep(2.0)  # To allow services and parameters to load
     hand = ReflexTakktileHand()
-    r = rospy.Rate(100)
+    rospy.sleep(0.5)
+    r = rospy.Rate(30)
     while not rospy.is_shutdown():
         hand._publish_motor_commands()
         if (rospy.get_rostime().secs > (hand.latest_update.secs + hand.comms_timeout)):

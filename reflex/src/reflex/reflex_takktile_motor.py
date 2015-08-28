@@ -47,8 +47,9 @@ class ReflexTakktileMotor(Motor):
         '''
         Bounds the given position command and sets it to the motor
         '''
+        if not nearly_equal(self.motor_cmd, self._check_motor_angle_command(goal_pos)):
+            self.position_update_occurred = True
         self.motor_cmd = self._check_motor_angle_command(goal_pos)
-        self.position_update_occurred = True
 
     def _check_motor_angle_command(self, angle_command):
         '''
@@ -62,15 +63,17 @@ class ReflexTakktileMotor(Motor):
         '''
         Bounds the given position command and sets it to the motor
         '''
+        if not nearly_equal(self.speed, self._check_motor_speed_command(goal_speed), 2):
+            self.speed_update_occurred = True
         self.speed = self._check_motor_speed_command(goal_speed)
-        self.speed_update_occurred = True
 
     def reset_motor_speed(self):
         '''
         Resets speed to default
         '''
+        if not nearly_equal(self.speed, self._DEFAULT_MOTOR_SPEED, 2):
+            self.speed_update_occurred = True
         self.speed = self._DEFAULT_MOTOR_SPEED
-        self.speed_update_occurred = True
 
     def set_motor_velocity(self, goal_vel):
         '''
@@ -119,3 +122,7 @@ class ReflexTakktileMotor(Motor):
 
     def enable_tactile_stops(self):
         self.tactile_stops_enabled = True
+
+
+def nearly_equal(a, b, sig_fig=3):
+    return (a == b or int(a*10**sig_fig) == int(b*10**sig_fig))

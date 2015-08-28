@@ -165,14 +165,15 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
 bool set_motor_speed(reflex_hand::ReflexHand *rh,
                      reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
-  ros::Duration(0.01).sleep();
+  ros::Duration(0.02).sleep();
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = speed_rad_to_raw(req.motor[i], i);
   }
   rh->setServoTargets(targets);
-  ros::Duration(0.01).sleep();
+  ros::Duration(0.035).sleep();  // Sleep necessary to prevent Brain Board freezing
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
+  ros::Duration(0.035).sleep();  // Sleep necessary to prevent Brain Board freezing
   return true;
 }
 
