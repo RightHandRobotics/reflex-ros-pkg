@@ -70,6 +70,7 @@ const int TACTILE_BASE_IDX[] = {0, 18, 9};  // Constant
 int encoder_last_value[] = {0, 0, 0};       // Updated constantly in reflex_hand_state_cb()
 int encoder_offset[] = {-1, -1, -1};        // Updated constantly in reflex_hand_state_cb()
 float load_last_value[] = {0, 0, 0, 0};     // Updated constantly in reflex_hand_state_cb()
+int raw_cmd_last_value[] = {0, 0, 0, 0};    // Updated in receive_raw_cmd_cb and receive_angle_cmd_cb
 
 bool acquire_tactile = false;         // Updated by /calibrate_tactile ROS service and in reflex_hand_state_cb()
 bool acquire_fingers = false;         // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
@@ -125,10 +126,10 @@ void load_params(ros::NodeHandle nh) {
 //     http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_0B1
 void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RawServoCommands::ConstPtr &msg) {
-  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = msg->raw_positions[i];
+    raw_cmd_last_value[i] = targets[i];
   }
   rh->setServoTargets(targets);
 }
@@ -138,10 +139,10 @@ void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
 // yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
-  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = pos_rad_to_raw(msg->radian_commands[i], i);
+    raw_cmd_last_value[i] = targets[i];
   }
   rh->setServoTargets(targets);
 }
@@ -173,6 +174,7 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
   rh->setServoTargets(targets);
   ros::Duration(0.035).sleep();  // Sleep necessary to prevent Brain Board freezing
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
+  check_for_potential_motor_wraps_and_rezero();
   ros::Duration(0.035).sleep();  // Sleep necessary to prevent Brain Board freezing
   return true;
 }
@@ -193,6 +195,21 @@ uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
     command = 1;  // 0 doesn't actually stop the motor
   }
   return command;
+}
+
+
+// Checks whether the motor positions will reset after mode switch, and corrects zero point
+// When switching modes (VELOCITY and POSITION) the motor will wrap values if above 14024 or below 13000
+void check_for_potential_motor_wraps_and_rezero() {
+  double motor_wrap;
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    motor_wrap = 1025 * (reflex_hand::ReflexHand::DYN_POS_SCALE / MOTOR_TO_JOINT_GEAR_RATIO[i]);
+    if (raw_cmd_last_value[i] != 0 && raw_cmd_last_value[i] < 13000) {
+      dynamixel_zero_point[i] = dynamixel_zero_point[i] + motor_wrap;
+    } else if (raw_cmd_last_value[i] > 14024) {
+      dynamixel_zero_point[i] = dynamixel_zero_point[i] - motor_wrap;
+    }
+  }
 }
 
 
@@ -423,8 +440,7 @@ void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state) {
     motor_offset = MOTOR_TO_JOINT_INVERTED[i] * CALIBRATION_DYN_OFFSET[i];
     motor_scalar = reflex_hand::ReflexHand::DYN_POS_SCALE / MOTOR_TO_JOINT_GEAR_RATIO[i];
     dynamixel_zero_point[i] = (state->dynamixel_angles_[i] - motor_offset) * motor_scalar;
-    servo_pos.raw_positions[i] = state->dynamixel_angles_[i] -
-                                 (MOTOR_TO_JOINT_INVERTED[i] * CALIBRATION_DYN_OFFSET[i]);
+    servo_pos.raw_positions[i] = state->dynamixel_angles_[i] - motor_offset;
   }
   raw_pub.publish(servo_pos);
 }

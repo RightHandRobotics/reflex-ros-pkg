@@ -33,6 +33,7 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx);
 bool set_motor_speed(reflex_hand::ReflexHand *rh,
 					 reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res);
 uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx);
+void check_for_potential_motor_wraps_and_rezero();
 bool enable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 bool calibrate_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
