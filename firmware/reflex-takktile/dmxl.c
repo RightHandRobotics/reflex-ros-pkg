@@ -51,6 +51,7 @@ static volatile uint16_t g_dmxl_ring_rpos[NUM_DMXL] = {0};
 static volatile uint16_t g_dmxl_ring_wpos[NUM_DMXL] = {0};
 static volatile uint8_t  g_dmxl_rx_pkt[NUM_DMXL][256];
 static volatile dmxl_control_mode_t dmxl_control_mode = DMXL_CM_IDLE;
+static volatile int divider_send_count = 0;
 
 dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL] = 
   { DPS_DONE, DPS_DONE, DPS_DONE, DPS_DONE };
@@ -164,9 +165,9 @@ void dmxl_init()
     */
     u->CR1 |=  USART_CR1_UE | USART_CR1_RXNEIE;
     
-    delay_us(5);
+    delay_us(10);
     dmxl_set_res_divider(i, DMXL_DEFAULT_ID, 4);
-    delay_us(5);
+    delay_us(10);
     dmxl_set_multiturn_offset(i, DMXL_DEFAULT_ID, 13000);  // Places motor close enough to middle of 0-28672 range
   }
   NVIC_SetPriority(USART3_IRQn, 2);
@@ -484,10 +485,13 @@ void dmxl_set_control_mode(const uint8_t port_idx,
     delay_us(1);
     dmxl_set_angle_limits(port_idx, DMXL_DEFAULT_ID, 4095, 4095);  // Enables multi-turn mode w/ position control
     // http://support.robotis.com/en/product/dynamixel/mx_series/mx-64.htm#Actuator_Address_0B1
-    delay_us(1);
-    dmxl_set_res_divider(port_idx, DMXL_DEFAULT_ID, 4);
-    delay_us(1);
-    dmxl_set_multiturn_offset(port_idx, DMXL_DEFAULT_ID, 13000);  // Places motor close enough to middle of 0-28672 range
+    if (divider_send_count < 1) {
+      delay_us(1);
+      dmxl_set_res_divider(port_idx, DMXL_DEFAULT_ID, 4);
+      delay_us(1);
+      dmxl_set_multiturn_offset(port_idx, DMXL_DEFAULT_ID, 13000);  // Places motor close enough to middle of 0-28672 range
+      divider_send_count++;
+    }
   }
   dmxl_control_mode = control_mode;
 }

@@ -204,11 +204,6 @@ void check_for_potential_motor_wraps_and_rezero() {
   double motor_wrap;
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     motor_wrap = 1025 * (reflex_hand::ReflexHand::DYN_POS_SCALE / MOTOR_TO_JOINT_GEAR_RATIO[i]);
-    if (raw_cmd_last_value[i] != 0 && raw_cmd_last_value[i] < 13000) {
-      dynamixel_zero_point[i] = dynamixel_zero_point[i] + motor_wrap;
-    } else if (raw_cmd_last_value[i] > 14024) {
-      dynamixel_zero_point[i] = dynamixel_zero_point[i] - motor_wrap;
-    }
   }
 }
 
