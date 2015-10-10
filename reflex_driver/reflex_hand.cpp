@@ -224,10 +224,10 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
               msg[0]);
     return;
   }
-  if (msg_len != sizeof(mcu_state_format_1_t))
+  if (msg_len != sizeof(mcu_state_format_1_t))  // The leftover palm data adds 44 bytes
   {
     ROS_ERROR("expected packet length %d, but saw %d instead",
-              (int)sizeof(mcu_state_format_1_t), msg_len);
+              (int)sizeof(mcu_state_format_1_t), msg_len - 44);
     return;
   }
   mcu_state_format_1_t *rx_state_msg = (mcu_state_format_1_t *)msg;
@@ -247,8 +247,7 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_speeds_[i]   = rx_state_msg->dynamixel_speeds[i];
     rx_state_.dynamixel_loads_[i]    = rx_state_msg->dynamixel_loads[i];
     rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
-    rx_state_.dynamixel_temperatures_[i] =
-      rx_state_msg->dynamixel_temperatures[i];
+    rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
   }
   // now that we have stuff the rx_state_ struct, fire off our callback
   if (state_cb_)

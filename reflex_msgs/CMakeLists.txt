@@ -12,22 +12,22 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Hand.msg
-  Palm.msg
   Finger.msg
-  Dynamixel.msg
-  RawServoPositions.msg
-  RadianServoPositions.msg
-  MotorDebug.msg
-  StateDebug.msg
-  TrackState.msg
+  FingerPressure.msg
+  Motor.msg
+  Command.msg
+  PoseCommand.msg
+  VelocityCommand.msg
+  ForceCommand.msg
+  RawServoCommands.msg
+  RadianServoCommands.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  CommandHand.srv
-  MoveFinger.srv
-  MovePreshape.srv
+  SetSpeed.srv
+  SetTactileThreshold.srv
 )
 
 ## Generate added messages and services with any dependencies listed here

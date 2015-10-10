@@ -7,13 +7,13 @@
 
   <link name="base_tactile"/>
 
-  <link name="prox1_tactile" />
-
   <joint name="prox1_tactile_joint" type="fixed">
     <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="proximal1" />
     <child link="prox1_tactile" />
   </joint>
+
+  <link name="prox1_tactile" />
 
   <joint name="prox2_tactile_joint" type="fixed">
     <origin xyz="0 0 0" rpy="0 0 0" />

@@ -1,0 +1,71 @@
+reflex_sf_f1:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_sf_f1
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+    motor:
+        id: 1
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_sf_f2:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_sf_f2
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+    motor:
+        id: 2
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_sf_f3:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_sf_f3
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+    motor:
+        id: 3
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_sf_preshape:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_sf_preshape
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1.5
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 1.75
+    overload_threshold: 0.55  # preshape threshold is higher due to different gearing
+    motor:
+        id: 4
+        init: 0
+        min: 0
+        max: 28672

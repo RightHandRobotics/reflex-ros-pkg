@@ -1,7 +1,0 @@
-# message for calling finger positions
-int32 finger_index
-float32 goal_pos
-# float32 speed
----
-int32 result
-duration elapsed_time

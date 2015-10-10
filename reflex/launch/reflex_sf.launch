@@ -1,0 +1,25 @@
+<launch>
+    <!-- The latest reflex_sf rosbag gets stored in the bagfiles folder -->
+    <!-- Play this file bag, rename it to save it, or use it for debugging as desired -->
+    <node pkg="rosbag" type="record" name="recorder" args="--all -O $(find reflex)/bagfiles/latest_reflex_sf_run"/>
+    <node name="dynamixel_manager" pkg="dynamixel_controllers" type="controller_manager.py" required="true" output="screen">
+        <rosparam>
+            namespace: dxl_manager
+            serial_ports:
+                reflex_sf_port:
+                    port_name: "/dev/ttyUSB0"
+                    baud_rate: 57142
+                    min_motor_id: 1
+                    max_motor_id: 4
+                    update_rate: 20
+        </rosparam>
+    </node>
+    <rosparam file="$(find reflex)/yaml/reflex_sf.yaml" command="load"/>
+    <rosparam file="$(find reflex)/yaml/reflex_sf_zero_points.yaml" command="load"/>
+    <node name="reflex_sf_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
+          args="--manager=dxl_manager
+                --port reflex_sf_port 
+                reflex_sf_f1 reflex_sf_f2 reflex_sf_f3 reflex_sf_preshape"
+          output="screen"/>
+    <node name="reflex_sf_hand" pkg="reflex" type="reflex_sf_hand.py" required="true" output="screen"/>
+</launch>

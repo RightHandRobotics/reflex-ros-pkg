@@ -1,0 +1,6 @@
+<launch>
+  <rosparam file="$(find reflex)/yaml/tf_geometry.yaml" command="load"/>
+  <rosparam file="$(find reflex)/yaml/reflex_takktile.yaml" command="load"/>
+  <include file="$(find reflex_driver)/launch/reflex_driver.launch"/>
+  <node name="reflex_takktile_hand" pkg="reflex" type="reflex_takktile_hand.py" output="screen" required="true" />  
+</launch>
