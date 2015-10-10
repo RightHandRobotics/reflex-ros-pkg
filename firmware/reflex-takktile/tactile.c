@@ -966,8 +966,6 @@ void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
         const uint8_t *p = g_tactile_i2c_async_data[tp];
         // Addition deals with small wraps
         const uint16_t pressure = 510 - (p[0]<200 ? ((uint16_t)p[0] + 255) : ((uint16_t)p[0]));
-        // const uint16_t pressure = 510 - ((uint16_t)p[0] + 255);
-        // const uint16_t pressure = ((uint16_t)p[0] + 255);
         const uint16_t temperature = ((uint16_t)p[2] << 2) | (p[3] >> 6);
         const uint_fast8_t state_sensor_idx = tp * SENSORS_PER_FINGER + 
                                               active_sensor_idx[tp];
