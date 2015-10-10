@@ -47,8 +47,6 @@ class ReflexHand(object):
                          reflex_msgs.msg.PoseCommand, self._receive_angle_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_velocity',
                          reflex_msgs.msg.VelocityCommand, self._receive_vel_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_motor_force',
-                         reflex_msgs.msg.ForceCommand, self._receive_force_cmd_cb)
         rospy.loginfo('ReFlex hand has started, waiting for commands...')
 
     def _receive_cmd_cb(self, data):
