@@ -109,9 +109,38 @@ def nudge():
     left,right,thumb,spread = state_t.dynamixel_angles
     print left,right,thumb,spread
     # modify them...
-    # left += 100
-    # right += 100
+    #left += -100
+    #right += -100
+    #thumb += -100
+    #spread += -100
     set_position(left,right,thumb,spread)
+
+def wiggle():
+    pkt, addr = onepkt()
+    state_t.parse(pkt)
+    left,right,thumb,spread = state_t.dynamixel_angles
+    print left,right,thumb,spread
+    delta=250
+    delta_t=0.25
+    try:
+        while True:
+            time.sleep(delta_t)
+            set_position(left+delta,right,thumb,spread)
+            time.sleep(delta_t)
+            set_position(left+delta,right+delta,thumb,spread)
+            time.sleep(delta_t)
+            set_position(left+delta,right+delta,thumb+3*delta,spread)
+            time.sleep(delta_t)
+            set_position(left,right+delta,thumb+delta,spread)
+            time.sleep(delta_t)
+            set_position(left,right,thumb+delta,spread)
+            time.sleep(delta_t)
+            set_position(left,right,thumb,spread)
+    except KeyboardInterrupt:
+        time.sleep(delta_t)
+        set_position(left,right,thumb,spread)
+        
+        
 
 if __name__ == "__main__":
     if sys.argv[1] == "hear":
@@ -120,5 +149,7 @@ if __name__ == "__main__":
         poke()
     elif sys.argv[1] == "nudge":
         nudge()
+    elif sys.argv[1] == "wiggle":
+        wiggle()
     else:
-        sys.exit("hear, poke, nudge")
+        sys.exit("hear, poke, nudge, wiggle")
