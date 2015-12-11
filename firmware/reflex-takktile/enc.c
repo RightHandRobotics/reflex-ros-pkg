@@ -4,6 +4,7 @@
 #include "pin.h"
 #include "state.h"
 #include "systime.h"
+#include "leds.h"
 
 /////////////////////////////////////////////////////////////////////
 // encoder daisy-chain setup
@@ -17,6 +18,8 @@
 #define PORTE_ENC_SCLK 12
 #define PORTE_ENC_MISO 13
 #define PORTE_ENC_MOSI 14
+#define TRUE 1
+#define FALSE 0
 
 enc_async_poll_state_t enc_poll_state = { EPS_DONE };
 
@@ -31,7 +34,7 @@ void enc_init()
   pin_set_alternate_function(GPIOE, PORTE_ENC_MISO, 5);
   pin_set_alternate_function(GPIOE, PORTE_ENC_MOSI, 5);
 
-  // spi4 is running from a 84 MHz pclk. set it up with 
+  // spi4 is running from a 84 MHz pclk. set it up with
   // sclk = pclk/128 to be super slow for now.
   SPI4->CR1 = SPI_CR1_DFF  | // 16-bit mode
               SPI_CR1_BR_2 |
@@ -46,6 +49,9 @@ void enc_init()
   enc_poll(); // and the second one
 }
 
+/*
+ * Blocking call to get encoder data for all 3 encoders
+ */
 void enc_poll()
 {
   GPIOE->BSRRH = 1 << PORTE_ENC_CS; // assert (pull down) CS
@@ -53,9 +59,9 @@ void enc_poll()
   SPI4->DR; // clear the rx data register in case it has some garbage
   for (int i = 0; i < NUM_ENC; i++)
   {
-    SPI4->DR = 0xffff; 
-    while (!(SPI4->SR & SPI_SR_TXE)) { } // wait for buffer room
-    while (!(SPI4->SR & SPI_SR_RXNE)) { }
+    SPI4->DR = 0xffff;
+    while (!(SPI4->SR & SPI_SR_TXE)) { } // Wait for transmit buffer empty
+    while (!(SPI4->SR & SPI_SR_RXNE)) { } // Wait for recieve buffer not empty
     g_state.encoders[NUM_ENC-1-i] = SPI4->DR & 0x3fff;  // Idx goes 2, 1, 0
   }
   for (volatile int i = 0; i < 1; i++) { } // needs at least 50 ns
@@ -68,11 +74,13 @@ void enc_poll()
   */
 }
 
-static uint32_t enc_poll_state_start_time_us = 0;
-static uint_fast8_t enc_poll_state_word_idx = 0;
 
 void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
 {
+  static uint_fast8_t enc_poll_state_word_idx = 0;
+  static uint32_t enc_poll_state_start_time_us = 0;
+  static uint8_t all_the_same = TRUE;
+  static uint8_t any_the_same = FALSE;
   switch(enc_poll_state)
   {
     case EPS_DONE: // this is the start state
@@ -83,28 +91,50 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
     case EPS_CS_ASSERTED:
       if (SYSTIME - enc_poll_state_start_time_us > 2)
       {
+        all_the_same = TRUE;
+        any_the_same = FALSE;
         SPI4->DR; // clear the rx data register in case it has some garbage
         enc_poll_state_word_idx = 0;
-        SPI4->DR = 0xffff; 
+        SPI4->DR = 0xffff;
         enc_poll_state = EPS_SPI_TXRX;
       }
       break;
     case EPS_SPI_TXRX:
       if ((SPI4->SR & SPI_SR_TXE) && (SPI4->SR & SPI_SR_RXNE))
       {
-        g_state.encoders[NUM_ENC-1-(enc_poll_state_word_idx++)] = SPI4->DR & 0x3fff;
+        uint16_t readValue =  SPI4->DR & 0x3fff;
+
+        if (readValue == g_state.encoders[NUM_ENC-1-(enc_poll_state_word_idx)]) {
+          any_the_same = TRUE;
+        } else {
+          all_the_same = FALSE;
+        }
+
+        g_state.encoders[NUM_ENC-1-(enc_poll_state_word_idx++)] = readValue;
         if (enc_poll_state_word_idx >= NUM_ENC)
         {
           enc_poll_state = EPS_SPI_TXRX_DONE;
           enc_poll_state_start_time_us = SYSTIME;
         }
-        else
-          SPI4->DR = 0xffff; 
+        else {
+          SPI4->DR = 0xffff;
+        }
       }
       break;
     case EPS_SPI_TXRX_DONE:
       if (SYSTIME - enc_poll_state_start_time_us > 2)
       {
+        if (all_the_same) {
+          leds_on(3);
+        } else {
+          leds_off(3);
+        }
+
+        if (any_the_same) {
+          leds_on(2);
+        } else {
+          leds_off(2);
+        }
         GPIOE->BSRRL = 1 << PORTE_ENC_CS; // de-assert (pull up) CS
         enc_poll_state = EPS_DONE;
       }
