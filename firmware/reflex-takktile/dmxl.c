@@ -27,7 +27,7 @@ typedef enum
   DMXL_PS_CHECKSUM   = 6
 } dmxl_parser_state_t;
 
-typedef struct 
+typedef struct
 {
   GPIO_TypeDef *tx_gpio, *rx_gpio;
   uint8_t tx_pin, rx_pin, af;
@@ -37,8 +37,8 @@ typedef struct
   uint8_t rx_pkt_len, rx_pkt_writepos, rx_checksum;
 } dmxl_port_t;
 
-static dmxl_port_t g_dmxl_ports[NUM_DMXL] = 
-{ 
+static dmxl_port_t g_dmxl_ports[NUM_DMXL] =
+{
   { GPIOD, GPIOD,  8,  9, 7, USART3, DMXL_CS_IDLE, DMXL_PS_PREAMBLE_0, 0,0,0 },
   { GPIOC, GPIOC, 10, 11, 8, UART4 , DMXL_CS_IDLE, DMXL_PS_PREAMBLE_0, 0,0,0 },
   { GPIOC, GPIOC,  6,  7, 8, USART6, DMXL_CS_IDLE, DMXL_PS_PREAMBLE_0, 0,0,0 },
@@ -51,20 +51,20 @@ static volatile uint16_t g_dmxl_ring_rpos[NUM_DMXL] = {0};
 static volatile uint16_t g_dmxl_ring_wpos[NUM_DMXL] = {0};
 static volatile uint8_t  g_dmxl_rx_pkt[NUM_DMXL][256];
 static volatile dmxl_control_mode_t dmxl_control_mode = DMXL_CM_IDLE;
-static volatile int divider_send_count = 0;
+static volatile uint8_t divider_is_sent[NUM_DMXL] = {0};
 
-dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL] = 
+dmxl_async_poll_state_t dmxl_poll_states[NUM_DMXL] =
   { DPS_DONE, DPS_DONE, DPS_DONE, DPS_DONE };
 
 static void dmxl_read_data(const uint8_t port_idx, const uint8_t dmxl_id,
                            const uint8_t data_len, const uint8_t start_addr);
 static void dmxl_write_data(const uint8_t port_idx, const uint8_t dmxl_id,
-                            const uint8_t data_len, const uint8_t start_addr, 
+                            const uint8_t data_len, const uint8_t start_addr,
                             const uint8_t *data);
 static uint8_t dmxl_send_ping(const uint8_t port_idx, const uint8_t dmxl_id);
 
 // put in ramfunc sector ?
-static inline void dmxl_push_byte(const uint8_t dmxl_port, const uint8_t byte) 
+static inline void dmxl_push_byte(const uint8_t dmxl_port, const uint8_t byte)
 {
   if (dmxl_port >= NUM_DMXL)
     return;
@@ -103,7 +103,7 @@ void dmxl_set_usart_baud(const uint_fast8_t dmxl_idx, int baud)
   if (baud == 57600)
   {
     if (u == USART6)
-      u->BRR = (((uint16_t)91) << 4) | 2; 
+      u->BRR = (((uint16_t)91) << 4) | 2;
     else
       u->BRR = (((uint16_t)45) << 4) | 9;
   }
@@ -117,7 +117,7 @@ void dmxl_set_usart_baud(const uint_fast8_t dmxl_idx, int baud)
   else if (baud == 1000000)
   {
     if (u == USART6)
-      u->BRR = (((uint16_t)5) << 4) |  4; 
+      u->BRR = (((uint16_t)5) << 4) |  4;
     else
       u->BRR = (((uint16_t)2) << 4) | 10;
   }
@@ -164,7 +164,7 @@ void dmxl_init()
       u->BRR = (((uint16_t)2) << 4) | 10;// 2.625 mantissa = 2, fraction = 10
     */
     u->CR1 |=  USART_CR1_UE | USART_CR1_RXNEIE;
-    
+
     delay_us(10);
     dmxl_set_res_divider(i, DMXL_DEFAULT_ID, 4);
     delay_us(10);
@@ -249,7 +249,7 @@ void dmxl_set_baud_rates()
   }
 }
 
-static void dmxl_tx(const uint8_t port_idx, 
+static void dmxl_tx(const uint8_t port_idx,
                     const uint8_t *payload, const uint8_t payload_len)
 {
   if (port_idx >= NUM_DMXL)
@@ -292,7 +292,7 @@ uint8_t dmxl_send_ping(const uint8_t port_idx, const uint8_t dmxl_id)
 }
 
 static void dmxl_write_data(const uint8_t port_idx, const uint8_t dmxl_id,
-                            const uint8_t data_len, const uint8_t start_addr, 
+                            const uint8_t data_len, const uint8_t start_addr,
                             const uint8_t *data)
 {
   uint8_t pkt[255];
@@ -375,7 +375,7 @@ void dmxl_process_ring(const uint_fast8_t dmxl_id)
           switch (port->comms_state)
           {
             case DMXL_CS_POLL_STATE:
-              g_state.dynamixel_angles[i] = 
+              g_state.dynamixel_angles[i] =
                 (((uint16_t)g_dmxl_rx_pkt[i][1]) << 8) |
                 (((uint16_t)g_dmxl_rx_pkt[i][0])     ) ;
               //printf("dmxl %d angle = %d\r\n", (int)i, (int)g_state.dynamixel_angles[i]);
@@ -465,7 +465,7 @@ void dmxl_set_speed_dir(const uint8_t port_idx, const uint8_t dmxl_id,
   dmxl_write_data(port_idx, dmxl_id, 2, 32, d);
 }
 
-void dmxl_set_control_mode(const uint8_t port_idx, 
+void dmxl_set_control_mode(const uint8_t port_idx,
                            const dmxl_control_mode_t control_mode)
 {
   //printf("dmxl_set_control_mode %d %d\r\n", port_idx, (int)control_mode);
@@ -485,18 +485,18 @@ void dmxl_set_control_mode(const uint8_t port_idx,
     delay_us(1);
     dmxl_set_angle_limits(port_idx, DMXL_DEFAULT_ID, 4095, 4095);  // Enables multi-turn mode w/ position control
     // http://support.robotis.com/en/product/dynamixel/mx_series/mx-64.htm#Actuator_Address_0B1
-    if (divider_send_count < 1) {
+    if (divider_is_sent[port_idx] == 0) {
       delay_us(1);
       dmxl_set_res_divider(port_idx, DMXL_DEFAULT_ID, 4);
       delay_us(1);
       dmxl_set_multiturn_offset(port_idx, DMXL_DEFAULT_ID, 13000);  // Places motor close enough to middle of 0-28672 range
-      divider_send_count++;
+      divider_is_sent[port_idx] = 1;
     }
   }
   dmxl_control_mode = control_mode;
 }
 
-void dmxl_set_control_target(const uint8_t port_idx, 
+void dmxl_set_control_target(const uint8_t port_idx,
                              const uint16_t target)
 {
   //printf("dmxl_set_control_target %d %d\r\n", port_idx, (int)target);
@@ -558,7 +558,7 @@ void dmxl_set_all_control_targets(const uint16_t *targets)
 
 void dmxl_poll()
 {
-  // spin through and poll all their angles, velocities, currents, 
+  // spin through and poll all their angles, velocities, currents,
   // voltages, temperatures, etc.
   for (uint_fast8_t i = 0; i < NUM_DMXL; i++)
   {
@@ -599,7 +599,7 @@ void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port)
       *ps = DPS_WAIT; // give any outbound command some time to be processed
       break;
     case DPS_WAIT:
-      if (SYSTIME - dmxl_rx_start_time[dmxl_port] > 5000) 
+      if (SYSTIME - dmxl_rx_start_time[dmxl_port] > 5000)
       {
         u->CR1 &= ~USART_CR1_RE; // disable the receiver during transmit
         u->CR1 |=  USART_CR1_TE; // enable the transmitter
@@ -613,7 +613,7 @@ void dmxl_poll_nonblocking_tick(const uint8_t dmxl_port)
         uint8_t csum = 0;
         for (int i = 2; i < 7; i++)
           csum += dmxl_txbuf[dmxl_port][i];
-        dmxl_txbuf[dmxl_port][7] = ~csum; 
+        dmxl_txbuf[dmxl_port][7] = ~csum;
         u->DR; // read any garbage on the RX register
         u->DR = dmxl_txbuf[dmxl_port][0]; // kick it off
         dmxl_txbuf_readpos[dmxl_port] = 0;
