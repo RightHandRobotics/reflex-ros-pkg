@@ -18,8 +18,12 @@
 #define PORTE_ENC_SCLK 12
 #define PORTE_ENC_MISO 13
 #define PORTE_ENC_MOSI 14
+
 #define TRUE 1
 #define FALSE 0
+// The number of times we get the same reading before we light an
+// LED
+static const uint8_t LIGHT_LED_THRESHOLD = 100;
 
 enc_async_poll_state_t enc_poll_state = { EPS_DONE };
 
@@ -80,7 +84,9 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
   static uint_fast8_t enc_poll_state_word_idx = 0;
   static uint32_t enc_poll_state_start_time_us = 0;
   static uint8_t all_the_same = TRUE;
+  static uint8_t all_the_same_count = 0;
   static uint8_t any_the_same = FALSE;
+  static uint8_t any_the_same_count = 0;
   switch(enc_poll_state)
   {
     case EPS_DONE: // this is the start state
@@ -125,16 +131,31 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
       if (SYSTIME - enc_poll_state_start_time_us > 2)
       {
         if (all_the_same) {
+          if (all_the_same_count < LIGHT_LED_THRESHOLD) {
+            all_the_same_count++;
+          }
+        } else {
+          all_the_same_count = 0;
+        }
+        if (all_the_same_count >= LIGHT_LED_THRESHOLD) {
           leds_on(3);
         } else {
           leds_off(3);
         }
 
         if (any_the_same) {
+          if (any_the_same_count < LIGHT_LED_THRESHOLD) {
+            any_the_same_count++;
+          }
+        } else {
+          any_the_same_count = 0;
+        }
+        if (any_the_same_count >= LIGHT_LED_THRESHOLD) {
           leds_on(2);
         } else {
           leds_off(2);
         }
+
         GPIOE->BSRRL = 1 << PORTE_ENC_CS; // de-assert (pull up) CS
         enc_poll_state = EPS_DONE;
       }
