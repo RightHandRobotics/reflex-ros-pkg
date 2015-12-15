@@ -50,7 +50,6 @@ int main()
         g_state.systime = SYSTIME;
         //printf("start %d\r\n", (int)g_state.systime);
         leds_toggle(0);
-        leds_toggle(1);
         async_poll_start();
       }
     }
@@ -61,8 +60,12 @@ int main()
       volatile uint32_t t1 __attribute__((unused))= SYSTIME - prev_start_time;
       printf("%lu : %lu \r\n", SYSTIME, t1);
 #endif
-      if (enet_get_link_status() == ENET_LINK_UP)
+      if (enet_get_link_status() == ENET_LINK_UP) {
+        leds_off(1);
         enet_send_state();
+      } else {
+        leds_on(1);
+      }
 
       enet_process_rx_ring();
 #if 0
@@ -76,7 +79,7 @@ int main()
 #endif
       if (num_rx) // most inbound messages require dmxl tx/rx
       {
-        // if we did something with a packet, bump our next TX time up 
+        // if we did something with a packet, bump our next TX time up
         // by one cycle period, so we have enough time to talk to the
         // dynamixels
         //poll_cycles_to_skip = 1; // skip the next polling cycle
