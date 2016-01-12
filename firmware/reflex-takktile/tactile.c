@@ -873,6 +873,7 @@ tactile_bridge_i2c_read
 
 void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
 {
+  static uint_fast8_t errCount[NUM_TACTILE_PORTS] = {0};
   const uint_fast8_t tp = tactile_port; // save typing
   if (tp >= NUM_TACTILE_PORTS)
     return; // let's not corrupt memory.
@@ -887,9 +888,14 @@ void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
     return; // shouldn't get here... but if somehow we do, it's time to bail
 
   if (*i2c_status == TACTILE_I2C_SUCCESS) {
+    errCount[tactile_port] = 0;
     err_unset(ERR_TAC_0_PROBLEM + tactile_port);
-  } else {
-    err_set(ERR_TAC_0_PROBLEM + tactile_port);
+  } else if (*i2c_status == TACTILE_I2C_FAIL) {
+    if (errCount[tactile_port] > 100) {
+      err_set(ERR_TAC_0_PROBLEM + tactile_port);
+    } else {
+      errCount[tactile_port]++;
+    }
   }
 
   //const tactile_async_txrx_status *tats = &g_tactile_async_txrx_status[tp];
@@ -905,39 +911,34 @@ void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
       break;
     case TPS_BCAST_ENABLE:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS) {
         //*tps = TPS_DONE;
         uint8_t msg[2] = { 0x12, 0x01 };
         *tps = TPS_BCAST_START_SAMPLING;
         tactile_i2c_async_start(tp, BAROM_ADDR, msg, 2);
-      }
-      else if (*i2c_status == TACTILE_I2C_FAIL)
+      } else if (*i2c_status == TACTILE_I2C_FAIL) {
         *tps = TPS_DONE;
+      }
       break;
     case TPS_BCAST_START_SAMPLING:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS) {
         *tps = TPS_BCAST_DISABLE;
         tactile_i2c_async_start(tp, BCAST_DISABLE_ADDR, NULL, 1);
-      }
-      else if (*i2c_status == TACTILE_I2C_FAIL)
+      } else if (*i2c_status == TACTILE_I2C_FAIL) {
         *tps = TPS_DONE;
       break;
     case TPS_BCAST_DISABLE:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS) {
         *tps = TPS_SENSOR_SAMPLING;
         state_start_time_us[tp] = SYSTIME;
-      }
-      else if (*i2c_status == TACTILE_I2C_FAIL)
+      } else if (*i2c_status == TACTILE_I2C_FAIL) {
         *tps = TPS_DONE;
+      }
       break;
     case TPS_SENSOR_SAMPLING:
-      if (SYSTIME - state_start_time_us[tp] > 3000) // wait 3 ms
-      {
+      if (SYSTIME - state_start_time_us[tp] > 3000) // wait 3 ms {
         active_sensor_idx[tp] = 0;
         const uint8_t sensor_addr = tactile_sensor_addr(tp, 0);
         *tps = TPS_SELECT_SENSOR;
@@ -946,29 +947,26 @@ void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
       break;
     case TPS_SELECT_SENSOR:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS) {
         uint8_t msg = 0;
         *tps = TPS_TX_READ_DATA_CMD;
         tactile_i2c_async_start(tp, BAROM_ADDR, &msg, 1);
-      }
-      else if (*i2c_status == TACTILE_I2C_FAIL)
+      } else if (*i2c_status == TACTILE_I2C_FAIL) {
         *tps = TPS_DONE;
+      }
       break;
     case TPS_TX_READ_DATA_CMD:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS) {
         *tps = TPS_READ_DATA;
         tactile_i2c_async_start(tp, BAROM_ADDR | I2C_READ, NULL, 4);
-      }
-      else if (*i2c_status == TACTILE_I2C_FAIL)
+      } else if (*i2c_status == TACTILE_I2C_FAIL) {
         *tps = TPS_DONE;
+      }
       break;
     case TPS_READ_DATA:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS) {
         uint8_t sensor_addr = tactile_sensor_addr(tp, active_sensor_idx[tp]);
         const uint8_t *p = g_tactile_i2c_async_data[tp];
         // Addition deals with small wraps
@@ -982,15 +980,12 @@ void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
         //       tp, sensor_addr, pressure, temperature);
         *tps = TPS_DESELECT_SENSOR;
         tactile_i2c_async_start(tp, sensor_addr | I2C_READ, NULL, 1);
-      }
-      else if (*i2c_status == TACTILE_I2C_FAIL)
-      {
+      } else if (*i2c_status == TACTILE_I2C_FAIL) {
         // move to the next sensor
         active_sensor_idx[tp]++;
-        if (active_sensor_idx[tp] >= sensor_count)
+        if (active_sensor_idx[tp] >= sensor_count) {
           *tps = TPS_DONE;
-        else
-        {
+        } else {
           *tps = TPS_SELECT_SENSOR;
           const uint8_t sensor_addr = tactile_sensor_addr(tp,
                                            active_sensor_idx[tp]);
@@ -1000,14 +995,12 @@ void tactile_poll_nonblocking_tick(const uint8_t tactile_port)
       break;
     case TPS_DESELECT_SENSOR:
       tactile_i2c_async_tick(tp);
-      if (*i2c_status == TACTILE_I2C_SUCCESS||
-          *i2c_status == TACTILE_I2C_FAIL)
-      {
+      if (*i2c_status == TACTILE_I2C_SUCCESS ||
+          *i2c_status == TACTILE_I2C_FAIL) {
         active_sensor_idx[tp]++;
-        if (active_sensor_idx[tp] >= sensor_count)
+        if (active_sensor_idx[tp] >= sensor_count) {
           *tps = TPS_DONE;
-        else
-        {
+        } else {
           *tps = TPS_SELECT_SENSOR;
           const uint8_t sensor_addr = tactile_sensor_addr(tp,
                                            active_sensor_idx[tp]);
