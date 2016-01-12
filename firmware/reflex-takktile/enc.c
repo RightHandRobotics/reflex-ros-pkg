@@ -4,7 +4,7 @@
 #include "pin.h"
 #include "state.h"
 #include "systime.h"
-#include "leds.h"
+#include "error.h"
 
 /////////////////////////////////////////////////////////////////////
 // encoder daisy-chain setup
@@ -85,8 +85,7 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
   static uint32_t enc_poll_state_start_time_us = 0;
   static uint8_t all_the_same = TRUE;
   static uint8_t all_the_same_count = 0;
-  static uint8_t any_the_same = FALSE;
-  static uint8_t any_the_same_count = 0;
+  static uint8_t same_count[3] = {0};
   switch(enc_poll_state)
   {
     case EPS_DONE: // this is the start state
@@ -98,7 +97,6 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
       if (SYSTIME - enc_poll_state_start_time_us > 2)
       {
         all_the_same = TRUE;
-        any_the_same = FALSE;
         SPI4->DR; // clear the rx data register in case it has some garbage
         enc_poll_state_word_idx = 0;
         SPI4->DR = 0xffff;
@@ -110,9 +108,10 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
       {
         uint16_t readValue =  SPI4->DR & 0x3fff;
 
-        if (readValue == g_state.encoders[NUM_ENC-1-(enc_poll_state_word_idx)]) {
-          any_the_same = TRUE;
+        if (readValue == g_state.encoders[NUM_ENC-1-enc_poll_state_word_idx]) {
+          same_count[NUM_ENC-1-enc_poll_state_word_idx]++;
         } else {
+          same_count[NUM_ENC-1-enc_poll_state_word_idx] = 0;
           all_the_same = FALSE;
         }
 
@@ -138,23 +137,27 @@ void enc_poll_nonblocking_tick(const uint8_t bogus __attribute__((unused)))
           all_the_same_count = 0;
         }
         if (all_the_same_count >= LIGHT_LED_THRESHOLD) {
-          leds_on(3);
+          err_set(ERR_ENC_ALL_STUCK);
         } else {
-          leds_off(3);
+          err_unset(ERR_ENC_ALL_STUCK);
         }
 
-        if (any_the_same) {
-          if (any_the_same_count < LIGHT_LED_THRESHOLD) {
-            any_the_same_count++;
-          }
+        if (same_count[0] >= LIGHT_LED_THRESHOLD) {
+          err_set(ERR_ENC_1_STUCK);
         } else {
-          any_the_same_count = 0;
+          err_unset(ERR_ENC_1_STUCK);
         }
-        if (any_the_same_count >= LIGHT_LED_THRESHOLD) {
-          leds_on(2);
+        if (same_count[1] >= LIGHT_LED_THRESHOLD) {
+          err_set(ERR_ENC_2_STUCK);
         } else {
-          leds_off(2);
+          err_unset(ERR_ENC_2_STUCK);
         }
+        if (same_count[2] >= LIGHT_LED_THRESHOLD) {
+          err_set(ERR_ENC_3_STUCK);
+        } else {
+          err_unset(ERR_ENC_3_STUCK);
+        }
+
 
         GPIOE->BSRRL = 1 << PORTE_ENC_CS; // de-assert (pull up) CS
         enc_poll_state = EPS_DONE;

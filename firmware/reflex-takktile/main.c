@@ -1,4 +1,5 @@
 #include "leds.h"
+#include "error.h"
 #include "console.h"
 #include "enet.h"
 #include <stdio.h>
@@ -18,7 +19,6 @@ int main()
   systime_init();
   printf("=== RESET ===\r\n");
   leds_init();
-  leds_on(0);
   enet_init();
   dmxl_init();
   fan_init();
@@ -40,6 +40,7 @@ int main()
 
   for (uint_fast32_t loop_count = 1; ; loop_count++)
   {
+    err_service();
     if (SYSTIME - prev_start_time >= POLL_PERIOD_US)
     {
       prev_start_time += POLL_PERIOD_US;
@@ -48,8 +49,6 @@ int main()
       else
       {
         g_state.systime = SYSTIME;
-        //printf("start %d\r\n", (int)g_state.systime);
-        leds_toggle(0);
         async_poll_start();
       }
     }
@@ -61,10 +60,10 @@ int main()
       printf("%lu : %lu \r\n", SYSTIME, t1);
 #endif
       if (enet_get_link_status() == ENET_LINK_UP) {
-        leds_off(1);
+        err_unset(ERR_NO_ETHERNET);
         enet_send_state();
       } else {
-        leds_on(1);
+        err_set(ERR_NO_ETHERNET);
       }
 
       enet_process_rx_ring();
