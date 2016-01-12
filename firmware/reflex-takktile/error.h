@@ -13,6 +13,10 @@ typedef enum
   ERR_ENC_1_STUCK,     // Encoder 1 has repeated it's value
   ERR_ENC_2_STUCK,     // Encoder 2 has repeated it's value
   ERR_ENC_3_STUCK,     // Encoder 3 has repeated it's value
+  ERR_TAC_0_PROBLEM,   // i2c communication error with tactile port 0
+  ERR_TAC_1_PROBLEM,   // i2c communication error with tactile port 0
+  ERR_TAC_2_PROBLEM,   // i2c communication error with tactile port 0
+  ERR_TAC_3_PROBLEM,   // i2c communication error with tactile port 0
   ERR_NUMBER           // Placeholder to give us the number of errors, not for use
 } error_type_t;
 

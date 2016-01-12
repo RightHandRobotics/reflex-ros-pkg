@@ -17,7 +17,11 @@ static const uint8_t errSequence[ERR_NUMBER][NUM_FLASHES] = {
   {0b0100, 0b1000, 0b0000, 0b1110, 0, 0, 0, 0}, // Encoders all stuck
   {0b0100, 0b1000, 0b0000, 0b1000, 0, 0, 0, 0}, // Encoder 1 stuck
   {0b0100, 0b1000, 0b0000, 0b0100, 0, 0, 0, 0}, // Encoder 2 stuck
-  {0b0100, 0b1000, 0b0000, 0b0010, 0, 0, 0, 0}  // Encoder 3 stuck
+  {0b0100, 0b1000, 0b0000, 0b0010, 0, 0, 0, 0}, // Encoder 3 stuck
+  {0b0100, 0b0010, 0b0000, 0b1000, 0, 0, 0, 0}, // I2C error for Tac 0
+  {0b0100, 0b0010, 0b0000, 0b0100, 0, 0, 0, 0}, // I2C error for Tac 1
+  {0b0100, 0b0010, 0b0000, 0b0010, 0, 0, 0, 0}, // I2C error for Tac 2
+  {0b0100, 0b0010, 0b0000, 0b0001, 0, 0, 0, 0}  // I2C error for Tac 3
   };
 
 // Which errors have been recorded
