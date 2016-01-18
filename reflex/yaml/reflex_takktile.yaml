@@ -20,4 +20,4 @@ reflex_takktile_preshape:
     default_motor_speed: 2.0
     max_motor_speed: 3.5
     max_motor_travel: 1.75
-    overload_threshold: 250.0
+    overload_threshold: 400.0
