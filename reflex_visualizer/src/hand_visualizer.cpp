@@ -77,6 +77,7 @@ int main(int argc, char **argv)
   ros::Duration(2.0).sleep();
   reflex_msgs::Hand base_hand_state;
   for (int i=0; i<10; i++) {
+    ROS_INFO("Publishing state %d", i);
     pub.publish(base_hand_state);
     ros::Duration(0.5).sleep();
   }
