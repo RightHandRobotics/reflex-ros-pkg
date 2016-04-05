@@ -17,9 +17,9 @@ void tactile_bridge_poll_nonblocking(const uint8_t tactile_bridge);
 #define NUM_INTERNAL_I2C 2
 #define NUM_BRIDGED_I2C 2
 
-typedef enum 
-{ 
-  TPS_IDLE = 0, 
+typedef enum
+{
+  TPS_IDLE = 0,
   TPS_BCAST_ENABLE,
   TPS_BCAST_START_SAMPLING,
   TPS_BCAST_DISABLE,
@@ -31,8 +31,7 @@ typedef enum
   TPS_DONE = ASYNC_POLL_DONE
 } tactile_async_poll_state_t;
 
-extern tactile_async_poll_state_t 
-tactile_poll_states[NUM_TACTILE_PORTS];
+extern tactile_async_poll_state_t tactile_poll_states[NUM_TACTILE_PORTS];
 
 #endif
 

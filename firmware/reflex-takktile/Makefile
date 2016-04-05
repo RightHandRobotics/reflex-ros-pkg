@@ -4,12 +4,12 @@ OUT=$(BINDIR)/$(NAME)
 FLOAT_FLAGS=-mfloat-abi=hard -mfpu=fpv4-sp-d16
 OPENOCD=../tools/openocd/bin/openocd
 CFLAGS=$(DEFS) -O2 -g $(FLOAT_FLAGS) -mthumb -mcpu=cortex-m4 -ffunction-sections -fdata-sections -MD -std=gnu99 -Wall -I$(PERIPHLIB_PATH)/inc -Istm32 -DSTM32F427_437xx -DHSE_VALUE=25000000 -Werror -I.
-LDFLAGS=-g $(FLOAT_FLAGS) -mthumb -mcpu=cortex-m4 
+LDFLAGS=-g $(FLOAT_FLAGS) -mthumb -mcpu=cortex-m4
 TC=arm-none-eabi-
 CC=$(TC)gcc
 
 SRCS=startup.c main.c leds.c console.c stubs.c enet.c systime.c dmxl.c fan.c \
-     tactile.c pin.c enc.c state.c async_poll.c delay.c
+     tactile.c pin.c enc.c state.c async_poll.c delay.c error.c
 OBJS=$(SRCS:%.c=$(BINDIR)/%.o)
 
 default: $(BINDIR) $(OUT).bin
@@ -43,7 +43,7 @@ dump_flash:
 
 gdb_server: $(OUT).bin
 	$(OPENOCD) -f stm32/olimex-arm-usb-tiny-h.cfg -f stm32/stm32.cfg -c "init; halt"
-	
+
 gdb: $(OUT).bin
 	$(TC)gdb $(OUT) -x stm32/gdb_init_commands
 

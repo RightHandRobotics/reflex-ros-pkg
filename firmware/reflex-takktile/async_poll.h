@@ -1,11 +1,11 @@
 #ifndef ASYNC_POLL_H
 #define ASYNC_POLL_H
 
-typedef enum 
-{ 
-  APT_BUSY,  
-  APT_JUST_FINISHED, 
-  APT_COMPLETE 
+typedef enum
+{
+  APT_BUSY,
+  APT_JUST_FINISHED,
+  APT_COMPLETE
 } async_poll_tick_result_t;
 
 void async_poll_init();
