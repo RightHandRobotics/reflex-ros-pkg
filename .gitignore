@@ -8,4 +8,5 @@ reflex_driver/yaml/*calibrate.yaml
 *~
 *.pyc
 *.bag
+*.bag.active
 firmware/beta/bin

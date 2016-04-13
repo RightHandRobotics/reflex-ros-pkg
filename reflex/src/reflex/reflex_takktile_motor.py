@@ -48,7 +48,7 @@ class ReflexTakktileMotor(Motor):
         Bounds the given position command and sets it to the motor
         '''
         if not nearly_equal(self.motor_cmd, self._check_motor_angle_command(goal_pos), 3) or\
-           not nearly_equal(self.motor_cmd, self.motor_msg.joint_angle, 1):
+           not nearly_equal(self.motor_cmd, self._motor_msg.joint_angle, 1):
             self.position_update_occurred = True
         self.motor_cmd = self._check_motor_angle_command(goal_pos)
 
