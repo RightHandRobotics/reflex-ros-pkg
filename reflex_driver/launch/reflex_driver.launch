@@ -8,6 +8,6 @@
 	<rosparam file="$(find reflex_driver)/yaml/tactile_calibrate.yaml" command="load"/>
 
 	<node name="driver_node" pkg="reflex_driver" type="reflex_driver_node" output="screen" required="true">
-		<param name="network_interface" value="eth2"/>
+		<param name="network_interface" value="eth5"/>
 	</node>
 </launch>
