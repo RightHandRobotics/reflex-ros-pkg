@@ -5,6 +5,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 catkin_package( CATKIN_DEPENDS roscpp reflex_msgs)
 
 add_library(reflex_hand reflex_hand.cpp)
+target_link_libraries(reflex_hand ${catkin_LIBRARIES})
 
 add_executable(reflex_driver_node reflex_driver_node.cpp)
 target_link_libraries(reflex_driver_node reflex_hand ${catkin_LIBRARIES})
