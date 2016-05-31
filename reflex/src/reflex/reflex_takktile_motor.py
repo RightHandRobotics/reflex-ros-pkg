@@ -90,16 +90,16 @@ class ReflexTakktileMotor(Motor):
         '''
         Takes the given angle offset in radians and tightens the motor
         '''
-        self.set_motor_angle(self.motor_msg.joint_angle + tighten_angle)
+        self.set_motor_angle(self._motor_msg.joint_angle + tighten_angle)
 
     def loosen(self, loosen_angle=0.05):
         '''
         Takes the given angle offset in radians and loosens the motor
         '''
-        self.set_motor_angle(self.motor_msg.joint_angle - loosen_angle)
+        self.set_motor_angle(self._motor_msg.joint_angle - loosen_angle)
 
     def _receive_state_cb(self, data):
-        self.motor_msg = data
+        self._motor_msg = data
         self._handle_motor_load(data.load)
 
     def _handle_motor_load(self, load):
@@ -114,7 +114,7 @@ class ReflexTakktileMotor(Motor):
         Takes the finger tactile data, loosens motor if in contact
         '''
         tolerance = 0.001
-        if self.finger.is_finger_in_contact() and (self.motor_cmd > self.motor_msg.joint_angle + tolerance):
+        if self.finger.is_finger_in_contact() and (self.motor_cmd > self._motor_msg.joint_angle + tolerance):
             rospy.logdebug("Motor %s in contact", self.name)
             self.loosen(0)
 

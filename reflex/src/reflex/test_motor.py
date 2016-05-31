@@ -42,12 +42,12 @@ class TestMotor(unittest.TestCase):
         data.raw_angle = 20.0
         data.load = 10.0
         self.motor.zero_point = 12.5
-        self.motor.motor_msg.load = 22.0
+        self.motor._motor_msg.load = 22.0
 
         self.motor.receive_state_cb(data)
-        self.assertAlmostEqual(self.motor.motor_msg.joint_angle, 3.75)
-        self.assertAlmostEqual(self.motor.motor_msg.raw_angle, 20.0)
-        self.assertAlmostEqual(self.motor.motor_msg.load, 20.8)
+        self.assertAlmostEqual(self.motor._motor_msg.joint_angle, 3.75)
+        self.assertAlmostEqual(self.motor._motor_msg.raw_angle, 20.0)
+        self.assertAlmostEqual(self.motor._motor_msg.load, 20.8)
         loose_mock.called_once_with(20.8)
 
 
