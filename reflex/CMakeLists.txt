@@ -29,3 +29,4 @@ add_executable(tf_broadcaster src/tf_broadcaster.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(tf_broadcaster ${catkin_LIBRARIES})
+add_dependencies(tf_broadcaster ${catkin_EXPORTED_TARGETS})
