@@ -236,7 +236,7 @@
       </geometry>
       <material
         name="">
-        <xacro:flex_color/>
+        <xacro:proximal_color/>
       </material>
     </visual>
   </link>
