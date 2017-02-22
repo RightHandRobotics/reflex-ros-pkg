@@ -29,18 +29,19 @@ import reflex_msgs.msg
 
 
 class ReflexHand(object):
-    def __init__(self, name, MotorClass):
+    def __init__(self, name, prefix, num, MotorClass):
         '''
         Assumes that "name" is the name of the hand with a preceding
         slash, e.g. /reflex_takktile or /reflex_sf
         '''
         self.namespace = name
-        rospy.init_node('reflex_hand')
-        rospy.loginfo('Starting up the hand')
-        self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
-                       self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
-                       self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
-                       self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
+        self.prefix = prefix
+        rospy.init_node('reflex_hand_' + num, anonymous=True)
+        rospy.loginfo('Starting up hand')
+        self.motors = {self.namespace + '_f1': MotorClass(self.prefix + self.namespace + '_f1'),
+                       self.namespace + '_f2': MotorClass(self.prefix + self.namespace + '_f2'),
+                       self.namespace + '_f3': MotorClass(self.prefix + self.namespace + '_f3'),
+                       self.namespace + '_preshape': MotorClass(self.prefix + self.namespace + '_preshape')}
         rospy.Subscriber(self.namespace + '/command',
                          reflex_msgs.msg.Command, self._receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position',
