@@ -34,17 +34,18 @@ using namespace reflex_hand;
 ReflexHandState::ReflexHandState()
 {
   systime_us_ = 0;
-  for (int i = 0; i < NUM_TACTILE; i++)
+  for (int i = 0; i < NUM_TAKKTILE; i++)
     tactile_pressures_[i] = tactile_temperatures_[i] = 0;
 }
 
 /////////////////////////////////////////////////////////////////////////
 
-ReflexHand::ReflexHand(const std::string &interface)
+ReflexHand::ReflexHand(const std::string &interface, int pb, const char* &mcast_addr_str)
 : happy_(true)
 {
   ROS_INFO("ReflexHand constructor");
-  const char *mcast_addr_str = "224.0.0.124"; // parameterize someday !
+  ROS_INFO("checking interface: %s", interface.c_str());
+  //const char *mcast_addr_str = "224.0.0.124"; // parameterize someday !
   tx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   rx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   ROS_FATAL_COND(tx_sock_ < 0, "couldn't create socket");
@@ -52,6 +53,7 @@ ReflexHand::ReflexHand(const std::string &interface)
   memset(&mcast_addr_, 0, sizeof(mcast_addr_));
   mcast_addr_.sin_family = AF_INET;
   mcast_addr_.sin_addr.s_addr = inet_addr(mcast_addr_str);
+  PORT_BASE = pb;
 
   ifaddrs *ifaddr;
   if (getifaddrs(&ifaddr) == -1)
@@ -85,8 +87,7 @@ ReflexHand::ReflexHand(const std::string &interface)
   freeifaddrs(ifaddr);
   if (!found_interface)
   {
-    ROS_FATAL("Unable to find IPv4 address of interface %s. Perhaps it "
-              "needs to be set to a static address?", interface.c_str());
+    ROS_FATAL("Unable to find IPv4 address of interface %s. Perhaps it needs to be set to a static address?", interface.c_str());
     happy_ = false;
     return;
   }
@@ -129,6 +130,7 @@ ReflexHand::ReflexHand(const std::string &interface)
   ROS_INFO("constructor complete");
 }
 
+
 ReflexHand::~ReflexHand()
 {
 }
@@ -137,7 +139,7 @@ void ReflexHand::tx(const uint8_t *msg,
                     const uint16_t msg_len, 
                     const uint16_t port)
 {
-  // ROS_INFO("ReflexHand::tx %d bytes to port %d", msg_len, port);
+  // ROS_INFO("ReflexHand::tx %d bytes to port %d", msg_len, port); // Check or uncheck for debugging
   mcast_addr_.sin_port = htons(port);
   int nsent = sendto(tx_sock_, msg, msg_len, 0,
                      (sockaddr *)&mcast_addr_, sizeof(mcast_addr_));
@@ -154,6 +156,7 @@ bool ReflexHand::listen(const double max_seconds)
   timeout.tv_sec = (time_t)trunc(max_seconds);
   timeout.tv_usec = (suseconds_t)((max_seconds - timeout.tv_sec) * 1e6);
   int rv = select(rx_sock_ + 1, &rdset, NULL, NULL, &timeout);
+
   if (rv > 0 && FD_ISSET(rx_sock_, &rdset))
   {
     int nbytes = recvfrom(rx_sock_, rxbuf, sizeof(rxbuf), 0, NULL, NULL);
@@ -204,9 +207,9 @@ typedef struct
 {
   uint8_t  header[4];
   uint32_t systime;
-  uint16_t tactile_pressures[ReflexHandState::NUM_TACTILE];
-  uint16_t tactile_temperatures[ReflexHandState::NUM_TACTILE];
-  uint16_t encoders[ReflexHandState::NUM_FINGERS];
+  uint16_t tactile_pressures[NUM_TAKKTILE];
+  uint16_t tactile_temperatures[NUM_TAKKTILE];
+  uint16_t encoders[NUM_FINGERS];
   uint8_t  dynamixel_error_states[4];
   uint16_t dynamixel_angles[4];
   uint16_t dynamixel_speeds[4];
@@ -232,9 +235,9 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
   }
   mcu_state_format_1_t *rx_state_msg = (mcu_state_format_1_t *)msg;
   rx_state_.systime_us_ = rx_state_msg->systime;
-  for (int i = 0; i < ReflexHandState::NUM_FINGERS; i++)
+  for (int i = 0; i < NUM_FINGERS; i++)
     rx_state_.encoders_[i] = rx_state_msg->encoders[i];
-  for (int i = 0; i < ReflexHandState::NUM_TACTILE; i++)
+  for (int i = 0; i < NUM_TAKKTILE; i++)
   {
     rx_state_.tactile_pressures_[i]    = rx_state_msg->tactile_pressures[i];
     rx_state_.tactile_temperatures_[i] = rx_state_msg->tactile_temperatures[i];
@@ -250,6 +253,7 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
   }
   // now that we have stuff the rx_state_ struct, fire off our callback
+  //ROS_INFO("Received data from port base %d", PORT_BASE);
   if (state_cb_)
     state_cb_(&rx_state_);
 }

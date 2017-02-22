@@ -34,8 +34,15 @@ from reflex_takktile_motor import ReflexTakktileMotor
 
 
 class ReflexTakktileHand(ReflexHand):
-    def __init__(self):
-        super(ReflexTakktileHand, self).__init__('/reflex_takktile', ReflexTakktileMotor)
+    def __init__(self, prefix, num):
+        if (prefix == 'hand1'):
+            self.prefix = '/hand1'
+            super(ReflexTakktileHand, self).__init__('/reflex_takktile', self.prefix, num, ReflexTakktileMotor)
+        else:
+            self.prefix = ''
+            super(ReflexTakktileHand, self).__init__('/' + prefix + '/reflex_takktile', self.prefix, num, ReflexTakktileMotor)
+
+        self.base_name = '/reflex_takktile'
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
                                              reflex_msgs.msg.RadianServoCommands, queue_size=10)
         self.fingers = {self.namespace + '_f1': finger.Finger(),
@@ -95,6 +102,7 @@ class ReflexTakktileHand(ReflexHand):
                 motor.finger = self.fingers[ID]
 
     def _receive_hand_state_cb(self, data):
+        # rospy.loginfo("Calling %s receive_hand_state_cb", self.prefix);
         self.latest_update = rospy.get_rostime()
         self.motors[self.namespace + '_f1']._receive_state_cb(data.motor[0])
         self.motors[self.namespace + '_f2']._receive_state_cb(data.motor[1])
@@ -148,10 +156,10 @@ class ReflexTakktileHand(ReflexHand):
         for ID, motor in self.motors.items():
             motor.speed_update_occurred = False
         motor_speed_cmd = reflex_msgs.srv.SetSpeedRequest(
-            [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
-             self.motors['/reflex_takktile_f2'].get_commanded_speed(),
-             self.motors['/reflex_takktile_f3'].get_commanded_speed(),
-             self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
+            [self.motors[self.namespace + '_f1'].get_commanded_speed(),
+             self.motors[self.namespace + '_f2'].get_commanded_speed(),
+             self.motors[self.namespace + '_f3'].get_commanded_speed(),
+             self.motors[self.namespace + '_preshape'].get_commanded_speed()])
         self.set_speed_service(motor_speed_cmd)
 
     def _publish_position_commands(self):
@@ -162,26 +170,9 @@ class ReflexTakktileHand(ReflexHand):
         for ID, motor in self.motors.items():
             motor.position_update_occurred = False
         motor_pos_cmd = reflex_msgs.msg.RadianServoCommands(
-            [self.motors['/reflex_takktile_f1'].get_commanded_position(),
-             self.motors['/reflex_takktile_f2'].get_commanded_position(),
-             self.motors['/reflex_takktile_f3'].get_commanded_position(),
-             self.motors['/reflex_takktile_preshape'].get_commanded_position()])
+            [self.motors[self.namespace + '_f1'].get_commanded_position(),
+             self.motors[self.namespace + '_f2'].get_commanded_position(),
+             self.motors[self.namespace + '_f3'].get_commanded_position(),
+             self.motors[self.namespace + '_preshape'].get_commanded_position()])
         self.motor_cmd_pub.publish(motor_pos_cmd)
         rospy.sleep(0.01)
-
-
-def main():
-    rospy.sleep(2.0)  # To allow services and parameters to load
-    hand = ReflexTakktileHand()
-    rospy.sleep(0.5)
-    r = rospy.Rate(30)
-    while not rospy.is_shutdown():
-        hand._publish_motor_commands()
-        if (rospy.get_rostime().secs > (hand.latest_update.secs + hand.comms_timeout)):
-            rospy.logfatal('Hand going down, no ethernet data for %d seconds', hand.comms_timeout)
-            rospy.signal_shutdown('Comms timeout')
-        r.sleep()
-
-
-if __name__ == '__main__':
-    main()

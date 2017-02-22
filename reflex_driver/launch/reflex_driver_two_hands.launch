@@ -6,6 +6,8 @@
 	<rosparam file="$(find reflex_driver)/yaml/motor_constants.yaml" command="load"/>
 	<rosparam file="$(find reflex_driver)/yaml/finger_calibrate.yaml" command="load" ns = "hand1"/>
 	<rosparam file="$(find reflex_driver)/yaml/tactile_calibrate.yaml" command="load" ns = "hand1"/>
-
+	<rosparam file="$(find reflex_driver)/yaml/finger_calibrate_hand2.yaml" command="load" ns = "hand2"/>
+	<rosparam file="$(find reflex_driver)/yaml/tactile_calibrate_hand2.yaml" command="load" ns = "hand2"/>
 	<node name="hand1_reflex_driver_node" pkg="reflex_driver" type="hand1_reflex_driver_node" output="screen" required="true"/>
+	<node name="hand2_reflex_driver_node" pkg="reflex_driver" type="hand2_reflex_driver_node" output="screen" required="true"/>
 </launch>

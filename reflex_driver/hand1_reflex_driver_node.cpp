@@ -18,8 +18,7 @@ int main(int argc, char **argv) {
   std::string ns1 = "/reflex_takktile";
   char* hand1_mcast_addr = "224.0.0.124";
   int hand1_pb = 11333;
-  ROS_INFO("checking interface reflex_driver_node: %s", hand1_network_interface.c_str());
-
+  ROS_INFO("checking interface hand1_reflex_driver_node: %s", hand1_network_interface.c_str());
   boost::shared_ptr<reflex_driver::ReflexDriver> hand1_driver(boost::make_shared<reflex_driver::ReflexDriver>(hand1_network_interface, hand1_pb, hand1_prefix, hand1_mcast_addr));
 
   // Initialize the hand command services

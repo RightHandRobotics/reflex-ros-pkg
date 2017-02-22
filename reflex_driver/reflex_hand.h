@@ -24,17 +24,23 @@
 #include <boost/function.hpp>
 #include <string>
 
+#define NUM_FINGERS                   3
+#define NUM_SENSORS_PER_FINGER        9
+#define NUM_SENSORS_PALM              11
+#define NUM_TAKKTILE                  (NUM_FINGERS * NUM_SENSORS_PER_FINGER + NUM_SENSORS_PALM)
+#define NUM_ENCODERS                  NUM_FINGERS
+#define NUM_SERVOS                    4
+#define NUM_DYNAMIXELS                NUM_SERVOS
+
 namespace reflex_hand
 {
 
   class ReflexHandState
   {
   public:
-    static const int NUM_FINGERS = 3;
-    static const int NUM_TACTILE = NUM_FINGERS * 9 + 11;
     uint32_t systime_us_;
-    uint16_t tactile_pressures_[NUM_TACTILE];
-    uint16_t tactile_temperatures_[NUM_TACTILE];
+    uint16_t tactile_pressures_[NUM_TAKKTILE];
+    uint16_t tactile_temperatures_[NUM_TAKKTILE];
     uint16_t encoders_[NUM_FINGERS];
     uint8_t  dynamixel_error_states_[4];
     uint16_t dynamixel_angles_[4];
@@ -48,9 +54,6 @@ namespace reflex_hand
   class ReflexHand
   {
   public:
-    const static int NUM_SERVOS = 4;
-    const static int NUM_SENSORS_PER_FINGER = 9;
-    const static int PORT_BASE = 11333;
     static const uint16_t DYN_MIN_RAW = 0;
     static const uint16_t DYN_MAX_RAW = 4095;
     static const uint16_t DYN_MIN_RAW_WRAPPED = 16383;  // For checking negative wraps
@@ -62,7 +65,7 @@ namespace reflex_hand
     typedef boost::function<void(const ReflexHandState * const)> StateCallback;
     void setStateCallback(StateCallback callback);
 
-    ReflexHand(const std::string &interface);
+    ReflexHand(const std::string &interface, int pb, const char* &mcast_addr);
     ~ReflexHand();
     bool listen(const double max_seconds);
     void setServoTargets(const uint16_t *targets);
@@ -70,6 +73,7 @@ namespace reflex_hand
     void setServoControlModes(const ControlMode mode);
     bool happy() { return happy_; }
   private:
+    int PORT_BASE;
     enum CommandPacket { CP_SET_SERVO_MODE = 1,
                          CP_SET_SERVO_TARGET = 2 };
     int tx_sock_, rx_sock_;
