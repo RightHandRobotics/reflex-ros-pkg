@@ -16,9 +16,16 @@ First, you need to get the cross-compiler (gcc-arm) and build OpenOCD, the JTAG 
     make
     make dfu
 
-Now you can build the firmware image:
+For the hand that will be known as hand 1 navigate to:
 
     cd firmware/reflex-takktile
+
+For the hand that will be known as hand 2 navigate to:
+
+    cd firmware/reflex-takktile-hand2
+    
+Now you can build the firmware image:
+
     make clean
     make
 
