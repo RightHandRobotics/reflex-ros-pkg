@@ -3,125 +3,124 @@
 // GLOBAL ALL FILES VARIABLE
 imu_async_poll_state_t imu_poll_state[NUM_IMUS] = {STATE_WAIT, STATE_WAIT, STATE_WAIT, STATE_WAIT};
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
-// uint8_t imu_fail_state_count[NUM_IMUS] = {0, 0, 0, 0};
 
-void imuInit(uint8_t imuNumber)
+void imuInit()
 {
   uint8_t id[1] = {0};
   uint8_t result;
 
   // initializing imus state
   printf("initializing imu state: \n");
-  //for (int i = 0; i < NUM_IMUS; i++)
-  //{
+  for (int i = 0; i < NUM_IMUS; i++)
+  {
     if (handPorts.multiplexer)
     {
-      if (selectMultiplexerPort(imuNumber))
+      if (selectMultiplexerPort(i))
       {
-          printf("\tI2C Multiplexer port %d, 0x%x: ", imuNumber, 1 << imuNumber);
+          printf("\tI2C Multiplexer port %d, 0x%x: ", i, 1 << i);
       }
       else
       {
-          printf("\tFailed to select I2C Multiplexer port %d\n ", imuNumber);
+          printf("\tFailed to select I2C Multiplexer port %d\n ", i);
       }
     }
-    // if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
-    // {
-    //   result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
-    //   result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
-    // }
-    // else
-    // {
-    //   result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
-    //   result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
-    // }
-    if(*id != BNO055_ID)
+    if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
-      printf("IMU %d not found. ID: %d, Address: 0x%x\n", imuNumber, id[0], handPorts.imuI2CAddress[imuNumber]);
-      handStatus.imus[imuNumber] = 0;
+      result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+      result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
     }
     else
     {
-      printf("IMU %d found. ID: %d, Address: 0x%x\n", imuNumber, id[0], handPorts.imuI2CAddress[imuNumber]);
-      handStatus.imus[imuNumber] = 1;
+      result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+      result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
     }
-  //}
+    if(*id != BNO055_ID)
+    {
+      printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+      handStatus.imus[i] = 0;
+    }
+    else
+    {
+      printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+      handStatus.imus[i] = 1;
+    }
+  }
   // set imu mode
   printf("\tSetting modes...\n");
-  result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG, imuNumber);
+  result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(400);
+  udelay(1000);
 
   // reset
   printf("\tReseting...\n");
-  result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x20, imuNumber);
+  result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x20);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(40000); // takes a while to reset the imus
+  udelay(1000000); // takes a while to reset the imus
   
    // set imu power mode
   printf("\tSetting power modes...\n");
-  result = setRegisterIMUs(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL, imuNumber);
+  result = setRegisterIMUs(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(400);
+  udelay(1000);
   
   // set page id
   printf("\tSetting page id...\n");
-  result = setRegisterIMUs(BNO055_PAGE_ID_ADDR, 0, imuNumber);
+  result = setRegisterIMUs(BNO055_PAGE_ID_ADDR, 0);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(400);
+  udelay(1000);
   
   // set external crystal use id
   printf("\tSetting external crystal use...\n");
-  result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x80, imuNumber);
+  result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x80);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(400000);//500000); // takes a while to set this configuration
+  udelay(1000000);//500000); // takes a while to set this configuration
   
   // set imu mode again
   printf("\tSetting modes 0x%02x... \n", OPERATION_MODE_NDOF);
-  result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF, imuNumber);
+  result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
 }
 
-uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data, uint8_t imuNumber)
+uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
 {
   uint8_t result = 0;
   uint8_t resultOp = 0;
   uint8_t response[1] = {0};
   printf("\t\tRegister: 0x%02x Data: 0x%02x\n", registerAddr, data);
-  //for (int i = 0; i < NUM_IMUS; i++)
-  //{
+  for (int i = 0; i < NUM_IMUS; i++)
+  {
     if (handPorts.multiplexer)
     {
-      if (selectMultiplexerPort(imuNumber))
+      if (selectMultiplexerPort(i))
       {
-        printf("\t\tIMU on I2C Multiplexer port %d.\n", imuNumber);
+        printf("\t\tIMU on I2C Multiplexer port %d.\n", i);
       }
       else
       {
-        printf("\t\tFailed to select port %d.\n", imuNumber);
+        printf("\t\tFailed to select port %d.\n", i);
       }
     }
 
-    if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
+    if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
-      setRegisterSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddr, data);
-      resultOp = writeRegisterSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddr);
+      setRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
+      resultOp = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
     else
     {
-      setRegisterI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddr, data);
-      resultOp = writeRegisterI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddr);
+      setRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
+      resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
     
     if (registerAddr != BNO055_SYS_TRIGGER_ADDR) // if not a reset command, check
     {
-      if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
+      if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
       {
-        readBytesSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, response);
+        readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
       }
       else
       {
-        readBytesI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, response);
+        readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
       }
       result += (response[0] == data);
     }
@@ -129,8 +128,8 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data, uint8_t imuNumber)
     {
       result += resultOp;
     }
-  //}
-  return result == 1;
+  }
+  return result == NUM_IMUS;
 }
 
 uint8_t selectMultiplexerPort(uint8_t port)

@@ -49,27 +49,20 @@ uint8_t asyncUpdate()
   uint8_t allDone = 1;
 
   // if stateMachines did not finish before MAX_CYCLE_PERIOD, restart
-  // if (SYSTIME - asyncStartTime > MAX_CYCLE_PERIOD){
+  // if (SYSTIME - asyncStartTime > MAX_CYCLE_PERIOD)
   //   asyncInit();
-  //   allDone = 0;
-  // }
 
-  if (allDone){
-    for (uint_fast8_t i = 0; i < NUM_STATE_FUNCTIONS; i++)
+  for (uint_fast8_t i = 0; i < NUM_STATE_FUNCTIONS; i++)
+  {
+    if (!(*(stateMachines[i].poll_state) == (int)ASYNC_POLL_DONE))
     {
-      if (!(*(stateMachines[i].poll_state) == (int)ASYNC_POLL_DONE))
-      {
-        allDone = 0;
-        stateMachines[i].fptr(stateMachines[i].arg);
-      }
-    }
-    if (allDone){                // if all stateMachines finished
-      asyncInit();              // restart
+      allDone = 0;
+      stateMachines[i].fptr(stateMachines[i].arg);
     }
   }
-  else{
-    allDone = 1;
-  }
+  if (allDone)                // if all stateMachines finished
+    asyncInit();              // restart
 
   return allDone;
 }
+

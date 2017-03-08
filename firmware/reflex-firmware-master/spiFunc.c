@@ -4,7 +4,6 @@ void resetConverter(void)
 {
   // the two SPI-I2C bridges have their RESETs tied to a common MCU pin,
   // so this function will reset both of them
-  printf("Reseting spi converter\n");
   GPIOC->BSRRH = 1 << PORTC_I2C_BRIDGE_RESET;
   udelay(1000);
   GPIOC->BSRRL = 1 << PORTC_I2C_BRIDGE_RESET;
@@ -13,7 +12,6 @@ void resetConverter(void)
 
 uint8_t checkConverterIsBusy (uint8_t utime)
 {
-  printf("Checking if spi converter is busy\n");
   uint8_t status[1] = {0};
   readConverterRegister(SC18IS601_REGISTER_I2C_STATUS, status);
   uint32_t startTime = SYSTIME;
@@ -24,19 +22,14 @@ uint8_t checkConverterIsBusy (uint8_t utime)
   if (status[0] == 0xF3)
   {
     resetConverter();
-    printf("checkConverterIsBusy FAIL\n");
-    printf("checkConverterIsBusy FAIL\n");
     return 0;
   }
   else
-    printf("checkConverterIsBusy SUCCESS\n");
-    printf("checkConverterIsBusy SUCCESS\n");
     return 1;
 }
 
 uint8_t writeConverterRegister(uint8_t registerAddress, uint8_t data)
 {
-  printf("Writing spi converter register\n");
   uint32_t startTime = SYSTIME;
   SPI_TypeDef *spiPort = SPI1;
   GPIO_TypeDef *cs_gpio = GPIOA;
@@ -56,23 +49,17 @@ uint8_t writeConverterRegister(uint8_t registerAddress, uint8_t data)
     while (!(spiPort->SR & SPI_SR_RXNE) && (SYSTIME - startTime < SPI_TIMEOUT));
     while ((spiPort->SR & SPI_SR_BSY)  && (SYSTIME - startTime < SPI_TIMEOUT));
     spiPort->DR;
-    //udelay(15);                                // delay 15us
+    udelay(15);                                // delay 15us
   }
   cs_gpio->BSRRL = cs_pin_mask;           // de-assert CS
   udelay(5);
 
-  if (SYSTIME - startTime > SPI_TIMEOUT){
-    printf("writeConverterRegister TIMEOUT\n");
-    printf("writeConverterRegister TIMEOUT\n");
+  if (SYSTIME - startTime > SPI_TIMEOUT)
     return 0;
-  }
-  printf("writeConverterRegister SUCCESS\n");
-  printf("writeConverterRegister SUCCESS\n");
   return 1;
 }
 uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
 {
-  printf("Reading spi converter register\n");
   uint32_t startTime = SYSTIME;
   SPI_TypeDef *spiPort = SPI1;
   GPIO_TypeDef *cs_gpio = GPIOA;
@@ -91,45 +78,34 @@ uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
     while (!(spiPort->SR & SPI_SR_TXE) && (SYSTIME - startTime < SPI_TIMEOUT));       // wait for buffer room
     while (!(spiPort->SR & SPI_SR_RXNE) && (SYSTIME - startTime < SPI_TIMEOUT));
     while ((spiPort->SR & SPI_SR_BSY)  && (SYSTIME - startTime < SPI_TIMEOUT));
-    if (i == 2){
-      data[0] = spiPort->DR;
-      printf("\t\t Saved Data  : %#02x\n", data[0]);
-    }
-    else{
+    if (i == 2)
+      data[0] = spiPort->DR; 
+    else
       spiPort->DR;
-    }
     udelay(15);
 
   }
   cs_gpio->BSRRL = cs_pin_mask; // de-assert CS
   udelay(5);
 
-  if (SYSTIME - startTime > SPI_TIMEOUT){
-    printf("readConverterRegister TIMEOUT\n");
-    printf("readConverterRegister TIMEOUT\n");
+  if (SYSTIME - startTime > SPI_TIMEOUT)
     return 0;
-  }
-  printf("readConverterRegister SUCCESS\n");
-  printf("readConverterRegister SUCCESS\n");
   return 1;
 }
 
 uint8_t writeRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress)
 {
-  printf("Writing SPI register\n");
   uint8_t data[1] = {registerAddress};
   return writeBytesSPI(port, address, data, 1, 0);
 }
 
 uint8_t setRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress, uint8_t data){
-  printf("Setting SPI register\n");
   uint8_t msg[2] = {registerAddress, data};
   return writeBytesSPI(port, address, msg, 2, 0);
 }
 
 uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, int toggleAddress)
 {
-  printf("Writing SPI bytes\n");
   SPI_TypeDef *spiPort = (SPI_TypeDef*) port;
   GPIO_TypeDef *cs_gpio = GPIOA;
   uint32_t cs_pin_mask = 1 << PORTA_BRIDGE0_CS;
@@ -166,21 +142,16 @@ uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, i
 
   cs_gpio->BSRRL = cs_pin_mask;           // de-assert CS
 
-  if (len == 0 || data == NULL){
-    printf("writeBytesSPI FAIL\n");
-    printf("writeBytesSPI FAIL\n");
+  if (len == 0 || data == NULL)
     return 1;
-  }
   const uint32_t wait = 180 + 110 * len;
   udelay(wait);
-  printf("writeBytesSPI SUCCESS\n");
-  printf("writeBytesSPI SUCCESS\n");
+
   return 1;
 }
 
 uint8_t readCommmand(SPI_TypeDef* spiPort, uint8_t address, uint8_t numBytes)
 {
-  printf("Read SPI command\n");
   GPIO_TypeDef *cs_gpio = GPIOA;
   uint32_t cs_pin_mask = 1 << PORTA_BRIDGE0_CS;
 
@@ -207,7 +178,6 @@ uint8_t readCommmand(SPI_TypeDef* spiPort, uint8_t address, uint8_t numBytes)
 
 uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values)
 {
-  printf("Reading SPI bytes\n");
   SPI_TypeDef *spiPort = (SPI_TypeDef*) port;
   // GPIOC->BSRRH = 1 << PORTC_I2C_BRIDGE_RESET;
   // udelay(100);

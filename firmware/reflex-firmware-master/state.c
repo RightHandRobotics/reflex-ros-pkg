@@ -21,14 +21,14 @@ void state_init()
 	for (uint_fast8_t i = 0; i < NUM_IMUS*4; i++)
 	    handState.imus[i] = 0;
 
-	// // initializing handStatus
-	// for (uint_fast8_t i = 0; i < NUM_FINGERS; i++)
-	// 	handStatus.finger[i] = 1;
-	// for (uint_fast8_t i = 0; i < NUM_SENSORS; i++)
-	// 	handStatus.takktileSensor[i] = 1;
-	// for (uint_fast8_t i = 0; i < NUM_ENC; i++)
-	// 	handStatus.encoders[i] = 1;
-	// for (uint_fast8_t i = 0; i < NUM_IMUS; i++)
-	//     handStatus.imus[i] = 0;
+	// initializing handStatus
+	for (uint_fast8_t i = 0; i < NUM_FINGERS; i++)
+		handStatus.finger[i] = 1;
+	for (uint_fast8_t i = 0; i < NUM_SENSORS; i++)
+		handStatus.takktileSensor[i] = 1;
+	for (uint_fast8_t i = 0; i < NUM_ENC; i++)
+		handStatus.encoders[i] = 1;
+	for (uint_fast8_t i = 0; i < NUM_IMUS; i++)
+	    handStatus.imus[i] = 0;
 }
 

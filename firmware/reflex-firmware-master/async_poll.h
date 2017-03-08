@@ -2,7 +2,7 @@
 #define ASYNC_POLL_H
 
 #define ASYNC_POLL_DONE 0xffffffff
-#define MAX_CYCLE_PERIOD 45000 //25000 // 33333
+#define MAX_CYCLE_PERIOD 25000 // 33333
 
 #include <stdint.h>
 #include <stdio.h>

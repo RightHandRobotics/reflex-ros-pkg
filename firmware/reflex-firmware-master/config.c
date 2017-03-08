@@ -9,13 +9,9 @@ void init()
   portsInit();                     // microcontroller and hand configuration
 
   state_init();
-  for (int i=0; i<200; i++){
-    takktileInit();                  // takktile
-  }
+  takktileInit();                  // takktile
   encInit();                       // encoders
-  for (int i=0; i<NUM_IMUS; i++){
-    imuInit(i);                       // imus
-  }
+  imuInit();                       // imus
   
   leds_init();
   enet_init();

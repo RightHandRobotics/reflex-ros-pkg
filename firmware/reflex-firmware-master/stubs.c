@@ -7,7 +7,8 @@
 *     true if you want to debug via UART, using the 4 pins on the brainboard, implies in higher latency
 *     false, if you want a faster normal functioning
 */
-#define DEBUG_VIA_UART true
+#define DEBUG_VIA_UART false
+
 extern int _end;
 
 caddr_t _sbrk(int incr)

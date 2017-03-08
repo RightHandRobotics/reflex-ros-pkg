@@ -14,7 +14,6 @@ void takktileInit()
 
   // Configure SPI to I2C Conversion
   writeConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, SC18IS601_I2C_CLOCK_369KHZ);
-  printf("\t\t I2C Clock Set Value   : %#02x\n", SC18IS601_I2C_CLOCK_369KHZ);
   
   // Print header, all the registers
   printf("\tSPI to I2C Converter registers: \n");

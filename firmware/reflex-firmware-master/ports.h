@@ -7,7 +7,6 @@
 #include "pin.h"
 #include "config.h"
 #include "i2cFunc.h"
-#include "spiFunc.h"
 
 /////////////////////////////////////////////////////////////////////////
 // I2C SETUP
