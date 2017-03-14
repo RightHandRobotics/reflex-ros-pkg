@@ -552,6 +552,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
   populate_tactile_threshold(default_contact_threshold);
+  ROS_INFO("populate_tactile_threshold");
   string ns = "/reflex_takktile";
 
   // Advertise necessary topics
