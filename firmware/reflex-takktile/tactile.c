@@ -563,9 +563,6 @@ void tactile_init()
     for (int j = 0; j < 6; j++)
       printf("tactile bridge %d reg %d: 0x%02x\r\n",
              i, j, tactile_bridge_read_reg(i, j));
-  // set the i2c bridges to run at 400 khz
-  for (int i = 0; i < 2; i++)
-    tactile_bridge_write_reg(i, 2, 5);
 
   /*
   for (int port = 0; port < NUM_TACTILE_PORTS; port++)
@@ -585,17 +582,6 @@ void tactile_init()
   }
   */
   printf("done with tactile_init()\r\n");
-}
-
-void tactile_bridge_reset()
-{
-  // the two SPI-I2C bridges have their RESETs tied to a common MCU pin,
-  // so this function will reset both of them
-  printf("tactile_bridge_reset()\r\n");
-  GPIOC->BSRRH = 1 << PORTC_I2C_BRIDGE_RESET;
-  for (volatile int i = 0; i < 10000; i++) { } // assert RESET
-  GPIOC->BSRRL = 1 << PORTC_I2C_BRIDGE_RESET;
-  for (volatile int i = 0; i < 10000; i++) { } // then let them boot up
 }
 
 tactile_i2c_result_t tactile_i2c(uint8_t port,
@@ -796,6 +782,21 @@ static void tactile_bridge_spi_txrx(const uint8_t bridge_idx,
   for (volatile int i = 0; i < 10; i++) { } // la di dah...
   cs_gpio->BSRRL = cs_pin_mask;
   for (volatile int i = 0; i < 10; i++) { } // la di dah...
+}
+
+void tactile_bridge_reset()
+{
+  // the two SPI-I2C bridges have their RESETs tied to a common MCU pin,
+  // so this function will reset both of them
+  printf("tactile_bridge_reset()\r\n");
+  GPIOC->BSRRH = 1 << PORTC_I2C_BRIDGE_RESET;
+  for (volatile int i = 0; i < 10000; i++) { } // assert RESET
+  GPIOC->BSRRL = 1 << PORTC_I2C_BRIDGE_RESET;
+  for (volatile int i = 0; i < 10000; i++) { } // then let them boot up
+
+  // set the i2c bridges to run at 400 khz
+  for (int i = 0; i < 2; i++)
+    tactile_bridge_write_reg(i, 2, 5);
 }
 
 tactile_i2c_result_t
