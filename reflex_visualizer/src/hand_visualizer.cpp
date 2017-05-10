@@ -93,7 +93,12 @@ void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand) {
 
 
 void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand) {
-  publish_finger_to_rviz(hand, false);
+  if ((hand->finger[0].proximal==0) & (hand->finger[1].proximal==0) & (hand->finger[2].proximal==0)){
+    publish_finger_to_rviz(hand, false);
+  }
+  else{
+    publish_finger_to_rviz(hand, true);
+  }
 }
 
 
