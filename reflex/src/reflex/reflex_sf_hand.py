@@ -25,8 +25,10 @@ __email__ = 'reflex-support@righthandrobotics.com'
 
 from os.path import join
 import yaml
+import time
 
 from dynamixel_msgs.msg import JointState
+from dynamixel_msgs.msg import Encoder
 import rospkg
 import rospy
 from std_srvs.srv import Empty
@@ -35,14 +37,42 @@ from reflex_hand import ReflexHand
 from reflex_sf_motor import ReflexSFMotor
 import reflex_msgs.msg
 
+motor_names = ['_f1', '_f2', '_f3', '_preshape']
 
 class ReflexSFHand(ReflexHand):
     def __init__(self):
         super(ReflexSFHand, self).__init__('/reflex_sf', ReflexSFMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
-        rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate)
-
+        self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
+        self.encoder_offset = [0, 0, 0]
+        self.enc_scale = (2 * 3.141596) / 16383
+        self.encoder_present = rospy.get_param('encoder')
+        self.proximal_angle = [0,0,0]
+        self.distal_approx = [0,0,0]
+        self.calibration_error = 15
+        self.num_calibration_trials = 20
+        if self.encoder_present:
+            self.enc_subscriber = rospy.Subscriber('/encoder_states', Encoder, self._receive_enc_state_cb)
+            rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_auto)
+            self.encoder_zero_point = rospy.get_param('/enc_zero_points')
+        else:
+            rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_manual)
+    
+    def _receive_enc_state_cb(self, data):
+        #Receives and processes the encoder state
+        #print("encoder 1: " + str(data.encoders[0]) + " encoder 2: " + str(data.encoders[1]) + " encoder 3: " + str(data.encoders[2]))
+        self.update_encoder_offset(data.encoders)
+        self.encoder_last_value = data.encoders[:]
+        motor_angles = [0, 0, 0]
+        for i in range(3):
+            self.proximal_angle[i] = self.calc_proximal_angle(data.encoders[i], self.encoder_zero_point[i], self.encoder_offset[i])
+            raw_motor_angle = self.motors[self.namespace + motor_names[i]].get_current_raw_motor_angle()
+            motor_joint_angle = self.motors[self.namespace + motor_names[i]].get_current_joint_angle() #self.calc_motor_angle(self.MOTOR_TO_JOINT_INVERTED[i], raw_motor_angle, self.MOTOR_TO_JOINT_GEAR_RATIO[i], self.motor_zero_point[i])
+            #motor_angles[i] = raw_motor_angle
+            self.distal_approx[i] = self.calc_distal_angle(motor_joint_angle, self.proximal_angle[i])
+        #print motor_angles
+    
     def _receive_cmd_cb(self, data):
         self.disable_force_control()
         self.set_speeds(data.velocity)
@@ -76,9 +106,15 @@ class ReflexSFHand(ReflexHand):
         motor_names = ('_f1', '_f2', '_f3', '_preshape')
         for i in range(4):
             state.motor[i] = self.motors[self.namespace + motor_names[i]].get_motor_msg()
+        for i in range(3):
+            state.finger[i].proximal = self.proximal_angle[i]
+            state.finger[i].distal_approx = self.distal_approx[i]
+
         self.hand_state_pub.publish(state)
 
-    def calibrate(self, data=None):
+    def calibrate_manual(self, data=None):
+        #Manual hand calibration
+        #Used in the reflex SF hand with no encoders
         for motor in sorted(self.motors):
             rospy.loginfo("Calibrating motor " + motor)
             command = raw_input("Type 't' to tighten motor, 'l' to loosen \
@@ -99,6 +135,29 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         self._zero_current_pose()
         return []
 
+    def calibrate_auto(self, data=None):
+        #Auto calibrates the hand using encoder data and moving until motion is detected
+        for i in range(3):
+            time.sleep(0.125)
+            j=0
+            while(1):
+                enc_pos = self.encoder_last_value[i]
+                if (j==0): 
+                    j=1
+                    last = enc_pos
+                if ((abs(enc_pos-last) < self.calibration_error)):
+                    self.motors[self.namespace + motor_names[i]].tighten()
+                    time.sleep(0.2)
+                    last = enc_pos
+                else:
+                    break
+        print "Calibration complete, writing data to file"
+        self._zero_current_pose()
+        self.calibrate_encoders_locally(self.encoder_last_value)
+        for i in range(3):
+            self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.1)
+        return []
+
     def _write_zero_point_data_to_file(self, filename, data):
         rospack = rospkg.RosPack()
         reflex_sf_path = rospack.get_path("reflex")
@@ -114,8 +173,50 @@ motor, or 'q' to indicate that the zero point has been reached\n")
             reflex_sf_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
             reflex_sf_preshape=dict(zero_point=self.motors[self.namespace + '_preshape'].get_current_raw_motor_angle())
         )
-        self._write_zero_point_data_to_file('reflex_sf_zero_points.yaml', data)
+        self._write_zero_point_data_to_file('reflex_sf_motor_zero_points.yaml', data)
 
+    #Encoder data processing functions are based off encoder functions used
+    #For the reflex_takktile hand as in reflex_driver_node.cpp
+    def calibrate_encoders_locally(self, data):
+        #Capture the current encoder position locally as zero and save to file
+        for i in range(0, 3):
+            self.encoder_zero_point[i] = data[i]*self.enc_scale
+            self.encoder_offset[i] = 0;
+        data = dict(enc_zero_points = self.encoder_zero_point)
+        self._write_zero_point_data_to_file('reflex_sf_encoder_zero_points.yaml', data)    
+
+    def update_encoder_offset(self, raw_value):
+        #Given a raw and past (self.encoder_last_value) value, track encoder wrapes (self.enc_offset)
+        offset = self.encoder_offset[:]
+        
+        for i in range(0,3):
+            if (offset[i]==-1):
+                #This happens at start up
+                offset[i] = 0
+            else:
+                #If the encoder jumps, that means it wrapped a revolution
+                if (self.encoder_last_value[i] - raw_value[i] > 5000):
+                    offset[i] = offset[i] + 16383
+                elif (self.encoder_last_value[i] - raw_value[i] < -5000):
+                    offset[i] = offset[i] - 16383
+        
+        self.encoder_offset = offset[:]
+
+    def calc_proximal_angle(self, raw_value, zero, offset):
+        #Calculates actual proximal angle using raw sensor data, and
+        #the encoder "zero" point for that encoder
+        wrapped_enc_value = raw_value + offset
+        rad_value = wrapped_enc_value*self.enc_scale
+        return (zero - rad_value)
+
+    def calc_distal_angle(self, joint_angle, proximal):
+        #Calculates the distal angle, "tendon spooled out" - "proximal encoder" angles
+        #Could be improved
+        diff = joint_angle - proximal
+        if (diff<0):
+            return 0
+        else:
+            return diff
 
 def main():
     rospy.sleep(4.0)  # To allow services and parameters to load

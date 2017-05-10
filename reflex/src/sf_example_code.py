@@ -85,6 +85,9 @@ def main():
         rospy.sleep(0.75)
     raw_input("...\n")
 
+    # Return to 0 Position
+    pos_pub.publish(PoseCommand(f1=0.0, f2=0.0, f3=0.0, preshape=0.0))
+
     ##################################################################################################################
     # # Demonstration of force control - square wave
     # # NEEDS TESTING
