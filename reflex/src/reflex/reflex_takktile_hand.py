@@ -38,6 +38,8 @@ class ReflexTakktileHand(ReflexHand):
         super(ReflexTakktileHand, self).__init__('/reflex_takktile', ReflexTakktileMotor)
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
                                              reflex_msgs.msg.RadianServoCommands, queue_size=10)
+        self.motor_torque_pub = rospy.Publisher(self.namespace + '/torque_hand_command',
+                                             reflex_msgs.msg.RadianServoCommands, queue_size=10)
         self.fingers = {self.namespace + '_f1': finger.Finger(),
                         self.namespace + '_f2': finger.Finger(),
                         self.namespace + '_f3': finger.Finger()}
@@ -57,7 +59,6 @@ class ReflexTakktileHand(ReflexHand):
         reset = self.tactile_stops_enabled
         if reset:
             self.disable_tactile_stops()
-        self.disable_force_control()
         self.set_speeds(data.velocity)
         self.set_angles(data.pose)
         if reset:
@@ -67,7 +68,6 @@ class ReflexTakktileHand(ReflexHand):
         reset = self.tactile_stops_enabled
         if reset:
             self.disable_tactile_stops()
-        self.disable_force_control()
         self.reset_speeds()
         self.set_angles(data)
         if reset:
@@ -77,17 +77,14 @@ class ReflexTakktileHand(ReflexHand):
         reset = self.tactile_stops_enabled
         if reset:
             self.disable_tactile_stops()
-        self.disable_force_control()
         self.set_velocities(data)
         if reset:
             self.enable_tactile_stops()
 
     def _receive_force_cmd_cb(self, data):
         self.disable_tactile_stops()
-        self.disable_force_control()
         self.reset_speeds()
         self.set_force_cmds(data)
-        self.enable_force_control()
 
     def _connect_motors_to_fingers(self):
         for ID, motor in self.motors.items():
@@ -129,16 +126,15 @@ class ReflexTakktileHand(ReflexHand):
         Checks whether motors have updated their states and, if so, publishes
         their commands
         '''
-        speed_update_occurred = False
-        for ID, motor in self.motors.items():
-            speed_update_occurred |= motor.speed_update_occurred
-        position_update_occurred = False
-        for ID, motor in self.motors.items():
-            position_update_occurred |= motor.position_update_occurred
-        if speed_update_occurred:
+        if any([motor.speed_update_occurred 
+                for ID, motor in self.motors.items()])
             self._publish_speed_commands()
-        if position_update_occurred:
+        elif any([motor.position_update_occurred 
+                for ID, motor in self.motors.items()])
             self._publish_position_commands()
+        elif any([motor.torque_update_occurred 
+                for ID, motor in self.motors.items()])
+            self._publish_torque_commands()
 
     def _publish_speed_commands(self):
         '''
@@ -167,6 +163,21 @@ class ReflexTakktileHand(ReflexHand):
              self.motors['/reflex_takktile_f3'].get_commanded_position(),
              self.motors['/reflex_takktile_preshape'].get_commanded_position()])
         self.motor_cmd_pub.publish(motor_pos_cmd)
+        rospy.sleep(0.01)
+
+    def _publish_torque_commands(self):
+        '''
+        Queries the motors for their torque setpoints and publishes
+        those to the appropriate topics for reflex_driver
+        '''
+        for ID, motor in self.motors.items():
+            motor.torque_update_occurred = False
+        motor_torque_cmd = reflex_msgs.msg.RadianServoCommands(
+            [self.motors['/reflex_takktile_f1'].get_commanded_torque(),
+             self.motors['/reflex_takktile_f2'].get_commanded_torque(),
+             self.motors['/reflex_takktile_f3'].get_commanded_torque(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_torque()])
+        self.motor_torque_pub.publish(motor_torque_cmd)
         rospy.sleep(0.01)
 
 

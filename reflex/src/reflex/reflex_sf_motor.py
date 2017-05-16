@@ -123,8 +123,6 @@ class ReflexSFMotor(Motor):
         if not self.MOTOR_TO_JOINT_INVERTED:
             load *= -1
         self._motor_msg.load = load_filter * load + (1 - load_filter) * self._motor_msg.load
-        if self._in_control_force_mode:
-            self._control_force(self._motor_msg.load, k=3.0*0.025)
         self._loosen_if_overloaded(self._motor_msg.load)
 
     def _set_local_motor_zero_point(self):

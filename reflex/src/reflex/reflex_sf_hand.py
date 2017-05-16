@@ -44,24 +44,19 @@ class ReflexSFHand(ReflexHand):
         rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate)
 
     def _receive_cmd_cb(self, data):
-        self.disable_force_control()
         self.set_speeds(data.velocity)
         self.set_angles(data.pose)
 
     def _receive_angle_cmd_cb(self, data):
-        self.disable_force_control()
         self.reset_speeds()
         self.set_angles(data)
 
     def _receive_vel_cmd_cb(self, data):
-        self.disable_force_control()
         self.set_velocities(data)
 
     def _receive_force_cmd_cb(self, data):
-        self.disable_force_control()
         self.reset_speeds()
         self.set_force_cmds(data)
-        self.enable_force_control()
 
     def disable_torque(self):
         for ID, motor in self.motors.items():

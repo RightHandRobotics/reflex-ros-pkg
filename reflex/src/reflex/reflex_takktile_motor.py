@@ -31,10 +31,12 @@ class ReflexTakktileMotor(Motor):
         super(ReflexTakktileMotor, self).__init__(name)
         self.motor_cmd = 0.0
         self.speed = 0.0
+        self.torque = 0.0
         self.finger = None
         self.tactile_stops_enabled = False
         self.position_update_occurred = False
         self.speed_update_occurred = False
+        self.torque_update_occurred = False
         self.reset_motor_speed()
 
     def get_commanded_position(self):
@@ -42,6 +44,9 @@ class ReflexTakktileMotor(Motor):
 
     def get_commanded_speed(self):
         return self.speed
+
+    def get_commanded_torque(self):
+        return self.torque
 
     def set_motor_angle(self, goal_pos):
         '''
@@ -59,6 +64,13 @@ class ReflexTakktileMotor(Motor):
         '''
         bounded_command = min(max(angle_command, 0.0), self._MAX_MOTOR_TRAVEL)
         return bounded_command
+
+    def _check_motor_force_command(self, force_command):
+        '''
+        Sets the force to be within the allowed range
+        '''
+        bounded_force = min(max(force_command, -1.0), 1.0)
+        return bounded_force
 
     def set_motor_speed(self, goal_speed):
         '''
@@ -86,6 +98,15 @@ class ReflexTakktileMotor(Motor):
         elif goal_vel <= 0.0:
             self.set_motor_angle(0.0)
 
+    def set_force_cmd(self, torque):
+        '''
+        Sets the motor torque inwards or outwards based on sign
+        '''
+        torque = self._check_motor_force_command(torque)
+        if not nearly_equal(self.torque, torque):
+            self.torque_update_occurred = True
+        self.torque = torque
+
     def tighten(self, tighten_angle=0.05):
         '''
         Takes the given angle offset in radians and tightens the motor
@@ -103,8 +124,6 @@ class ReflexTakktileMotor(Motor):
         self._handle_motor_load(data.load)
 
     def _handle_motor_load(self, load):
-        if self._in_control_force_mode:
-            self._control_force(load, k=16e-4*0.025)
         elif self.finger and self.tactile_stops_enabled:
             self._loosen_if_in_contact()
         self._loosen_if_overloaded(load)

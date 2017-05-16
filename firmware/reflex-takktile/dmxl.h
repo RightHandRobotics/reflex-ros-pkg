@@ -12,7 +12,8 @@ typedef enum
 {
   DMXL_CM_IDLE     = 0,
   DMXL_CM_VELOCITY = 1,
-  DMXL_CM_POSITION = 2
+  DMXL_CM_POSITION = 2,
+  DMXL_CM_TORQUE   = 3
 } dmxl_control_mode_t;
 
 void dmxl_init();

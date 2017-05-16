@@ -39,7 +39,6 @@ class Motor(object):
         self._MAX_MOTOR_TRAVEL = rospy.get_param(name + '/max_motor_travel')
         self._OVERLOAD_THRESHOLD = rospy.get_param(name + '/overload_threshold')
         self._motor_msg = reflex_msgs.msg.Motor()
-        self._in_control_force_mode = False
 
     def get_current_joint_angle(self):
         return self._motor_msg.joint_angle
@@ -60,6 +59,9 @@ class Motor(object):
         raise NotImplementedError
 
     def reset_motor_speed(self):
+        raise NotImplementedError
+
+    def set_force_cmd(self, force_cmd):
         raise NotImplementedError
 
     def set_motor_velocity(self, goal_vel):
@@ -84,31 +86,6 @@ class Motor(object):
         '''
         bounded_command = min(abs(goal_speed), self._MAX_MOTOR_SPEED)
         return bounded_command
-
-    def enable_force_control(self):
-        self._in_control_force_mode = True
-        self.previous_load_control_output = self.get_current_joint_angle()
-        self.previous_load_control_error = 0.0
-
-    def disable_force_control(self):
-        self._in_control_force_mode = False
-
-    def set_force_cmd(self, force_cmd):
-        '''
-        Bounds the given goal load and sets it as the goal
-        '''
-        self.force_cmd = min(max(force_cmd, 0.0), self._OVERLOAD_THRESHOLD)
-
-    def _control_force(self, current_force, k):
-        '''
-        Uses discrete integral control to try and maintain goal force
-        k is Compensator gain - higher gain has faster response and is more unstable
-        '''
-        current_error = self.force_cmd - current_force
-        output = self.previous_load_control_output + k * (current_error + self.previous_load_control_error)
-        self.set_motor_angle(output)
-        self.previous_load_control_output = output
-        self.previous_load_control_error = current_error
 
     def _loosen_if_overloaded(self, load):
         '''

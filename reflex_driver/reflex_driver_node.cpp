@@ -44,6 +44,7 @@ using namespace std;
 //      /hand_state             Contains the current state of the hand
 // Subscribed topics
 //      /radian_hand_command    Executes radian commands, assuming hand is calibrated
+//      /torque_hand_command    Executes torque commands
 // Advertised services
 //      /calibrate_tactile      Calibrates tactile sensors at current level
 //      /calibrate_fingers      Calibrates encoder and motor values
@@ -61,6 +62,7 @@ string finger_file_address;   // Set in main()
 
 vector<int> MOTOR_TO_JOINT_INVERTED;        // Loaded from yaml
 vector<double> MOTOR_TO_JOINT_GEAR_RATIO;   // Loaded from yaml
+static const int MAX_TORQUE_VALUE = 1023;   // Got from motor datasheet
 int default_contact_threshold;              // Loaded from yaml
 reflex_msgs::SetTactileThreshold::Request contact_thresholds;   // Set by /set_tactile_threshold ROS service
 vector<int> tactile_offset_f1;              // Loaded from yaml and reset during calibration
@@ -139,10 +141,24 @@ void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
 // yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = pos_rad_to_raw(msg->radian_commands[i], i);
     raw_cmd_last_value[i] = targets[i];
+  }
+  rh->setServoTargets(targets);
+}
+
+
+// Commands the motors from radians, using the zero references from
+// yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
+void receive_torque_cmd_cb(reflex_hand::ReflexHand *rh,
+                          const reflex_msgs::TorqueServoCommands::ConstPtr &msg) {
+  rh->setServoControlModes(reflex_hand::ReflexHand::CM_TORQUE);
+  uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+    targets[i] = torque_to_raw(msg->torque_commands[i], i);
   }
   rh->setServoTargets(targets);
 }
@@ -158,6 +174,28 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
              (int16_t) command, reflex_hand::ReflexHand::DYN_MIN_RAW);
     command = reflex_hand::ReflexHand::DYN_MIN_RAW;
   }
+  return command;
+}
+
+// Takes a torque command and returns Dynamixel command
+uint16_t torque_to_raw(float torque_command, int motor_idx) {
+  if (torque_command > 1.0) {
+    ROS_WARN("Finger %d torque set out of range (%d), reset to 1.0", motor_idx + 1,
+             torque_command);
+    torque_command = 1.0
+  }
+  if (torque_command < -1.0) {
+    ROS_WARN("Finger %d torque set out of range (%d), reset to -1.0", motor_idx + 1,
+             torque_command);
+    torque_command = -1.0
+  }
+  uint16_t command;
+  if (torque_command > 0.0) {
+    command = MAX_TORQUE_VALUE * torque_command + MAX_TORQUE_VALUE; // 1024-2047
+  } else {
+    command = MAX_TORQUE_VALUE * -torque_command; // 0-1023
+  }
+
   return command;
 }
 
@@ -561,6 +599,9 @@ int main(int argc, char **argv) {
   ros::Subscriber radian_positions_sub =
     nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 10,
                                                    boost::bind(receive_angle_cmd_cb, &rh, _1));
+  ros::Subscriber torque_sub =
+    nh.subscribe<reflex_msgs::TorqueServoCommands>(ns + "/torque_hand_command", 10,
+                                                   boost::bind(receive_torque_cmd_cb, &rh, _1));
 
   // Initialize the hand command services
   ros::ServiceServer set_speed_service =

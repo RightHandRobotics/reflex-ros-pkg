@@ -90,13 +90,3 @@ class ReflexHand(object):
     def reset_speeds(self):
         for ID, motor in self.motors.items():
             motor.reset_motor_speed()
-
-    def disable_force_control(self):
-        for ID, motor in self.motors.items():
-            motor.disable_force_control()
-        rospy.sleep(0.05)  # Lets commands stop before allowing any other actions
-
-    def enable_force_control(self):
-        rospy.sleep(0.05)  # Lets other actions happen before beginning constant torque commands
-        for ID, motor in self.motors.items():
-            motor.enable_force_control()

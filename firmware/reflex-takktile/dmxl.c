@@ -62,6 +62,8 @@ static void dmxl_write_data(const uint8_t port_idx, const uint8_t dmxl_id,
                             const uint8_t data_len, const uint8_t start_addr,
                             const uint8_t *data);
 static uint8_t dmxl_send_ping(const uint8_t port_idx, const uint8_t dmxl_id);
+static void dmxl_set_torque_control(const uint8_t port_idx, const uint8_t dmxl_id, 
+                                    const uint8_t enable);
 
 // put in ramfunc sector ?
 static inline void dmxl_push_byte(const uint8_t dmxl_port, const uint8_t byte)
@@ -484,6 +486,10 @@ void dmxl_set_control_mode(const uint8_t port_idx,
     dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 1);
     delay_us(1);
     dmxl_set_angle_limits(port_idx, DMXL_DEFAULT_ID, 4095, 4095);  // Enables multi-turn mode w/ position control
+    if (dmxl_control_mode == DMXL_CM_TORQUE) {
+      // Leave torque control mode if we were in it
+      dmxl_set_torque_control(port_idx, DMXL_DEFAULT_ID, 0);
+    }
     // http://support.robotis.com/en/product/dynamixel/mx_series/mx-64.htm#Actuator_Address_0B1
     if (divider_is_sent[port_idx] == 0) {
       delay_us(1);
@@ -492,6 +498,14 @@ void dmxl_set_control_mode(const uint8_t port_idx,
       dmxl_set_multiturn_offset(port_idx, DMXL_DEFAULT_ID, 13000);  // Places motor close enough to middle of 0-28672 range
       divider_is_sent[port_idx] = 1;
     }
+  }
+  else if (control_mode == DMXL_CM_TORQUE)
+  {
+    dmxl_set_led(port_idx, DMXL_DEFAULT_ID, 1);
+    delay_us(1);
+    dmxl_set_torque_enable(port_idx, DMXL_DEFAULT_ID, 1);
+    delay_us(1);
+    dmxl_set_torque_control(port_idx, DMXL_DEFAULT_ID, 1);
   }
   dmxl_control_mode = control_mode;
 }
@@ -509,7 +523,20 @@ void dmxl_set_control_target(const uint8_t port_idx,
   if (dmxl_control_mode == DMXL_CM_VELOCITY) {
     start_addr = 32; // velocity control
   }
+  if (dmxl_control_mode == DMXL_CM_TORQUE) {
+    start_addr = 71; // torque control
+  }
   dmxl_write_data(port_idx, DMXL_DEFAULT_ID, 2, start_addr, d);
+}
+
+static void dmxl_set_torque_control(const uint8_t port_idx, const uint8_t dmxl_id, 
+                                    const uint8_t enable) {
+  if (port_idx >= NUM_DMXL)
+    return;
+  uint8_t d[1];
+  d[0] = enable;
+  uint8_t start_addr = 70;  // Torque control mode enable
+  dmxl_write_data(port_idx, DMXL_DEFAULT_ID, 1, start_addr, d);
 }
 
 void dmxl_set_all_control_targets(const uint16_t *targets)
@@ -528,8 +555,12 @@ void dmxl_set_all_control_targets(const uint16_t *targets)
     pkts[i][4] = 3; // instruction: "write data"
     if (dmxl_control_mode == DMXL_CM_VELOCITY) {
       pkts[i][5] = 32; // start address: control target (velocity)
-    } else {
+    } else if (dmxl_control_mode == DMXL_CM_POSITION) {
       pkts[i][5] = 30; // start address: control target (position)
+    } else if (dmxl_control_mode == DMXL_CM_TORQUE) {
+      pkts[i][5] = 71; // start address: control target (torque)
+    } else {
+        return;
     }
     pkts[i][6] = targets[i] & 0xff; // LSB of control target
     pkts[i][7] = (targets[i] >> 8) & 0xff; // MSB of control target
