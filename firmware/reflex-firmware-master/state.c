@@ -20,6 +20,7 @@ void state_init()
 		handState.encoders[i] = 0;
 	for (uint_fast8_t i = 0; i < NUM_IMUS*4; i++)
 	    handState.imus[i] = 0;
+    
 
 	// initializing handStatus
 	for (uint_fast8_t i = 0; i < NUM_FINGERS; i++)
@@ -30,5 +31,7 @@ void state_init()
 		handStatus.encoders[i] = 1;
 	for (uint_fast8_t i = 0; i < NUM_IMUS; i++)
 	    handStatus.imus[i] = 0;
+    for (uint_fast8_t i = 0; i < NUM_RMS; i++)
+	    handStatus.rms[i] = 0;
 }
 

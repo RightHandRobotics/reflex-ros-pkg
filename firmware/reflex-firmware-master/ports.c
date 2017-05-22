@@ -134,6 +134,10 @@ void portsInit()
 	handPorts.imu[1] = (uint32_t*) SPI1_BASE; // finger 2
 	handPorts.imu[2] = (uint32_t*) I2C3_BASE; // finger 3
 	handPorts.imu[3] = (uint32_t*) I2C3_BASE; // palm
+    
+    handPorts.rm[0] = (uint32_t*) I2C1_BASE; // finger 1
+	handPorts.rm[1] = (uint32_t*) SPI1_BASE; // finger 2
+	handPorts.rm[2] = (uint32_t*) I2C3_BASE; // finger 3
 
 	handPorts.imuI2CAddress[0] = BNO055_ADDRESS_A; // finger 1
 	handPorts.imuI2CAddress[1] = BNO055_ADDRESS_A; // finger 2

@@ -18,6 +18,7 @@ typedef struct
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
   uint16_t imus[NUM_IMUS*4];                   // 160-165
+    //TODO: Add robotic materials values in here
 } __attribute__((packed)) state_t;
 
 typedef struct
@@ -26,6 +27,7 @@ typedef struct
   uint8_t takktileSensor[NUM_SENSORS];         // 3-11
   uint8_t encoders[NUM_ENC];                   // 12-14
   uint8_t imus[NUM_IMUS];
+  uint8_t rms[NUM_RMS];
 } __attribute__((packed)) status_t;
 
 // Values meaning:

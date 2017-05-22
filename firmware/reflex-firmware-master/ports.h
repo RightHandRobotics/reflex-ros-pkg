@@ -51,6 +51,7 @@ typedef struct
   uint32_t *takktile[NUM_SENSORS];
   uint32_t *encoder[NUM_ENC];
   uint32_t *imu[NUM_IMUS];
+  uint32_t *rm[NUM_RMS];
   uint8_t encoderI2CAddress[NUM_ENC];
   uint8_t imuI2CAddress[NUM_IMUS];
   uint8_t multiplexer; // 0 -> no multiplexer, 1 -> multiplexer on I2C1, 3 -> multiplexer on I2C3
