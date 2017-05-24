@@ -58,7 +58,7 @@ void rmInit()
 
 void imu_poll_nonblocking_tick(const uint8_t rmNumber)
 {
-  static unsigned int proximity_value[NUM_RMS]; // current proximity reading
+  static uint16_t proximity_value[NUM_RMS]; // current proximity reading
   static unsigned int average_value[NUM_RMS];   // low-pass filtered proximity reading
   static signed int fa2[NUM_RMS];              // FA-II value;
   static signed int fa2derivative[NUM_RMS];     // Derivative of the FA-II value;
@@ -104,8 +104,10 @@ void imu_poll_nonblocking_tick(const uint8_t rmNumber)
                     touch[rmNumber] = (fa2[rmNumber]>sensitivity)*1 + (fa2[rmNumber]<-sensitivity)*2; // 
                  }
                 average_value[rmNumber] = EA * proximity_value[rmNumber] + (1 - EA) * average_value[rmNumber]; //Do this last
-                
-               *state = RM_STATE_READ_AMBIENT; 
+                handState.rm_raw[rmNumber] = proximity_value[rmNumber];
+                handState.rm_fa[rmNumber] = fa2[rmNumber];
+                handState.rm_touch[rmNumber] = touch[rmNumber];
+                *state = RM_STATE_READ_AMBIENT; 
             }
         } else if (rm_state_counter[rmNumber] > 5){
             *state = IMU_STATE_WAIT;
@@ -113,7 +115,7 @@ void imu_poll_nonblocking_tick(const uint8_t rmNumber)
         rm_state_counter[rmNumber]++;
         break;
     case RM_STATE_WAIT:
-      printf("IMU_STATE_WAIT\n");
+      printf("RM_STATE_WAIT\n");
       rm_state_counter[rmNumber] = 0;
       break;
     default:
@@ -145,13 +147,11 @@ uint8_t setRegisterAllRMs(uint8_t registerAddr, uint8_t data)
 
     if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
     {
-      setRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
-      resultOp = writeRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
+      resultOp = setRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
     }
     else
     {
-      setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
-      resultOp = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
+      resultOp = setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
     }
     result += resultOp;
   }
@@ -177,13 +177,11 @@ uint8_t setRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t data)
 
     if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
     {
-      setRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
-      result = writeRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
+      result = setRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
     }
     else
     {
-      setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
-      result = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
+      result = setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
     }
     
     return result;

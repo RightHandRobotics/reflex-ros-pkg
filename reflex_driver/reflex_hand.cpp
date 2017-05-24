@@ -218,6 +218,9 @@ typedef struct
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
   uint16_t imus[ReflexHandState::NUM_IMUS*4];
+  uint16_t rm_raw[ReflexHandState::NUM_RMS];                     //166-171
+  int32_t rm_fa[ReflexHandState::NUM_RMS];                    //172-183
+  uint8_t   rm_touch[ReflexHandState::NUM_RMS];   
 } __attribute__((packed)) mcu_state_format_1_t;
 
 void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)

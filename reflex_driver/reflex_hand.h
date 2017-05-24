@@ -44,6 +44,9 @@ namespace reflex_hand
     uint8_t  dynamixel_voltages_[4];
     uint8_t  dynamixel_temperatures_[4];
     int16_t  imus[NUM_IMUS*4];
+    uint16_t rm_raw[NUM_RMS];                     //166-171
+    int32_t rm_fa[NUM_RMS];                    //172-183
+    uint8_t   rm_touch[NUM_RMS];   
     ReflexHandState();
   };
 

@@ -32,6 +32,10 @@ void state_init()
 	for (uint_fast8_t i = 0; i < NUM_IMUS; i++)
 	    handStatus.imus[i] = 0;
     for (uint_fast8_t i = 0; i < NUM_RMS; i++)
-	    handStatus.rms[i] = 0;
+	    handStatus.rm_raw[i] = 0;
+    for (uint_fast8_t i = 0; i < NUM_RMS; i++)
+	    handStatus.rm_fa[i] = 0;
+    for (uint_fast8_t i = 0; i < NUM_RMS; i++)
+	    handStatus.rm_touch[i] = 0;
 }
 

@@ -18,7 +18,9 @@ typedef struct
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
   uint16_t imus[NUM_IMUS*4];                   // 160-165
-    //TODO: Add robotic materials values in here
+  uint16_t rm_raw[NUM_RMS];                     //166-171
+  int32_t rm_fa[NUM_RMS];                    //172-183
+  uint8_t   rm_touch[NUM_RMS];                  //184-186
 } __attribute__((packed)) state_t;
 
 typedef struct
