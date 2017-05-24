@@ -5,27 +5,14 @@ rm_async_poll_state_t rm_poll_state[NUM_RMS] = {STATE_WAIT, STATE_WAIT, STATE_WA
 uint8_t rm_state_counter[NUM_RMS] = {0, 0, 0}; //var for not getting stuck
 
 /***** USER PARAMETERS *****/
-int ir_current_ = 8;                     // range = [0, 20]. current = value * 10 mA
-int ambient_light_measurement_rate_ = 7; // range = [0, 7]. 1, 2, 3, 4, 5, 6, 8, 10 samples per second
-int averaging_function_ = 7;  // range [0, 7] measurements per run are 2**value, with range [1, 2**7 = 128]
-int proximity_freq_ = 0; // range = [0 , 3]. 390.625kHz, 781.250kHz, 1.5625MHz, 3.125MHz
-unsigned long time;
+const int ir_current_ = 8;                     // range = [0, 20]. current = value * 10 mA
+const int ambient_light_measurement_rate_ = 7; // range = [0, 7]. 1, 2, 3, 4, 5, 6, 8, 10 samples per second
+const int averaging_function_ = 7;  // range [0, 7] measurements per run are 2**value, with range [1, 2**7 = 128]
+const int proximity_freq_ = 0; // range = [0 , 3]. 390.625kHz, 781.250kHz, 1.5625MHz, 3.125MHz
+const int sensitivity = 50;  // Sensitivity of touch/release detection, values closer to zero increase sensitivity
 
 // Touch/release detection
 #define EA 0.3  // exponential average weight parameter / cut-off frequency for high-pass filter
-
-/***** GLOBAL VARIABLES *****/
-unsigned int proximity_value[NUM_RMS]; // current proximity reading
-unsigned int average_value[NUM_RMS];   // low-pass filtered proximity reading
-signed int fa2[NUM_RMS];              // FA-II value;
-signed int fa2derivative[NUM_RMS];     // Derivative of the FA-II value;
-signed int fa2deriv_last[NUM_RMS];     // Last value of the derivative (for zero-crossing detection)
-signed int sensitivity = 50;  // Sensitivity of touch/release detection, values closer to zero increase sensitivity
-
-unsigned long start_time;
-int continuous_mode = 1; //Default on
-int single_shot = 0;
-int touch_analysis = 1; //Default on
 
 void rmInit()
 {
@@ -36,27 +23,7 @@ void rmInit()
   printf("initializing rm state: \n");
   for (int i = 0; i < NUM_RMS; i++)
   {
-    if (handPorts.multiplexer) //select multiplexer port
-    {
-      if (selectMultiplexerPort(i))
-      {
-          printf("\tI2C Multiplexer port %d, 0x%x: ", i, 1 << i);
-      }
-      else
-      {
-          printf("\tFailed to select I2C Multiplexer port %d\n ", i);
-      }
-    }
-    if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
-    {
-      result = writeRegisterSPI(handPorts.rm[i],VCNL4010_ADDRESS, PRODUCT_ID);
-      result = readBytesSPI(handPorts.rm[i], VCNL4010_ADDRESS, 1, id);
-    }
-    else
-    {
-      result = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, PRODUCT_ID);
-      result = readBytesI2C(handPorts.rm[i], VCNL4010_ADDRESS, 1, id);
-    }
+    result = readRegisterRM(i,PRODUCT_ID,id;)
     if(id[0] != VCNL4010_PRODUCT_ID)
     {
       printf("RM %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], VCNL4010_ADDRESS, result);
@@ -70,27 +37,93 @@ void rmInit()
   }
   // set ambient param
   printf("\tSetting ambient param...\n");
-  result = setRegisterRMs(AMBIENT_PARAMETER, 0x7F);
+  result = setRegisterAllRMs(AMBIENT_PARAMETER, 0x7F);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000);
 
   // set IR current
   printf("\tsetting ir current...\n");
-  result = setRegisterRMs(IR_CURRENT, ir_current_);
+  result = setRegisterAllRMs(IR_CURRENT, ir_current_);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000); // takes a while to reset the imus
   
    // seet proximity mod
   printf("\tsetting proximity mod...\n");
-  result = setRegisterRMs(PROXIMITY_MOD, 1);
+  result = setRegisterAllRMs(PROXIMITY_MOD, 1);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000);
   
   
 }
 
+void imu_poll_nonblocking_tick(const uint8_t rmNumber)
+{
+  static unsigned int proximity_value[NUM_RMS]; // current proximity reading
+  static unsigned int average_value[NUM_RMS];   // low-pass filtered proximity reading
+  static signed int fa2[NUM_RMS];              // FA-II value;
+  static signed int fa2derivative[NUM_RMS];     // Derivative of the FA-II value;
+  static signed int fa2deriv_last[NUM_RMS];     // Last value of the derivative (for zero-crossing detection)
+  static uint8_t touch[NUM_RMS];
+    
+  rm_async_poll_state_t* state = (rm_async_poll_state_t*)&(rm_poll_state[rmNumber]);
+  uint8_t temp[1] = {0};
+  uint8_t result = 0;
+  printf("\nRM NUMBER: %d\nSTATE: ", rmNumber);
+  switch(*state)
+  {
+    case RM_STATE_START_MEAS:
+      printf("RM_STATE_START_MEAS\n");
+      if (rm_state_counter[rmNumber]>3){    // Prevent the hand from getting stuck in a loop when RM connection is lost
+        *state = RM_STATE_WAIT;  
+      }
+      else{
+        result = readRegisterRM(rmNumber,COMMAND_0,temp);
+        if (result)
+           result = setRegisterRM(rmNumber,COMMAND_0,temp|START_PROX_MEAS);
+        if (result){
+            *state = RM_STATE_READ_PROX
+            rm_state_counter = 0
+        }
+      }
+      rm_state_counter[rmNumber]++;
+      break;
+    case RM_STATE_READ_PROX:
+        printf("RM_STATE_READ_PROX\n");
+        proximity_value[rmNumber] = 0;
+        result = readRegisterRM(rmNumber,COMMAND_0,temp);
+        if (result && temp[0] & PROX_MEAS_RDY){
+            result = readRegisterRM(rmNumber,PROX_VAL_H,temp); 
+            proximity_value[rmNumber] |= temp[0] << 8;
+            result &= readRegisterRM(rmNumber,PROX_VAL_H,temp);
+            proximity_value[rmNumber] |= temp[0];
+            if (result){
+                fa2deriv_last[rmNumber] = fa2derivative[rmNumber];
+                fa2derivative[rmNumber] = (signed int) average_value[rmNumber] - proximity_value[rmNumber] - fa2[rmNumber];
+                fa2 = (signed int) average_value[rmNumber] - proximity_value[rmNumber];
+                 if (fa2deriv_last[rmNumber] < -sensitivity && fa2derivative[rmNumber] > sensitivity) {
+                    touch[rmNumber] = (fa2[rmNumber]>sensitivity)*1 + (fa2[rmNumber]<-sensitivity)*2; // 
+                 }
+                average_value[rmNumber] = EA * proximity_value[rmNumber] + (1 - EA) * average_value[rmNumber]; //Do this last
+                
+               *state = RM_STATE_READ_AMBIENT; 
+            }
+        } else if (rm_state_counter[rmNumber] > 5){
+            *state = IMU_STATE_WAIT;
+        }
+        rm_state_counter[rmNumber]++;
+        break;
+    case RM_STATE_WAIT:
+      printf("IMU_STATE_WAIT\n");
+      rm_state_counter[rmNumber] = 0;
+      break;
+    default:
+      printf("UNKNOWN\n");
+      *state = IMU_STATE_WAIT;
+      break;
+  }
+}
 
-uint8_t setRegisterRMs(uint8_t registerAddr, uint8_t data)
+uint8_t setRegisterAllRMs(uint8_t registerAddr, uint8_t data)
 {
   uint8_t result = 0;
   uint8_t resultOp = 0;
@@ -120,25 +153,67 @@ uint8_t setRegisterRMs(uint8_t registerAddr, uint8_t data)
       setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
       resultOp = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
     }
-    
-    if (registerAddr != BNO055_SYS_TRIGGER_ADDR) // if not a reset command, check
+    result += resultOp;
+  }
+  return result == NUM_RMS;
+}
+
+uint8_t setRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t data)
+{
+  uint8_t result = 0;
+  printf("\t\tRegister: 0x%02x Data: 0x%02x\n", registerAddr, data);
+
+    if (handPorts.multiplexer)
     {
-      if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
+      if (selectMultiplexerPort(rmNumber))
       {
-        readBytesSPI(handPorts.rm[i], VCNL4010_ADDRESS, 1, response);
+        printf("\t\tRM on I2C Multiplexer port %d.\n", i);
       }
       else
       {
-        readBytesI2C(handPorts.rm[i], VCNL4010_ADDRESS, 1, response);
+        printf("\t\tFailed to select port %d.\n", i);
       }
-      result += (response[0] == data);
+    }
+
+    if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
+    {
+      setRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
+      result = writeRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
     }
     else
     {
-      result += resultOp;
+      setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
+      result = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
     }
-  }
-  return result == NUM_RMS;
+    
+    return result;
+}
+
+uint8_t readRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t *data)
+{
+    uint8_t result = 0;
+    if (handPorts.multiplexer) //select multiplexer port
+    {
+      if (selectMultiplexerPort(rmNumber))
+      {
+          printf("\tI2C Multiplexer port %d, 0x%x: ", i, 1 << i);
+      }
+      else
+      {
+          printf("\tFailed to select I2C Multiplexer port %d\n ", i);
+      }
+    }
+    if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
+    {
+      result = writeRegisterSPI(handPorts.rm[i],VCNL4010_ADDRESS, registerAddr);
+      result = readBytesSPI(handPorts.rm[i], VCNL4010_ADDRESS, 1, data);
+    }
+    else
+    {
+      result = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
+      result = readBytesI2C(handPorts.rm[i], VCNL4010_ADDRESS, 1, data);
+    }
+    return result;
 }
 
 uint8_t selectMultiplexerPort(uint8_t port)
@@ -154,128 +229,5 @@ uint8_t selectMultiplexerPort(uint8_t port)
     printf("SELECTING RM MULTIPLEXER PORT by I2C WRITE_REGISTER: IMU_NUM %d, PORT %d, ADDR 0x70, REG_ADDR %x",
       port, (int)handPorts.rm[port], 1 << port);
     return writeRegisterI2C(handPorts.rm[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
-  }
-}
-
-void imu_poll_nonblocking_tick(const uint8_t imuNumber)
-{
-  imu_async_poll_state_t* state = (imu_async_poll_state_t*)&(imu_poll_state[imuNumber]);
-  uint8_t values[8] = {0};
-  // *state = IMU_STATE_WAIT;
-  printf("\nIMU NUMBER: %d\nSTATE: ", imuNumber);
-  switch(*state)
-  {
-    case IMU_STATE_SET_REGISTER:
-      imu_state_count[imuNumber]++;
-      printf("IMU_STATE_SET_REGISTER\n");
-      if (imu_state_count[imuNumber]>3){    // Prevent the hand from getting stuck in a loop when IMU connection is lost
-        // imu_fail_state_count[imuNumber]++;
-        *state = IMU_STATE_READ_VALUES;  //agang addition
-        // if (imu_fail_state_count[imuNumber]>20){
-        //   imuInit(imuNumber);
-        //   imu_fail_state_count[imuNumber] = 0;
-        // }
-      }
-      else{
-        if (handPorts.multiplexer)
-          selectMultiplexerPort(imuNumber);
-        // if (writeRegisterI2C(handPorts.imu[imuNumber], I2C_MULTIPLEXER_ADDRESS, 1 << imuNumber))
-        //   printf("Selecting I2C Multiplexer port %d.\n", imuNumber);
-        // else
-        //   printf("Failed to select port %d\n", imuNumber);
-        // printf("Setting Register for imu %d.\n", imuNumber);
-
-        // BNO055_EULER_H_LSB_ADDR
-        // BNO055_QUATERNION_DATA_W_LSB_ADDR
-        
-        if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
-        {
-          printf("SPI_WRITING_TO_REGISTER by I2C WRITE: IMU Number %d, PORT %d, ADDR %x, REG_ADDR %x", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
-          if (writeRegisterSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR))
-            *state = IMU_STATE_READ_VALUES;
-        }
-        else
-        {
-          printf("IMU_WRITING_TO_REGISTER by I2C WRITE: IMU Number %d, PORT %d, ADDR %x, REG_ADDR %x", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
-          if (writeRegisterI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR))
-            *state = IMU_STATE_READ_VALUES;
-        }
-      }
-
-      break;
-    case IMU_STATE_READ_VALUES:
-      printf("IMU_STATE_READ_VALUES\n");
-      if (handPorts.multiplexer)
-        selectMultiplexerPort(imuNumber);
-      // if (writeRegisterI2C(handPorts.imu[imuNumber], I2C_MULTIPLEXER_ADDRESS, 1 << imuNumber))
-      //   printf("Selecting I2C Multiplexer port %d.\n", imuNumber);
-      // else
-      //   printf("Failed to select port %d\n", imuNumber);
-      // printf("Reading IMU: %d ...", imuNumber);
-      if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
-      {
-        printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber]);
-        if(readBytesSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values))
-        {
-          printf("reading: ");
-          for (int i = 0; i < 8; i++) // CORRECT
-          {
-            printf("0x%02x ", values[i]);
-          }
-          printf("\n");
-          // for quaternions
-          handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-          handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-          handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-          handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
-
-          // for euler
-          // handState.imus[imuNumber*4] = 0;
-          // handState.imus[imuNumber*4 + 1] = ((int16_t)values[0]) | (((int16_t)values[1]) << 8);
-          // handState.imus[imuNumber*4 + 2] = ((int16_t)values[2]) | (((int16_t)values[3]) << 8);
-          // handState.imus[imuNumber*4 + 3] = ((int16_t)values[4]) | (((int16_t)values[5]) << 8);
-          // *state = IMU_STATE_WAIT;
-        }
-      }
-      else
-      {
-        printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber]);
-        if(readBytesI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values))
-        {
-          printf("Reading: ");
-          for (int i = 0; i < 8; i++) // CORRECT
-          {
-            printf("0x%02x ", values[i]);
-          }
-          printf("\n");
-          // for quaternions
-          handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-          handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-          handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-          handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
-
-          // for euler
-          // handState.imus[imuNumber*4] = 0;
-          // handState.imus[imuNumber*4 + 1] = ((int16_t)values[0]) | (((int16_t)values[1]) << 8);
-          // handState.imus[imuNumber*4 + 2] = ((int16_t)values[2]) | (((int16_t)values[3]) << 8);
-          // handState.imus[imuNumber*4 + 3] = ((int16_t)values[4]) | (((int16_t)values[5]) << 8);
-          // *state = IMU_STATE_WAIT;
-        }
-      }
-
-      *state = IMU_STATE_WAIT;
-      break;
-    case IMU_STATE_WAIT:
-      printf("IMU_STATE_WAIT\n");
-      imu_state_count[imuNumber] = 0;
-      break;
-    default:
-      printf("UNKNOWN\n");
-      *state = IMU_STATE_WAIT;
-      break;
   }
 }

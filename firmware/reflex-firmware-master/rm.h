@@ -27,15 +27,18 @@ DO NOT release this code before licensing is figured out.
 #define IR_CURRENT 0x83  // sets IR current in steps of 10mA 0-200mA
 #define AMBIENT_PARAMETER 0x84  // Configures ambient light measures
 #define PROXIMITY_MOD 0x8F  // proximity modulator timing
-
+#define START_PROX_MEAS 0x08
+#define PROX_MEAS_RDY 0x20
+#define PROX_VAL_H 0x87
+#define PROX_VAL_L 0x88
 #define NUM_RMS 3
 
 #define VCNL4010_PRODUCT_ID 0x21
 
 typedef enum 
 {
-  RM_STATE_INIT_REGS = 0,
-  RM_STATE_READ_VALUES,
+  RM_STATE_START_MEAS = 0,
+  RM_STATE_READ_PROX,
   RM_STATE_WAIT = ASYNC_POLL_DONE
 } rm_async_poll_state_t;
 
