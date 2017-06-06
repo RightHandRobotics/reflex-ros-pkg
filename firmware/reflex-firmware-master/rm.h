@@ -44,7 +44,7 @@ typedef enum
 
 extern rm_async_poll_state_t rm_poll_state[NUM_RMS];
 
-void rmInit(void);
+void rm_init(void);
 uint8_t setRegRM(uint8_t registerAddr, uint8_t data);
 uint8_t selectMultiplexerPort(uint8_t port);
 void rm_poll_nonblocking_tick(const uint8_t imuNumber);

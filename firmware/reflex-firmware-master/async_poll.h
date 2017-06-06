@@ -12,6 +12,7 @@
 #include "dmxl.h"
 #include "enc.h"
 #include "imu.h"
+#include "rm.h"
 #include "systime.h"
 
 

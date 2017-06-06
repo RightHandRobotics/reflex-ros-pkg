@@ -14,7 +14,7 @@ const int sensitivity = 50;  // Sensitivity of touch/release detection, values c
 // Touch/release detection
 #define EA 0.3  // exponential average weight parameter / cut-off frequency for high-pass filter
 
-void rmInit()
+void rm_init()
 {
   uint8_t id[1] = {0};
   uint8_t result;
@@ -47,7 +47,7 @@ void rmInit()
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000); // takes a while to reset the imus
   
-   // seet proximity mod
+   // set proximity mod
   printf("\tsetting proximity mod...\n");
   result = setRegisterAllRMs(PROXIMITY_MOD, 1);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
@@ -56,7 +56,7 @@ void rmInit()
   
 }
 
-void imu_poll_nonblocking_tick(const uint8_t rmNumber)
+void rm_poll_nonblocking_tick(const uint8_t rmNumber)
 {
   static uint16_t proximity_value[NUM_RMS]; // current proximity reading
   static unsigned int average_value[NUM_RMS];   // low-pass filtered proximity reading

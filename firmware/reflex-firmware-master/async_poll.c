@@ -1,6 +1,6 @@
 #include "async_poll.h"
 
-#define NUM_STATE_FUNCTIONS 14	
+#define NUM_STATE_FUNCTIONS 17 //14	
 
 typedef void (*async_poll_fptr)(uint8_t poll_arg);
 
@@ -15,9 +15,9 @@ static uint32_t asyncStartTime = 0;
 
 static stateMachine stateMachines[NUM_STATE_FUNCTIONS] = 
 {
-  { takktile_poll_nonblocking_tick, 0, (int *)(&takktilePollState[0]) },
-  { takktile_poll_nonblocking_tick, 1, (int *)(&takktilePollState[1]) },
-  { takktile_poll_nonblocking_tick, 2, (int *)(&takktilePollState[2]) },
+  { takktile_poll_nonblocking_tick, 0, (int *)(&takktilePollState[0])    },
+  { takktile_poll_nonblocking_tick, 1, (int *)(&takktilePollState[1])    },
+  { takktile_poll_nonblocking_tick, 2, (int *)(&takktilePollState[2])    },
   { dmxl_poll_nonblocking_tick    , 0, (int *)(&dmxl_poll_states[0])     },
   { dmxl_poll_nonblocking_tick    , 1, (int *)(&dmxl_poll_states[1])     },
   { dmxl_poll_nonblocking_tick    , 2, (int *)(&dmxl_poll_states[2])     },
@@ -28,7 +28,10 @@ static stateMachine stateMachines[NUM_STATE_FUNCTIONS] =
   { imu_poll_nonblocking_tick     , 0, (int *)(&imu_poll_state[0])       },
   { imu_poll_nonblocking_tick     , 1, (int *)(&imu_poll_state[1])       },
   { imu_poll_nonblocking_tick     , 2, (int *)(&imu_poll_state[2])       },
-  { imu_poll_nonblocking_tick     , 3, (int *)(&imu_poll_state[3])       }
+  { imu_poll_nonblocking_tick     , 3, (int *)(&imu_poll_state[3])       },
+  { rm_poll_nonblocking_tick      , 0, (int *)(&rm_poll_state[0])        },
+  { rm_poll_nonblocking_tick      , 1, (int *)(&rm_poll_state[1])        },
+  { rm_poll_nonblocking_tick      , 2, (int *)(&rm_poll_state[2])        }
 }; 
 
 void asyncInit()

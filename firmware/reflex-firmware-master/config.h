@@ -17,6 +17,7 @@
 #include "pin.h"
 #include "ports.h"
 #include "enet.h"
+#include "rm.h"
 #include "imu.h"
 
 //TIMEOUTS
