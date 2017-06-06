@@ -22,6 +22,7 @@ add_message_files(
   ForceCommand.msg
   RawServoCommands.msg
   RadianServoCommands.msg
+  Rm.msg
 )
 
 ## Generate services in the 'srv' folder

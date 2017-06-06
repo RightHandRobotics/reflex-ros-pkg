@@ -257,6 +257,12 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
   }
+  for (int i = 0; i < 3; i++)
+  {
+    rx_state_.rm_raw[i]    = rx_state_msg->rm_raw[i];
+    rx_state_.rm_fa[i] = rx_state_msg->rm_fa[i];
+    rx_state_.rm_touch[i] = rx_state_msg->rm_touch[i];
+  }
   for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)
         rx_state_.imus[i] = rx_state_msg->imus[i];
 

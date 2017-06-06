@@ -359,6 +359,12 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   for (int i = 0; i < 4; i++) {
     hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
   }
+  for (int j=0; j < 3; j++) {
+      hand_msg.finger[i].rm.rm_raw = state->rm_raw[i];
+      hand_msg.finger[i].rm.rm_fa = state->rm_fa[i];
+      hand_msg.finger[i].rm.rm_touch = state->rm_touch[i];
+    }
+    
   hand_pub.publish(hand_msg);
 
   // Capture the current tactile data and save it as a zero reference
