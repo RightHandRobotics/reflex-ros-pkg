@@ -9,10 +9,10 @@ TC=arm-none-eabi-
 CC=$(TC)gcc
 	
 SRCS=main.c imu.c ports.c config.c startup.c i2cFunc.c spiFunc.c leds.c console.c stubs.c enet.c systime.c dmxl.c fan.c \
-     takktile.c pin.c enc.c state.c async_poll.c delay.c error.c 
+     takktile.c pin.c enc.c state.c async_poll.c delay.c error.c rm.c
 
 
-DEPS=i2cFunc.h spiFunc.h imu.h ports.h leds.h console.h enet.h systime.h dmxl.h fan.h takktile.h pin.h enc.h state.h async_poll.h delay.h error.h
+DEPS=i2cFunc.h spiFunc.h imu.h ports.h leds.h console.h enet.h systime.h dmxl.h fan.h takktile.h pin.h enc.h state.h async_poll.h delay.h error.h rm.h
 
 OBJS=$(SRCS:%.c=$(BINDIR)/%.o)
 

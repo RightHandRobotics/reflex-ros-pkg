@@ -23,7 +23,7 @@ void rm_init()
   printf("initializing rm state: \n");
   for (int i = 0; i < NUM_RMS; i++)
   {
-    result = readRegisterRM(i,PRODUCT_ID,id;)
+    result = readRegisterRM(i,PRODUCT_ID,id);
     if(id[0] != VCNL4010_PRODUCT_ID)
     {
       printf("RM %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], VCNL4010_ADDRESS, result);
@@ -79,10 +79,10 @@ void rm_poll_nonblocking_tick(const uint8_t rmNumber)
       else{
         result = readRegisterRM(rmNumber,COMMAND_0,temp);
         if (result)
-           result = setRegisterRM(rmNumber,COMMAND_0,temp|START_PROX_MEAS);
+           result = setRegisterRM(rmNumber,COMMAND_0,temp[0]|START_PROX_MEAS);
         if (result){
-            *state = RM_STATE_READ_PROX
-            rm_state_counter = 0
+            *state = RM_STATE_READ_PROX;
+            rm_state_counter[rmNumber] = 0;
         }
       }
       rm_state_counter[rmNumber]++;
@@ -99,7 +99,7 @@ void rm_poll_nonblocking_tick(const uint8_t rmNumber)
             if (result){
                 fa2deriv_last[rmNumber] = fa2derivative[rmNumber];
                 fa2derivative[rmNumber] = (signed int) average_value[rmNumber] - proximity_value[rmNumber] - fa2[rmNumber];
-                fa2 = (signed int) average_value[rmNumber] - proximity_value[rmNumber];
+                fa2[rmNumber] = (signed int) average_value[rmNumber] - proximity_value[rmNumber];
                  if (fa2deriv_last[rmNumber] < -sensitivity && fa2derivative[rmNumber] > sensitivity) {
                     touch[rmNumber] = (fa2[rmNumber]>sensitivity)*1 + (fa2[rmNumber]<-sensitivity)*2; // 
                  }
@@ -107,7 +107,7 @@ void rm_poll_nonblocking_tick(const uint8_t rmNumber)
                 handState.rm_raw[rmNumber] = proximity_value[rmNumber];
                 handState.rm_fa[rmNumber] = fa2[rmNumber];
                 handState.rm_touch[rmNumber] = touch[rmNumber];
-                *state = RM_STATE_READ_AMBIENT; 
+                *state = RM_STATE_WAIT; 
             }
         } else if (rm_state_counter[rmNumber] > 5){
             *state = IMU_STATE_WAIT;
@@ -129,13 +129,12 @@ uint8_t setRegisterAllRMs(uint8_t registerAddr, uint8_t data)
 {
   uint8_t result = 0;
   uint8_t resultOp = 0;
-  uint8_t response[1] = {0};
   printf("\t\tRegister: 0x%02x Data: 0x%02x\n", registerAddr, data);
   for (int i = 0; i < NUM_RMS; i++)
   {
     if (handPorts.multiplexer)
     {
-      if (selectMultiplexerPort(i))
+      if (selectMultiplexerPortRM(i))
       {
         printf("\t\tRM on I2C Multiplexer port %d.\n", i);
       }
@@ -165,23 +164,23 @@ uint8_t setRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t data)
 
     if (handPorts.multiplexer)
     {
-      if (selectMultiplexerPort(rmNumber))
+      if (selectMultiplexerPortRM(rmNumber))
       {
-        printf("\t\tRM on I2C Multiplexer port %d.\n", i);
+        printf("\t\tRM on I2C Multiplexer port %d.\n", rmNumber);
       }
       else
       {
-        printf("\t\tFailed to select port %d.\n", i);
+        printf("\t\tFailed to select port %d.\n", rmNumber);
       }
     }
 
-    if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
+    if ((uint32_t) handPorts.rm[rmNumber] == SPI1_BASE)
     {
-      result = setRegisterSPI(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
+      result = setRegisterSPI(handPorts.rm[rmNumber], VCNL4010_ADDRESS, registerAddr, data);
     }
     else
     {
-      result = setRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr, data);
+      result = setRegisterI2C(handPorts.rm[rmNumber], VCNL4010_ADDRESS, registerAddr, data);
     }
     
     return result;
@@ -192,29 +191,29 @@ uint8_t readRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t *data)
     uint8_t result = 0;
     if (handPorts.multiplexer) //select multiplexer port
     {
-      if (selectMultiplexerPort(rmNumber))
+      if (selectMultiplexerPortRM(rmNumber))
       {
-          printf("\tI2C Multiplexer port %d, 0x%x: ", i, 1 << i);
+          printf("\tI2C Multiplexer port %d, 0x%x: ", rmNumber, 1 << rmNumber);
       }
       else
       {
-          printf("\tFailed to select I2C Multiplexer port %d\n ", i);
+          printf("\tFailed to select I2C Multiplexer port %d\n ", rmNumber);
       }
     }
-    if ((uint32_t) handPorts.rm[i] == SPI1_BASE)
+    if ((uint32_t) handPorts.rm[rmNumber] == SPI1_BASE)
     {
-      result = writeRegisterSPI(handPorts.rm[i],VCNL4010_ADDRESS, registerAddr);
-      result = readBytesSPI(handPorts.rm[i], VCNL4010_ADDRESS, 1, data);
+      result = writeRegisterSPI(handPorts.rm[rmNumber],VCNL4010_ADDRESS, registerAddr);
+      result = readBytesSPI(handPorts.rm[rmNumber], VCNL4010_ADDRESS, 1, data);
     }
     else
     {
-      result = writeRegisterI2C(handPorts.rm[i], VCNL4010_ADDRESS, registerAddr);
-      result = readBytesI2C(handPorts.rm[i], VCNL4010_ADDRESS, 1, data);
+      result = writeRegisterI2C(handPorts.rm[rmNumber], VCNL4010_ADDRESS, registerAddr);
+      result = readBytesI2C(handPorts.rm[rmNumber], VCNL4010_ADDRESS, 1, data);
     }
     return result;
 }
 
-uint8_t selectMultiplexerPort(uint8_t port)
+uint8_t selectMultiplexerPortRM(uint8_t port)
 {
   if ((uint32_t) handPorts.rm[port] == SPI1_BASE)
   {

@@ -31,7 +31,6 @@ DO NOT release this code before licensing is figured out.
 #define PROX_MEAS_RDY 0x20
 #define PROX_VAL_H 0x87
 #define PROX_VAL_L 0x88
-#define NUM_RMS 3
 
 #define VCNL4010_PRODUCT_ID 0x21
 
@@ -44,10 +43,13 @@ typedef enum
 
 extern rm_async_poll_state_t rm_poll_state[NUM_RMS];
 
-void rm_init(void);
-uint8_t setRegRM(uint8_t registerAddr, uint8_t data);
-uint8_t selectMultiplexerPort(uint8_t port);
+void rm_init();
+uint8_t selectMultiplexerPortRM(uint8_t port);
 void rm_poll_nonblocking_tick(const uint8_t imuNumber);
+uint8_t setRegisterAllRMs(uint8_t registerAddr, uint8_t data);
+uint8_t setRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t data);
+uint8_t readRegisterRM(int rmNumber, uint8_t registerAddr, uint8_t *data);
+
 
 #endif
 

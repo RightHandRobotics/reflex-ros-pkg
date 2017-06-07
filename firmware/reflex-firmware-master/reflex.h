@@ -7,6 +7,7 @@
 #define NUM_SENSORS         (NUM_FINGERS * SENSORS_PER_FINGER + NUM_PALM_SENSORS)
 #define NUM_ENC 3
 #define NUM_IMUS 4
+#define NUM_RMS 3
 
 #endif
 

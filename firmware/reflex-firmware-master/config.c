@@ -12,12 +12,12 @@ void init()
   takktileInit();                  // takktile
   encInit();                       // encoders
   imuInit();                       // imus
+  rm_init();
   
   leds_init();
   enet_init();
   dmxl_init();
   fan_init();
-  rm_init();
   
   fan_on();                        // todo: be smarter. probably doesn't need to run all the time.
   __enable_irq();
