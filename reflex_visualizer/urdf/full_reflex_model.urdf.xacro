@@ -400,7 +400,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/swivel_2.STL" />
+          filename="package://reflex_visualizer/meshes/swivel_1.STL" />
       </geometry>
       <material
         name="">
@@ -429,7 +429,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_2.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
       </geometry>
       <material
         name="">
@@ -458,7 +458,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_pad_2.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -487,7 +487,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_2.STL" />
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
       </geometry>
       <material
         name="">
@@ -516,7 +516,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_pad_2.STL" />
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -545,7 +545,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_3.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
       </geometry>
       <material
         name="">
@@ -574,7 +574,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_pad_3.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -603,7 +603,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_3.STL" />
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
       </geometry>
       <material
         name="">
@@ -632,7 +632,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_pad_3.STL" />
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
       </geometry>
       <material
         name="">
