@@ -3,7 +3,7 @@
 // GLOBAL ALL FILES VARIABLE
 takktileAsyncPollState_t takktilePollState[NUM_TACTILE_PORTS] = {STATE_WAIT, STATE_WAIT, STATE_WAIT, STATE_WAIT};
 
-void takktileInit()
+void takktileInit()  //Initialize the takktile sensors for use
 {
   printf("takktile sensors initialization...\n");
 
@@ -37,41 +37,16 @@ void takktileInit()
 
 void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
 {
-  // static uint_fast8_t errCount[NUM_TACTILE_PORTS] = {0};
+  //Function to handle the takktile polling state machine
   static uint8_t sensorNumber[NUM_FINGERS] = {0, 0, 0};
   uint8_t sensorNumberAux;
   uint8_t sensorInMemory;
-  uint8_t initialTime[3] = {0}; // for the 3ms delay
+  //uint8_t initialTime[3] = {0}; // for the 3ms delay
   const uint_fast8_t tp = takktile_port; // save typing
   if (tp >= NUM_TACTILE_PORTS)
     return; // let's not corrupt memory.
 
   takktileAsyncPollState_t *state = &takktilePollState[takktile_port];
-
-  // int *i2c_status = NULL;
-  // if (takktile_port == 0 || takktile_port == 1)
-  //   i2c_status = (int *)&g_takktile_internal_i2c_status[takktile_port];
-  // else if (takktile_port == 2 || takktile_port == 3)
-  //   i2c_status = (int *)&g_takktile_bridged_i2c_status[takktile_port-2];
-  // else
-  //   return; // shouldn't get here... but if somehow we do, it's time to bail
-
-  // if (*i2c_status == TACTILE_I2C_SUCCESS)
-  // {
-  //   errCount[takktile_port] = 0;
-  //   err_unset(ERR_TAC_0_PROBLEM + takktile_port);
-  // }
-  // else if (*i2c_status == TACTILE_I2C_FAIL)
-  // {
-  //   if (errCount[takktile_port] > 100)
-  //   {
-  //     err_set(ERR_TAC_0_PROBLEM + takktile_port);
-  //   }
-  //   else
-  //   {
-  //     errCount[takktile_port]++;
-  //   }
-  // }
 
   uint8_t takktileNumber;
   if (takktile_port == 2)
@@ -86,52 +61,39 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
   sensorInMemory = takktile_port * SENSORS_PER_FINGER + sensorNumberAux;
 
   // *state = STATE_WAIT;
-  // printf("\ntakktile state: ");
   uint8_t result = 0;
   switch (*state)
   {
     case STATE_ENABLE_ALL_SENSORS:
-        // printf("STATE_ENABLE_ALL_SENSORS");
         result = enableAllSensors(takktileNumber);
         if (result)
         {
-          *state = STATE_START_CONVERSION;
           handStatus.finger[takktileNumber] = 1;
         }
         else
         {
-          *state = STATE_START_CONVERSION; //DAVID
           handStatus.finger[takktileNumber] = 0;
         }
+        *state = STATE_START_CONVERSION;
       break;
     case STATE_START_CONVERSION:
-        // printf("STATE_START_CONVERSION");
-        // if (startConversionSequence(takktileNumber))
-        // {
-        //   *state = STATE_DISABLE_ALL_SENSORS;
-        //   initialTime[takktileNumber] = SYSTIME; // start the timer
-        // }
         startConversionSequence(takktileNumber); //DAVID
         *state = STATE_DISABLE_ALL_SENSORS; //DAVID
-        initialTime[takktileNumber] = SYSTIME; //DAVID
+        //initialTime[takktileNumber] = SYSTIME; //DAVID
       break;
     case STATE_DISABLE_ALL_SENSORS:
-        // printf("STATE_DISABLE_ALL_SENSORS");
         if (disableAllSensors(takktileNumber))
         {
-          *state = STATE_ENABLE_SENSOR;
           handStatus.finger[takktileNumber] = 1;
         }
         else
         {
-          *state = STATE_ENABLE_SENSOR; //DAVID
           handStatus.finger[takktileNumber] = 0; 
         }
+        *state = STATE_ENABLE_SENSOR;
       break;
     case STATE_ENABLE_SENSOR:
-        // udelay(3000);
-        // printf("STATE_ENABLE_SENSOR");
-        if(sensorNumberAux != 0 || (SYSTIME - initialTime[takktileNumber] > 3000))
+        if((sensorNumberAux != 0)&&(handStatus.finger[takktileNumber]==1))// || (SYSTIME - initialTime[takktileNumber] > 3000))
         {
           if (enableSensor(takktileNumber, sensorNumberAux))
           {
@@ -140,29 +102,18 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
           }
           else
           {
-            *state = STATE_SET_REGISTER; //DAVID
+            *state = STATE_DISABLE_SENSOR; //DAVID
             handStatus.finger[takktileNumber] = 0; 
           }
         }
+        else{
+          *state = STATE_DISABLE_SENSOR;
+        }
       break;
     case STATE_SET_REGISTER:
-        // printf("STATE_SET_REGISTER");
         if (setRegister(takktileNumber))
         {
           *state = STATE_READ_VALUES;
-          handStatus.takktileSensor[sensorInMemory] = 1;
-        }
-        else
-        {
-          *state = STATE_READ_VALUES; //DAVID
-          handStatus.takktileSensor[sensorInMemory] = 0; 
-        }
-      break;
-    case STATE_READ_VALUES:
-        // printf("STATE_READ_VALUES");
-        if (readValues(takktileNumber, sensorNumberAux))
-        {
-          *state = STATE_DISABLE_SENSOR;
           handStatus.takktileSensor[sensorInMemory] = 1;
         }
         else
@@ -171,34 +122,39 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
           handStatus.takktileSensor[sensorInMemory] = 0; 
         }
       break;
+    case STATE_READ_VALUES:
+        if (readValues(takktileNumber, sensorNumberAux))
+        {
+          handStatus.takktileSensor[sensorInMemory] = 1;
+        }
+        else
+        {
+          handStatus.takktileSensor[sensorInMemory] = 0; 
+        }
+        *state = STATE_DISABLE_SENSOR;
+      break;
     case STATE_DISABLE_SENSOR:
-        // printf("STATE_DISABLE_SENSOR");
         result = disableSensor(takktileNumber, sensorNumberAux);
         sensorNumber[takktileNumber]++;
         if (sensorNumberAux + 2 > SENSORS_PER_FINGER)
         {
-          // printf("\nX");
           *state = STATE_WAIT;
           sensorNumber[takktileNumber] = 0;
           handStatus.finger[takktileNumber] = 1;
         }
         else if (result)
         {
-          // printf("\nY");
           *state = STATE_ENABLE_SENSOR;
           handStatus.finger[takktileNumber] = 1;
         }
         else
         {
-          // printf("\nZ");
           handStatus.finger[takktileNumber] = 0;
         }
       break;
-    case STATE_WAIT:
-      // printf("STATE_WAIT"); 
+    case STATE_WAIT: 
       break;
     default:
-      // printf("UNKNOWN");
       *state = STATE_WAIT;
       break;
   }
@@ -333,8 +289,7 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
   index = tp * SENSORS_PER_FINGER + sensorIndex;
   handState.takktile_pressures[index] = 510 - (values[0]<200 ? ((uint16_t)values[0] + 255) : ((uint16_t)values[0]));
   handState.takktile_temperatures[index] = ((uint16_t)values[2] << 2) | (values[3] >> 6);
-  // printf("%3d ", handState.takktile_pressures[index]);
-  udelay(SLEEP_TIME);
+  //udelay(SLEEP_TIME);
   return result;
 }
 
@@ -358,9 +313,3 @@ uint8_t disableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
   }
   return result;
 }
-
-
-
-
-
-
