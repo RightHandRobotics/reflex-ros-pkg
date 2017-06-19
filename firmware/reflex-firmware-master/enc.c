@@ -17,7 +17,7 @@ void enc_poll_nonblocking_tick(const uint8_t encoderNumber)
   /*
   Description: Updates the state machine, which has 3 states:
       ENCODER_STATE_SET_REGISTER: set the right encoder regis-
-      ter
+      ter to read from
       ENCODER_STATE_READ_VALUES: read encoder values
       ENCODER_STATE_WAIT: skips the encoder while other state
       machines are not finished
@@ -50,16 +50,17 @@ void enc_poll_nonblocking_tick(const uint8_t encoderNumber)
 
 uint8_t setEncoderRegister(uint8_t encoderNumber, uint8_t encoderRegister,int timeout)
 {
+  //Set the encoder register for reading to the one specified
   uint8_t result = 0;
   switch ((uint32_t) handPorts.encoder[encoderNumber])
   {
-    case I2C1_BASE:
+    case I2C1_BASE: //Finger 1
       result = writeRegisterI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
     break;
-    case I2C3_BASE:
+    case I2C3_BASE: //Finger 3
       result = writeRegisterI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
     break;
-    case SPI1_BASE:
+    case SPI1_BASE: //Finger 2
       result = writeRegisterSPI(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
     break;
   }
@@ -68,17 +69,18 @@ uint8_t setEncoderRegister(uint8_t encoderNumber, uint8_t encoderRegister,int ti
 
 uint8_t readEncoderValues(uint8_t encoderNumber, int timeout)
 {
+  //Read values from the set register
   uint8_t result = 0;
   uint8_t valueRead[2];
   switch ((uint32_t) handPorts.encoder[encoderNumber])
   {
-    case I2C1_BASE:
+    case I2C1_BASE: //Finger 1
       result = readBytesI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
     break;
-    case I2C3_BASE:
+    case I2C3_BASE: //Finger 3
       result = readBytesI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
     break;
-    case SPI1_BASE:
+    case SPI1_BASE: //Finger 2
       result = readBytesSPI(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
     break;
   }
