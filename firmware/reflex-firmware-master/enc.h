@@ -52,7 +52,6 @@ uint8_t setEncoderRegister(uint8_t encoderNumber, uint8_t encoderRegister,int ti
 uint8_t readEncoderValues(uint8_t encoderNumber, int timeout);
 
 void encInit();
-void enc_poll();
 void enc_poll_nonblocking_tick(const uint8_t encoderNumber);
 
 

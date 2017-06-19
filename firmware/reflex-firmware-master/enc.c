@@ -12,8 +12,9 @@ void encInit()
   }
 }
 
-/*
 void enc_poll_nonblocking_tick(const uint8_t encoderNumber)
+{
+  /*
   Description: Updates the state machine, which has 3 states:
       ENCODER_STATE_SET_REGISTER: set the right encoder regis-
       ter
@@ -27,9 +28,7 @@ void enc_poll_nonblocking_tick(const uint8_t encoderNumber)
     0 -> Port I2C1
     1 -> Port SPI
     2 -> Port I2C3
-*/
-void enc_poll_nonblocking_tick(const uint8_t encoderNumber)
-{
+  */
   enc_async_poll_state_t* state = (enc_async_poll_state_t*)&(enc_poll_state[encoderNumber]);
   switch(*state)
   {
