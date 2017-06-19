@@ -21,7 +21,7 @@
 
 //TIMEOUTS
 #define UART_TIMEOUT                   10000 // timeout in microseconds
-#define I2C_TIMEOUT                    10000  //700 // timeout in microseconds // CORRECT, put back value
+#define I2C_TIMEOUT                    5000  //700 // timeout in microseconds // CORRECT, put back value
 #define SPI_TIMEOUT                    1000 // timeout in microseconds
 
 
