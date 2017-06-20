@@ -30,5 +30,10 @@ void state_init()
 		handStatus.encoders[i] = 1;
 	for (uint_fast8_t i = 0; i < NUM_IMUS; i++)
 	    handStatus.imus[i] = 0;
+	for (uint_fast8_t i = 0; i < NUM_FINGERS; i++){
+		handStatus.takktileFinger[i].fingerStatus = 1;
+		for (uint_fast8_t j = 0; j < SENSORS_PER_FINGER; j++){
+			handStatus.takktileFinger[i].takktileSensor[j] = 1;
+		}
+	}
 }
-
