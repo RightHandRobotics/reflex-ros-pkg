@@ -52,6 +52,7 @@ class ReflexSFHand(ReflexHand):
         self.distal_approx = [0,0,0]
         self.calibration_error = 15
         self.num_calibration_trials = 20
+        rospy.Service(self.namespace + '/calibrate_manual', Empty, self.calibrate_manual)
         if self.encoder_present:
             self.enc_subscriber = rospy.Subscriber('/encoder_states', Encoder, self._receive_enc_state_cb)
             rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_auto)
@@ -155,7 +156,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         self._zero_current_pose()
         self.calibrate_encoders_locally(self.encoder_last_value)
         for i in range(3):
-            self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.1)
+            self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.0)
         return []
 
     def _write_zero_point_data_to_file(self, filename, data):
