@@ -35,12 +35,46 @@ void takktileInit()  //Initialize the takktile sensors for use
   printf("\n");
 }
 
+//Update finger or takktile status values in the handStatus struct
+//Use takktileNumber = -1 for the overall finger status
+void updateFingerStatus(uint8_t fingerNumber, uint8_t takktileNumber, uint8_t status){
+  if (fingerNumber >= NUM_FINGERS) //Don't corrupt memory
+    return;
+
+  if (takktileNumber == 250){
+    handStatus.takktileFinger[fingerNumber].fingerStatus = status;
+  }
+  else{
+    if (takktileNumber <= SENSORS_PER_FINGER){
+      handStatus.takktileFinger[fingerNumber].takktileSensor[takktileNumber] = status;
+    }
+  }
+}
+
+//Check finger or takktile status values in the handStatus struct
+//Use takktileNumber = -1 for the overall finger status
+uint8_t checkFingerStatus(uint8_t fingerNumber, uint8_t takktileNumber){
+  if (fingerNumber >= NUM_FINGERS) //Don't corrupt memory
+    return 0;
+  
+  if (takktileNumber == 250){
+    return handStatus.takktileFinger[fingerNumber].fingerStatus;
+  }
+  else{
+    if (takktileNumber <= SENSORS_PER_FINGER){
+      return handStatus.takktileFinger[fingerNumber].takktileSensor[takktileNumber];
+    }
+  }
+
+  return 0;
+}
+
 void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
 {
   //Function to handle the takktile polling state machine
   static uint8_t sensorNumber[NUM_FINGERS] = {0, 0, 0};
   uint8_t sensorNumberAux;
-  uint8_t sensorInMemory;
+  //uint8_t sensorInMemory;
   //uint8_t initialTime[3] = {0}; // for the 3ms delay
   const uint_fast8_t tp = takktile_port; // save typing
   if (tp >= NUM_TACTILE_PORTS)
@@ -48,7 +82,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
 
   takktileAsyncPollState_t *state = &takktilePollState[takktile_port];
 
-  uint8_t takktileNumber;
+  uint8_t takktileNumber; //Number identifying what finger of the hand it is
   if (takktile_port == 2)
     takktileNumber = 1;
   else if (takktile_port == 0)
@@ -57,106 +91,113 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
     takktileNumber = 2;
   else
     takktileNumber = 3;
-  sensorNumberAux = sensorNumber[takktileNumber];
-  sensorInMemory = takktile_port * SENSORS_PER_FINGER + sensorNumberAux;
+  sensorNumberAux = sensorNumber[takktileNumber];  //ID number of the takktile sensor on the finger
+  //sensorInMemory = takktile_port * SENSORS_PER_FINGER + sensorNumberAux;
 
-  // *state = STATE_WAIT;
-  uint8_t result = 0;
-  switch (*state)
-  {
-    case STATE_ENABLE_ALL_SENSORS:
-        result = enableAllSensors(takktileNumber);
-        if (result)
-        {
-          handStatus.finger[takktileNumber] = 1;
-        }
-        else
-        {
-          handStatus.finger[takktileNumber] = 0;
-        }
-        *state = STATE_START_CONVERSION;
-      break;
-    case STATE_START_CONVERSION:
-        startConversionSequence(takktileNumber); //DAVID
-        *state = STATE_DISABLE_ALL_SENSORS; //DAVID
-        //initialTime[takktileNumber] = SYSTIME; //DAVID
-      break;
-    case STATE_DISABLE_ALL_SENSORS:
-        if (disableAllSensors(takktileNumber))
-        {
-          handStatus.finger[takktileNumber] = 1;
-        }
-        else
-        {
-          handStatus.finger[takktileNumber] = 0; 
-        }
-        *state = STATE_ENABLE_SENSOR;
-      break;
-    case STATE_ENABLE_SENSOR:
-        if((sensorNumberAux != 0)&&(handStatus.finger[takktileNumber]==1))// || (SYSTIME - initialTime[takktileNumber] > 3000))
-        {
-          if (enableSensor(takktileNumber, sensorNumberAux))
+  if (checkFingerStatus(takktileNumber, 250) == 1){  //If the finger isn't working, don't try polling
+    uint8_t result = 0;
+    switch (*state)
+    {
+      case STATE_ENABLE_ALL_SENSORS:
+          result = enableAllSensors(takktileNumber);
+          if (result)
           {
-            *state = STATE_SET_REGISTER;
-            handStatus.finger[takktileNumber] = 1;
+            updateFingerStatus(takktileNumber, 250, 1);//handStatus.finger[takktileNumber] = 1;
+          }
+          else
+          {
+            updateFingerStatus(takktileNumber, 250, 0);//handStatus.finger[takktileNumber] = 0;
+          }
+          *state = STATE_START_CONVERSION;
+        break;
+      case STATE_START_CONVERSION:
+          startConversionSequence(takktileNumber); //DAVID
+          *state = STATE_DISABLE_ALL_SENSORS; //DAVID
+          //initialTime[takktileNumber] = SYSTIME; //DAVID
+        break;
+      case STATE_DISABLE_ALL_SENSORS:
+          if (disableAllSensors(takktileNumber))
+          {
+            updateFingerStatus(takktileNumber, 250, 1);//handStatus.finger[takktileNumber] = 1;
+          }
+          else
+          {
+            updateFingerStatus(takktileNumber, 250, 0);//handStatus.finger[takktileNumber] = 0; 
+          }
+          *state = STATE_ENABLE_SENSOR;
+        break;
+      case STATE_ENABLE_SENSOR:
+          if((sensorNumberAux != 0)&&(checkFingerStatus(takktileNumber, sensorNumberAux)==1))// || (SYSTIME - initialTime[takktileNumber] > 3000))
+          {
+            if (enableSensor(takktileNumber, sensorNumberAux))
+            {
+              *state = STATE_SET_REGISTER;
+              updateFingerStatus(takktileNumber, sensorNumberAux, 1);//handStatus.takktileSensor[sensorInMemory] = 1;
+            }
+            else
+            {
+              *state = STATE_DISABLE_SENSOR; //DAVID
+              updateFingerStatus(takktileNumber, sensorNumberAux, 0);//handStatus.takktileSensor[sensorInMemory] = 0; 
+            }
+          }
+          else{
+            *state = STATE_DISABLE_SENSOR;
+          }
+        break;
+      case STATE_SET_REGISTER:
+          if (setRegister(takktileNumber))
+          {
+            *state = STATE_READ_VALUES;
           }
           else
           {
             *state = STATE_DISABLE_SENSOR; //DAVID
-            handStatus.finger[takktileNumber] = 0; 
+            updateFingerStatus(takktileNumber, sensorNumberAux, 0);//handStatus.takktileSensor[sensorInMemory] = 0; 
           }
-        }
-        else{
+        break;
+      case STATE_READ_VALUES:
+          if (readValues(takktileNumber, sensorNumberAux))
+          {
+            updateFingerStatus(takktileNumber, sensorNumberAux, 1);
+          }
+          else
+          {
+            updateFingerStatus(takktileNumber, sensorNumberAux, 0);
+            //handStatus.takktileSensor[sensorInMemory] = 0; 
+          }
           *state = STATE_DISABLE_SENSOR;
-        }
-      break;
-    case STATE_SET_REGISTER:
-        if (setRegister(takktileNumber))
-        {
-          *state = STATE_READ_VALUES;
-          handStatus.takktileSensor[sensorInMemory] = 1;
-        }
-        else
-        {
-          *state = STATE_DISABLE_SENSOR; //DAVID
-          handStatus.takktileSensor[sensorInMemory] = 0; 
-        }
-      break;
-    case STATE_READ_VALUES:
-        if (readValues(takktileNumber, sensorNumberAux))
-        {
-          handStatus.takktileSensor[sensorInMemory] = 1;
-        }
-        else
-        {
-          handStatus.takktileSensor[sensorInMemory] = 0; 
-        }
-        *state = STATE_DISABLE_SENSOR;
-      break;
-    case STATE_DISABLE_SENSOR:
-        result = disableSensor(takktileNumber, sensorNumberAux);
-        sensorNumber[takktileNumber]++;
-        if (sensorNumberAux + 2 > SENSORS_PER_FINGER)
-        {
-          *state = STATE_WAIT;
-          sensorNumber[takktileNumber] = 0;
-          handStatus.finger[takktileNumber] = 1;
-        }
-        else if (result)
-        {
-          *state = STATE_ENABLE_SENSOR;
-          handStatus.finger[takktileNumber] = 1;
-        }
-        else
-        {
-          handStatus.finger[takktileNumber] = 0;
-        }
-      break;
-    case STATE_WAIT: 
-      break;
-    default:
-      *state = STATE_WAIT;
-      break;
+        break;
+      case STATE_DISABLE_SENSOR:
+          if (checkFingerStatus(takktileNumber, sensorNumberAux)==1){
+            result = disableSensor(takktileNumber, sensorNumberAux);
+          }
+          sensorNumber[takktileNumber]++;
+          if (sensorNumberAux + 2 > SENSORS_PER_FINGER)
+          {
+            *state = STATE_WAIT;
+            sensorNumber[takktileNumber] = 0;
+            //updateFingerStatus(takktileNumber, 250, 1);//handStatus.finger[takktileNumber] = 1;
+          }
+          else if (result)
+          {
+            *state = STATE_ENABLE_SENSOR;
+            updateFingerStatus(takktileNumber, sensorNumberAux, 1);//handStatus.finger[takktileNumber] = 1;
+          }
+          else
+          {
+            *state = STATE_ENABLE_SENSOR;
+            updateFingerStatus(takktileNumber, sensorNumberAux, 0);//handStatus.finger[takktileNumber] = 0;
+          }
+        break;
+      case STATE_WAIT: 
+        break;
+      default:
+        *state = STATE_WAIT;
+        break;
+    }
+  }
+  else{
+    *state = STATE_WAIT;
   }
 }
 

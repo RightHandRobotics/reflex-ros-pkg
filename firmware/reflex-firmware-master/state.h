@@ -26,15 +26,15 @@ typedef struct
 //struct used to keep track of takktile sensor status per each finger
 typedef struct
 {
-  uint8_t fingerStatus;
-  uint8_t takktileSensor[SENSORS_PER_FINGER];
+  uint8_t fingerStatus;                           // Overall finger status
+  uint8_t takktileSensor[SENSORS_PER_FINGER];     // Individual takktile sensor status
 } __attribute__((packed)) takktile_status_t;
 
 //status_t
 //struct used to keep track of what is working or not working
 typedef struct
 {
-  takktile_status_t takktileFinger[3];        // Status of 3 fingers and their individual sensors
+  takktile_status_t takktileFinger[3];         // Status of 3 fingers and their individual sensors
   uint8_t finger[NUM_FINGERS];                 // Status of 3 fingers
   uint8_t takktileSensor[NUM_SENSORS];         // Status of 53 sensors
   uint8_t encoders[NUM_ENC];                   // Status of 3 encoders
