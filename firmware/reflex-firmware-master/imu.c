@@ -176,7 +176,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
     case IMU_STATE_SET_REGISTER:
       imu_state_count[imuNumber]++;
       printf("IMU_STATE_SET_REGISTER\n");
-      if (imu_state_count[imuNumber]>2){    // Prevent the hand from getting stuck in a loop when IMU connection is lost
+      if (imu_state_count[imuNumber]>0){    // Prevent the hand from getting stuck in a loop when IMU connection is lost
         *state = IMU_STATE_READ_VALUES;  //agang addition
       }
       else{

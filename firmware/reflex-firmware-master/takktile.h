@@ -101,8 +101,10 @@ uint8_t enableSensor(uint8_t takktileNumber, uint8_t sensorIndex);
 uint8_t setRegister(uint8_t takktileNumber);
 uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex);
 uint8_t disableSensor(uint8_t takktileNumber, uint8_t sensorIndex);
-void updateFingerStatus(uint8_t fingerNumber, uint8_t takktileNumber, uint8_t status);
-uint8_t checkFingerStatus(uint8_t fingerNumber, uint8_t takktileNumber);
+void updateFingerStatus(uint8_t fingerNumber, uint8_t status);
+void updateTakktileStatus(uint8_t fingerNumber, uint8_t takktileNumber, uint8_t status);
+uint8_t checkFingerStatus(uint8_t fingerNumber);
+uint8_t checkTakktileStatus(uint8_t fingerNumber, uint8_t takktileNumber);
 
 extern takktileAsyncPollState_t takktilePollState[NUM_TACTILE_PORTS];
 
