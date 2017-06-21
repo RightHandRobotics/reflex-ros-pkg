@@ -153,6 +153,13 @@ uint8_t selectMultiplexerPort(uint8_t port)
   }
 }
 
+uint8_t checkIMUSTatus(uint8_t imuNumber){
+  if (imuNumber >= NUM_IMUS)  //Don't corrupt memory
+    return 0;
+
+  return handStatus.imus[imuNumber];
+}
+
 
 void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 {
@@ -171,78 +178,83 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
   uint8_t values[8] = {0};
   uint8_t result;
   printf("\nIMU NUMBER: %d\nSTATE: ", imuNumber);
-  switch(*state)
-  {
-    case IMU_STATE_SET_REGISTER:
-      imu_state_count[imuNumber]++;
-      printf("IMU_STATE_SET_REGISTER\n");
-      if (imu_state_count[imuNumber]>0){    // Prevent the hand from getting stuck in a loop when IMU connection is lost
-        *state = IMU_STATE_READ_VALUES;  //agang addition
-      }
-      else{
+  if (checkIMUSTatus(imuNumber)==1){  //Only poll if the IMU is working
+    switch(*state)
+    {
+      case IMU_STATE_SET_REGISTER:
+        imu_state_count[imuNumber]++;
+        printf("IMU_STATE_SET_REGISTER\n");
+        if (imu_state_count[imuNumber]>0){    // Prevent the hand from getting stuck in a loop when IMU connection is lost
+          *state = IMU_STATE_READ_VALUES;  //agang addition
+        }
+        else{
+          if (handPorts.multiplexer)
+            selectMultiplexerPort(imuNumber);
+          
+          if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
+          {
+            printf("SPI_WRITING_TO_REGISTER by I2C WRITE: IMU Number %d, PORT %d, ADDR %x, REG_ADDR %x", 
+            imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
+            result = writeRegisterSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
+          }
+          else
+          {
+            printf("IMU_WRITING_TO_REGISTER by I2C WRITE: IMU Number %d, PORT %d, ADDR %x, REG_ADDR %x", 
+            imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
+            result = writeRegisterI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
+          }
+
+          //Check that the register write worked
+          if (result) 
+            *state = IMU_STATE_READ_VALUES;
+
+          *state = IMU_STATE_WAIT;
+        }
+
+        break;
+      case IMU_STATE_READ_VALUES:
+        printf("IMU_STATE_READ_VALUES\n");
         if (handPorts.multiplexer)
           selectMultiplexerPort(imuNumber);
-        
+
         if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
         {
-          printf("SPI_WRITING_TO_REGISTER by I2C WRITE: IMU Number %d, PORT %d, ADDR %x, REG_ADDR %x", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
-          result = writeRegisterSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
+          printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+            imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber]);
+          result = readBytesSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
         }
         else
         {
-          printf("IMU_WRITING_TO_REGISTER by I2C WRITE: IMU Number %d, PORT %d, ADDR %x, REG_ADDR %x", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
-          result = writeRegisterI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR);
+          printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+            imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber]);
+          result = readBytesI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
+        }
+        if (result){
+          handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
+          handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
+          handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
+          handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+
+          // for euler
+          // handState.imus[imuNumber*4] = 0;
+          // handState.imus[imuNumber*4 + 1] = ((int16_t)values[0]) | (((int16_t)values[1]) << 8);
+          // handState.imus[imuNumber*4 + 2] = ((int16_t)values[2]) | (((int16_t)values[3]) << 8);
+          // handState.imus[imuNumber*4 + 3] = ((int16_t)values[4]) | (((int16_t)values[5]) << 8);
         }
 
-        //Check that the register write worked
-        if (result) 
-          *state = IMU_STATE_READ_VALUES;
-
         *state = IMU_STATE_WAIT;
-      }
-
-      break;
-    case IMU_STATE_READ_VALUES:
-      printf("IMU_STATE_READ_VALUES\n");
-      if (handPorts.multiplexer)
-        selectMultiplexerPort(imuNumber);
-
-      if ((uint32_t) handPorts.imu[imuNumber] == SPI1_BASE)
-      {
-        printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber]);
-        result = readBytesSPI(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
-      }
-      else
-      {
-        printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
-          imuNumber, (int)handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber]);
-        result = readBytesI2C(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
-      }
-      if (result){
-        handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-        handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-        handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-        handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
-
-        // for euler
-        // handState.imus[imuNumber*4] = 0;
-        // handState.imus[imuNumber*4 + 1] = ((int16_t)values[0]) | (((int16_t)values[1]) << 8);
-        // handState.imus[imuNumber*4 + 2] = ((int16_t)values[2]) | (((int16_t)values[3]) << 8);
-        // handState.imus[imuNumber*4 + 3] = ((int16_t)values[4]) | (((int16_t)values[5]) << 8);
-      }
-
-      *state = IMU_STATE_WAIT;
-      break;
-    case IMU_STATE_WAIT:
-      printf("IMU_STATE_WAIT\n");
-      imu_state_count[imuNumber] = 0;
-      break;
-    default:
-      printf("UNKNOWN\n");
-      *state = IMU_STATE_WAIT;
-      break;
+        break;
+      case IMU_STATE_WAIT:
+        printf("IMU_STATE_WAIT\n");
+        imu_state_count[imuNumber] = 0;
+        break;
+      default:
+        printf("UNKNOWN\n");
+        *state = IMU_STATE_WAIT;
+        break;
+    }
+  }
+  else{
+    *state = STATE_WAIT;
   }
 }
