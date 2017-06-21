@@ -74,8 +74,8 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
   uint8_t sensorNumberAux;
   //uint8_t sensorInMemory;
   //uint8_t initialTime[3] = {0}; // for the 3ms delay
-  const uint_fast8_t tp = takktile_port; // save typing
-  if (tp >= NUM_TACTILE_PORTS)
+  //const uint_fast8_t tp = takktile_port; // save typing
+  if (takktile_port >= NUM_TACTILE_PORTS)
     return; // let's not corrupt memory.
 
   takktileAsyncPollState_t *state = &takktilePollState[takktile_port];
@@ -92,7 +92,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
   sensorNumberAux = sensorNumber[takktileNumber];  //ID number of the takktile sensor on the finger
   //sensorInMemory = takktile_port * SENSORS_PER_FINGER + sensorNumberAux;
 
-  if (checkFingerStatus(takktileNumber) == 1){  //If the finger isn't working, don't try polling
+  if (checkFingerStatus(takktileNumber) == 1){  //Only poll if the finger is working
     uint8_t result = 0;
     switch (*state)
     {
