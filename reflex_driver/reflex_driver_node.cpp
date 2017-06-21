@@ -68,7 +68,7 @@ reflex_msgs::SetTactileThreshold::Request contact_thresholds;   // Set by /set_t
 vector<int> tactile_offset_f1;              // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f2;              // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f3;              // Loaded from yaml and reset during calibration
-const int TACTILE_BASE_IDX[] = {0, 18, 9};  // Constant
+const int TACTILE_BASE_IDX[] = {0, 28, 14};  // Constant
 int encoder_last_value[] = {0, 0, 0};       // Updated constantly in reflex_hand_state_cb()
 int encoder_offset[] = {-1, -1, -1};        // Updated constantly in reflex_hand_state_cb()
 float load_last_value[] = {0, 0, 0, 0};     // Updated constantly in reflex_hand_state_cb()
