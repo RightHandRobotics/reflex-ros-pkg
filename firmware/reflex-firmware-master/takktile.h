@@ -80,7 +80,7 @@
 
 
 void takktileInit();
-void takktile_poll_nonblocking_tick(const uint8_t takktile_port);
+void takktile_poll_nonblocking_tick(const uint8_t takktileNumber);
 
 typedef enum
 {

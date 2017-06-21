@@ -66,7 +66,7 @@ uint8_t checkTakktileStatus(uint8_t fingerNumber, uint8_t takktileNumber){
   return 0;
 }
 
-void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
+void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
 {
   //Function to handle the takktile polling state machine
   static uint8_t sensorNumber[NUM_FINGERS] = {0, 0, 0};
@@ -75,20 +75,14 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
   //uint8_t sensorInMemory;
   //uint8_t initialTime[3] = {0}; // for the 3ms delay
   //const uint_fast8_t tp = takktile_port; // save typing
-  if (takktile_port >= NUM_TACTILE_PORTS)
+  if (takktileNumber >= NUM_FINGERS)
     return; // let's not corrupt memory.
 
-  takktileAsyncPollState_t *state = &takktilePollState[takktile_port];
+  takktileAsyncPollState_t *state = &takktilePollState[takktileNumber];
 
-  uint8_t takktileNumber; //Number identifying what finger of the hand it is
-  if (takktile_port == 2)
-    takktileNumber = 1;
-  else if (takktile_port == 0)
-    takktileNumber = 0;
-  else if (takktile_port == 1)
-    takktileNumber = 2;
-  else
-    takktileNumber = 3;
+  // uint8_t takktileNumber; //Number identifying what finger of the hand it is
+  // takktileNumber = takktile_port;
+  
   sensorNumberAux = sensorNumber[takktileNumber];  //ID number of the takktile sensor on the finger
   //sensorInMemory = takktile_port * SENSORS_PER_FINGER + sensorNumberAux;
 
@@ -98,10 +92,10 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
     {
       case STATE_ENABLE_ALL_SENSORS:
           result = enableAllSensors(takktileNumber);
-          // if (!result)
-          // {
-          //   updateFingerStatus(takktileNumber, 0);//handStatus.finger[takktileNumber] = 0;
-          // }
+          if (!result)
+          {
+            updateFingerStatus(takktileNumber, 0);//handStatus.finger[takktileNumber] = 0;
+          }
           *state = STATE_START_CONVERSION;
         break;
       case STATE_START_CONVERSION:
@@ -110,23 +104,19 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
           //initialTime[takktileNumber] = SYSTIME; //DAVID
         break;
       case STATE_DISABLE_ALL_SENSORS:
-          disableAllSensors(takktileNumber);
-          // if (!disableAllSensors(takktileNumber))
-          // {
-          //   updateFingerStatus(takktileNumber, 0);//handStatus.finger[takktileNumber] = 0; 
-          // }
-          // else{
-          //   updateFingerStatus(takktileNumber, 1);
-          // }
+          result = disableAllSensors(takktileNumber);
+          if (!result)
+          {
+            updateFingerStatus(takktileNumber, 0);//handStatus.finger[takktileNumber] = 0; 
+          }
           *state = STATE_ENABLE_SENSOR;
         break;
       case STATE_ENABLE_SENSOR:
-          if((sensorNumberAux != 0)&&(checkTakktileStatus(takktileNumber, sensorNumberAux)==1))// || (SYSTIME - initialTime[takktileNumber] > 3000))
+          if((checkTakktileStatus(takktileNumber, sensorNumberAux)==1))// || (SYSTIME - initialTime[takktileNumber] > 3000))
           {
             if (enableSensor(takktileNumber, sensorNumberAux))
             {
               *state = STATE_SET_REGISTER;
-              //updateTakktileStatus(takktileNumber, sensorNumberAux, 1);//handStatus.takktileSensor[sensorInMemory] = 1;
             }
             else
             {
@@ -139,7 +129,8 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
           }
         break;
       case STATE_SET_REGISTER:
-          if (setRegister(takktileNumber))
+          result = setRegister(takktileNumber);
+          if (result)
           {
             *state = STATE_READ_VALUES;
           }
@@ -176,6 +167,10 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
             *state = STATE_ENABLE_SENSOR;
             updateTakktileStatus(takktileNumber, sensorNumberAux, 0);//handStatus.finger[takktileNumber] = 0;
           }
+
+          // if ((*state == STATE_ENABLE_SENSOR) && (checkTakktileStatus(takktileNumber, sensorNumberAux + 1) == 0)){
+          //   *state = STATE_DISABLE_SENSOR;
+          // }
         break;
       case STATE_WAIT:
         break;
@@ -184,9 +179,8 @@ void takktile_poll_nonblocking_tick(const uint8_t takktile_port)
         break;
     }
   }
-  else{
+  else
     *state = STATE_WAIT;
-  }
 }
 
 uint8_t enableAllSensors(uint8_t takktileNumber)
@@ -251,7 +245,7 @@ uint8_t disableAllSensors(uint8_t takktileNumber)
 uint8_t enableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
 {
   uint8_t result = 0;
-  uint8_t addresses[9] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16};
+  uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00};
   printf("ENABLING SENSOR by I2C/SPI WRITE: takktileNumber %d, ADDR %x, data NULL, length 0", takktileNumber, addresses[sensorIndex]);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
@@ -325,7 +319,7 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
 uint8_t disableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
 {
   uint8_t result = 0;
-  uint8_t addresses[9] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16};
+  uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x00, 0x00, 0x00, 0x00, 0x00};
   uint8_t aux[1] = {0};
   printf("DISABLING SENSOR by I2C/SPI READ: takktileNumber %d, ADDR %x, length 1", takktileNumber, addresses[sensorIndex] >> 1);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
