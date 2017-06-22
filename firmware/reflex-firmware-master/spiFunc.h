@@ -47,7 +47,5 @@ uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, int toggleAddress);
 
 uint8_t readCommmand(SPI_TypeDef* spiPort,uint8_t address, uint8_t numBytes);
-void ledStatus(uint8_t status);
-void ledsPattern(int led1, int led2, int led3, int led4);
 
 #endif
