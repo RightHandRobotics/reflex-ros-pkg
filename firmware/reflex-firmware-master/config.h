@@ -10,6 +10,7 @@
 #include "systime.h"
 #include "dmxl.h"
 #include "fan.h"
+#include "spiFunc.h"
 #include "takktile.h"
 #include "enc.h"
 #include "state.h"
@@ -22,7 +23,7 @@
 //TIMEOUTS
 #define UART_TIMEOUT                   10000 // timeout in microseconds
 #define I2C_TIMEOUT                    5000  //700 // timeout in microseconds // CORRECT, put back value
-#define SPI_TIMEOUT                    1000 // timeout in microseconds
+#define SPI_TIMEOUT                    5000 // timeout in microseconds
 
 
 // BAROMETER

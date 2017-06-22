@@ -54,8 +54,6 @@ uint8_t writeConverterRegister(uint8_t registerAddress, uint8_t data)
   cs_gpio->BSRRL = cs_pin_mask;           // de-assert CS
   udelay(5);
 
-  if (SYSTIME - startTime > SPI_TIMEOUT)
-    return 0;
   return 1;
 }
 uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
@@ -89,8 +87,30 @@ uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
   udelay(5);
 
   if (SYSTIME - startTime > SPI_TIMEOUT)
-    return 0;
+    return 1;
   return 1;
+}
+
+uint8_t converterInit(void){
+  // Reset SPI to I2C Converter
+  printf("\tresetting SPI to I2C conveter...");
+  resetConverter();
+  printf(" OK\n");
+
+  // Configure SPI to I2C Conversion
+  writeConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, SC18IS601_I2C_CLOCK_369KHZ);
+
+  //Check that the register was written properly
+  uint8_t data[1] = {0};
+  readConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, data);
+  if (data[0] == SC18IS601_I2C_CLOCK_369KHZ){
+    return 1;
+  }
+
+  //If the SPI to I2C converter is not working properly, finger 2 will not work
+  updateFingerStatus(2, 0);
+
+  return 0;
 }
 
 uint8_t writeRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress)
@@ -106,6 +126,7 @@ uint8_t setRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress,
 
 uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, int toggleAddress)
 {
+  uint32_t startTime = SYSTIME;
   SPI_TypeDef *spiPort = (SPI_TypeDef*) port;
   GPIO_TypeDef *cs_gpio = GPIOA;
   uint32_t cs_pin_mask = 1 << PORTA_BRIDGE0_CS;
@@ -142,10 +163,13 @@ uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, i
 
   cs_gpio->BSRRL = cs_pin_mask;           // de-assert CS
 
-  if (len == 0 || data == NULL)
-    return 1;
-  const uint32_t wait = 180 + 110 * len;
+  // if (len == 0 || data == NULL)
+  //   return 1;
+  const uint32_t wait = 180 + 100 * len;
   udelay(wait);
+
+  if (SYSTIME - startTime > SPI_TIMEOUT)
+    return 1;
 
   return 1;
 }
@@ -178,6 +202,7 @@ uint8_t readCommmand(SPI_TypeDef* spiPort, uint8_t address, uint8_t numBytes)
 
 uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values)
 {
+  uint32_t startTime = SYSTIME;
   SPI_TypeDef *spiPort = (SPI_TypeDef*) port;
   // GPIOC->BSRRH = 1 << PORTC_I2C_BRIDGE_RESET;
   // udelay(100);
@@ -220,6 +245,9 @@ uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   // ledStatus(status);
   // udelay(100);
   // while(1);
+
+  if (SYSTIME - startTime > SPI_TIMEOUT)
+    return 1;
 
   return 1;
 }

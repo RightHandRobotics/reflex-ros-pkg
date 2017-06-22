@@ -3,6 +3,7 @@
 
 #include "./stm32/stm32f4xx.h"
 #include "systime.h"
+#include "takktile.h"
 #include <stdio.h>
 #include <leds.h>
 // #include <stdint.h>
@@ -37,7 +38,9 @@ void resetConverter(void);
 uint8_t checkConverterIsBusy (uint8_t utime);
 uint8_t writeConverterRegister(uint8_t registerAddress, uint8_t data);
 uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data);
+uint8_t converterInit(void);
 
+//SPI Functions
 uint8_t writeRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress);
 uint8_t setRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress, uint8_t data);
 uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values);

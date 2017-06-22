@@ -9,6 +9,7 @@ void init()
   portsInit();                     // microcontroller and hand configuration
 
   state_init();
+  converterInit();
   takktileInit();                  // takktile
   encInit();                       // encoders
   imuInit();                       // imus
@@ -16,15 +17,12 @@ void init()
   leds_init();
   enet_init();
   dmxl_init();
-  fan_init();
-  
+  fan_init();  
   
   fan_on();                        // todo: be smarter. probably doesn't need to run all the time.
   __enable_irq();
   dmxl_set_baud_rates();
   dmxl_set_status_return_levels();
-
-  
 
   asyncInit();                     // initiate state machine
 
@@ -55,26 +53,19 @@ void printInfo(uint type)
 
         printf("\n");
       }
-      
-      // printf("Pressures: \n");
-      // for (int i = 0; i < NUM_SENSORS; i++)
-      // {
-      //   printf(" %d", handState.takktile_pressures[i]);
-      // }
-      // printf("\n");
       break;
     case HAND_STATUS_INFO:
       printf("Hand Status:\n");
       printf("\tTakktile Sensors: \n");
-      for (int j = 0; j < NUM_FINGERS; j++)
-      {
-        printf("\t\tFinger %d) %d: ", j + 1, handStatus.finger[j]);
-        for (int i = 0; i < SENSORS_PER_FINGER; i++)
-        {
-          printf("%d ", handStatus.takktileSensor[j * SENSORS_PER_FINGER + i]);
-        }
-        printf("\n");
-      }
+      // for (int j = 0; j < NUM_FINGERS; j++)
+      // {
+      //   //printf("\t\tFinger %d) %d: ", j + 1, handStatus.finger[j]);
+      //   for (int i = 0; i < SENSORS_PER_FINGER; i++)
+      //   {
+      //     printf("%d ", handStatus.takktileSensor[j * SENSORS_PER_FINGER + i]);
+      //   }
+      //   printf("\n");
+      // }
     break;
 
     default:

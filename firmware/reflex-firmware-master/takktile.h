@@ -70,9 +70,9 @@
 
 // for 100 kHz i2c: 42 mhz / (2 * 100 khz) = 210
 // for 400 kHz i2c: 42 mhz / (2 * 400 khz) =  53
-#define I2C_CCR 210
-#define I2C_TRISE (APB_MHZ * 200 / 1000 + 1)
-#define I2C_READ 1
+// #define I2C_CCR 210
+// #define I2C_TRISE (APB_MHZ * 200 / 1000 + 1)
+// #define I2C_READ 1
 
 #define SLEEP_TIME 0
 #define TACTILE_I2C_SUCCESS 0xffffffff
