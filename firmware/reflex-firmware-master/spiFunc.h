@@ -5,12 +5,8 @@
 #include "systime.h"
 #include "takktile.h"
 #include <stdio.h>
-#include <leds.h>
 // #include <stdint.h>
 #include "ports.h"
-
-#define ON                                         1
-#define OFF                                        0
 
 #define SC18IS601_I2C_CLOCK_369KHZ                 0x05
 #define SC18IS601_I2C_CLOCK_263KHZ                 0x07

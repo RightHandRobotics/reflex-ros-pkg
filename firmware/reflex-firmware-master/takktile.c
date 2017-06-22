@@ -79,7 +79,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
   
   sensorNumberAux = sensorNumber[takktileNumber];  //ID number of the takktile sensor on the finger
 
-  if (checkFingerStatus(takktileNumber) == 1){  //Only poll if the finger is working
+  if ((checkFingerStatus(takktileNumber) == 1)&&(takktileNumber!=1)){  //Only poll if the finger is working
     uint8_t result = 0;
     switch (*state)
     {

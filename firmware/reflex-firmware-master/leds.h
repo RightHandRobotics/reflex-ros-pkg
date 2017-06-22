@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define ON                                         1
+#define OFF                                        0
+
 void leds_init();
 void leds_on(uint8_t led_idx);
 void leds_off(uint8_t led_idx);
