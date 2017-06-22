@@ -7,32 +7,32 @@ void takktileInit()  //Initialize the takktile sensors for use
 {
   printf("takktile sensors initialization...\n");
 
-  // Reset SPI to I2C Converter
-  printf("\tresetting SPI to I2C conveter...");
-  resetConverter();
-  printf(" OK\n");
+  // // Reset SPI to I2C Converter
+  // printf("\tresetting SPI to I2C conveter...");
+  // resetConverter();
+  // printf(" OK\n");
 
-  // Configure SPI to I2C Conversion
-  writeConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, SC18IS601_I2C_CLOCK_369KHZ);
+  // // Configure SPI to I2C Conversion
+  // writeConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, SC18IS601_I2C_CLOCK_369KHZ);
   
-  // Print header, all the registers
-  printf("\tSPI to I2C Converter registers: \n");
-  uint8_t data[1] = {0};
-  readConverterRegister(SC18IS601_REGISTER_IO_CONFIG, data);
-  printf("\t\t IO Config   : %#02x\n", data[0]);
-  readConverterRegister(SC18IS601_REGISTER_IO_STATE, data);
-  printf("\t\t IO State    : %#02x\n", data[0]);
-  readConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, data);
-  printf("\t\t I2C Clock   : %#02x\n", data[0]);
-  readConverterRegister(SC18IS601_REGISTER_I2C_TIMEOUT, data);
-  printf("\t\t I2C Timeout : %#02x\n", data[0]);
-  readConverterRegister(SC18IS601_REGISTER_I2C_STATUS, data);
-  printf("\t\t I2C Status  : %#02x\n", data[0]);
-  readConverterRegister(SC18IS601_REGISTER_I2C_ADDR, data);
-  printf("\t\t I2C Addr    : %#02x\n", data[0]);
+  // // Print header, all the registers
+  // // printf("\tSPI to I2C Converter registers: \n");
+  // // uint8_t data[1] = {0};
+  // // readConverterRegister(SC18IS601_REGISTER_IO_CONFIG, data);
+  // // printf("\t\t IO Config   : %#02x\n", data[0]);
+  // // readConverterRegister(SC18IS601_REGISTER_IO_STATE, data);
+  // // printf("\t\t IO State    : %#02x\n", data[0]);
+  // // readConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, data);
+  // // printf("\t\t I2C Clock   : %#02x\n", data[0]);
+  // // readConverterRegister(SC18IS601_REGISTER_I2C_TIMEOUT, data);
+  // // printf("\t\t I2C Timeout : %#02x\n", data[0]);
+  // // readConverterRegister(SC18IS601_REGISTER_I2C_STATUS, data);
+  // // printf("\t\t I2C Status  : %#02x\n", data[0]);
+  // // readConverterRegister(SC18IS601_REGISTER_I2C_ADDR, data);
+  // // printf("\t\t I2C Addr    : %#02x\n", data[0]);
 
-  printf("OK\r\n");
-  printf("\n");
+  // // printf("OK\r\n");
+  // // printf("\n");
 }
 
 //Update finger or takktile status values in the handStatus struct
@@ -70,29 +70,21 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
 {
   //Function to handle the takktile polling state machine
   static uint8_t sensorNumber[NUM_FINGERS] = {0, 0, 0};
-  static uint8_t sumStatus[NUM_FINGERS] = {0, 0, 0};
+  static uint_fast8_t sumStatus[NUM_FINGERS] = {0, 0, 0};
   uint8_t sensorNumberAux;
-  //uint8_t sensorInMemory;
-  //uint8_t initialTime[3] = {0}; // for the 3ms delay
-  //const uint_fast8_t tp = takktile_port; // save typing
   if (takktileNumber >= NUM_FINGERS)
     return; // let's not corrupt memory.
 
   takktileAsyncPollState_t *state = &takktilePollState[takktileNumber];
-
-  // uint8_t takktileNumber; //Number identifying what finger of the hand it is
-  // takktileNumber = takktile_port;
   
   sensorNumberAux = sensorNumber[takktileNumber];  //ID number of the takktile sensor on the finger
-  //sensorInMemory = takktile_port * SENSORS_PER_FINGER + sensorNumberAux;
 
   if (checkFingerStatus(takktileNumber) == 1){  //Only poll if the finger is working
     uint8_t result = 0;
     switch (*state)
     {
       case STATE_ENABLE_ALL_SENSORS:
-          result = enableAllSensors(takktileNumber);
-          if (!result)
+          if (!enableAllSensors(takktileNumber))
           {
             updateFingerStatus(takktileNumber, 0);//handStatus.finger[takktileNumber] = 0;
           }
@@ -104,8 +96,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
           //initialTime[takktileNumber] = SYSTIME; //DAVID
         break;
       case STATE_DISABLE_ALL_SENSORS:
-          result = disableAllSensors(takktileNumber);
-          if (!result)
+          if (!disableAllSensors(takktileNumber))
           {
             updateFingerStatus(takktileNumber, 0);//handStatus.finger[takktileNumber] = 0; 
           }
@@ -146,13 +137,14 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
           *state = STATE_DISABLE_SENSOR;
         break;
       case STATE_DISABLE_SENSOR:
-          result = disableSensor(takktileNumber, sensorNumberAux);
+          if (checkTakktileStatus(takktileNumber, sensorNumberAux) == 1)
+            result = disableSensor(takktileNumber, sensorNumberAux);
           sensorNumber[takktileNumber]++;
           if (sensorNumberAux + 2 > SENSORS_PER_FINGER)
           {
             *state = STATE_WAIT;
             sensorNumber[takktileNumber] = 0;
-            if (sumStatus[takktileNumber]==0)
+            if (sumStatus[takktileNumber]<2)
               updateFingerStatus(takktileNumber, 0);
             else
               sumStatus[takktileNumber] = 0;
