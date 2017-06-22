@@ -35,8 +35,8 @@ typedef struct
 typedef struct
 {
   takktile_status_t takktileFinger[3];         // Status of 3 fingers and their individual sensors
-  uint8_t finger[NUM_FINGERS];                 // Status of 3 fingers
-  uint8_t takktileSensor[NUM_SENSORS];         // Status of 53 sensors
+  // uint8_t finger[NUM_FINGERS];                 // Status of 3 fingers
+  // uint8_t takktileSensor[NUM_SENSORS];         // Status of 53 sensors
   uint8_t encoders[NUM_ENC];                   // Status of 3 encoders
   uint8_t imus[NUM_IMUS];                      // Status of 4 IMUs
 } __attribute__((packed)) status_t;
