@@ -20,7 +20,7 @@ int main()
 
     if (asyncUpdate())
     {
-      printInfo(HAND_STATE_INFO);
+      // printInfo(HAND_STATE_INFO);
       // printf("All done, send via ethernet...\n");
       ethernetService();
     }    
