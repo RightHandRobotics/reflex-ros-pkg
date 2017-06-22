@@ -2,8 +2,7 @@
 
 void resetConverter(void)
 {
-  // the two SPI-I2C bridges have their RESETs tied to a common MCU pin,
-  // so this function will reset both of them
+  //Reset the SPI to I2C converter
   GPIOC->BSRRH = 1 << PORTC_I2C_BRIDGE_RESET;
   udelay(1000);
   GPIOC->BSRRL = 1 << PORTC_I2C_BRIDGE_RESET;
@@ -12,6 +11,7 @@ void resetConverter(void)
 
 uint8_t checkConverterIsBusy (uint8_t utime)
 {
+  //Check if the SPI to I2C converter is busy
   uint8_t status[1] = {0};
   readConverterRegister(SC18IS601_REGISTER_I2C_STATUS, status);
   uint32_t startTime = SYSTIME;
@@ -24,12 +24,13 @@ uint8_t checkConverterIsBusy (uint8_t utime)
     resetConverter();
     return 0;
   }
-  else
-    return 1;
+  
+  return 1;
 }
 
 uint8_t writeConverterRegister(uint8_t registerAddress, uint8_t data)
 {
+  //Write data to a register of the SPI to I2C converter
   uint32_t startTime = SYSTIME;
   SPI_TypeDef *spiPort = SPI1;
   GPIO_TypeDef *cs_gpio = GPIOA;
@@ -58,6 +59,7 @@ uint8_t writeConverterRegister(uint8_t registerAddress, uint8_t data)
 }
 uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
 {
+  //Read data from a register of the SPI to I2C converter
   uint32_t startTime = SYSTIME;
   SPI_TypeDef *spiPort = SPI1;
   GPIO_TypeDef *cs_gpio = GPIOA;
@@ -92,6 +94,8 @@ uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
 }
 
 uint8_t converterInit(void){
+  //Initialize the SPI to I2C converter
+
   // Reset SPI to I2C Converter
   printf("\tresetting SPI to I2C conveter...");
   resetConverter();
