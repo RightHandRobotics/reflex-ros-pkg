@@ -279,22 +279,70 @@ visualization_msgs::Marker makeFingerMarker(int id)
   marker.header.stamp = ros::Time();
   marker.type = visualization_msgs::Marker::SPHERE;
 
-  finger_tactile_positions(id, &marker.pose.position.x, &marker.pose.position.z);
-  marker.pose.position.y = 0;
-  marker.pose.orientation.w = 1.0;
+  finger_tactile_positions(id, &marker.pose.position.x, &marker.pose.position.z, &marker.pose.position.y, &marker.pose.orientation.w);
+  if (id==8){
+    marker.pose.orientation.y = 2.3;
+  }
+  else if (id==9){
+    marker.pose.orientation.y = -2.5;
+  }
+  else if (id > 9){
+    marker.pose.orientation.x = 4.55;
+  }
   marker.color.a = 1.0;
   return marker;
 }
 
 
-void finger_tactile_positions(int index, double* x, double* z) {
+void finger_tactile_positions(int index, double* x, double* z, double* y, double* w) {
+  //TODO: Make more dynamic/ easy to change position locations (sensors 0-8 are ok)
   double x_gap = 0.008;
   if (index < 5) {  // Proximal link
     *x = x_gap*index + 0.019;
-    *z = 0.015;
+    *z = 0.014;
+    *y = 0;
+    *w = 1.0;
   }
-  else {        // Distal link
-    *x = x_gap*(index-5) + 0.0215;
-    *z = 0.009;
+  else if ((index > 4) & (index < 8)) {        // Distal link
+    *x = x_gap*(index-5) + 0.0245;
+    *z = 0.010;
+    *y = 0;
+    *w = 1.0;
+  }
+  else if (index == 8){
+    *x = x_gap*(index+1-5) + 0.019;
+    *z = 0.007;
+    *y = 0;
+    *w = 5.0;
+  }
+  else if (index == 9){
+    *x = x_gap*(index-5-1+1) + 0.0205;
+    *z = -0.0025;
+    *y = 0;
+    *w = 5.0;
+  }
+  else if (index == 10){
+    *x = x_gap*(6-5) + 0.0215;
+    *z = 0.001;
+    *y = 0.0075;
+    *w = 5.0;
+  }
+  else if (index == 11){
+    *x = x_gap*(7-5) + 0.0215;
+    *z = 0.001;
+    *y = 0.0075;
+    *w = 5.0;
+  }
+  else if (index == 12){
+    *x = x_gap*(6-5) + 0.0215;
+    *z = 0.001;
+    *y = -0.0075;
+    *w = 5.0;
+  }
+  else if (index == 13){
+    *x = x_gap*(7-5) + 0.0215;
+    *z = 0.001;
+    *y = -0.0075;
+    *w = 5.0;
   }
 }
