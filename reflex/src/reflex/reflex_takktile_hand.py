@@ -44,9 +44,12 @@ class ReflexTakktileHand(ReflexHand):
         self._connect_motors_to_fingers()
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs.srv.SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
+        self.zero_pose_service = rospy.ServiceProxy(self.namespace + '/zero_pose', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
         rospy.Service(self.namespace + '/enable_tactile_stops', Empty, self.enable_tactile_stops)
         rospy.Service(self.namespace + '/disable_tactile_stops', Empty, self.disable_tactile_stops)
+        rospy.Service(self.namespace + '/calibrate_fingers_manual', Empty, self.calibrate_fingers_manual)
+        
         self.tactile_stops_enabled = False
         self.comms_timeout = 5.0  # Seconds with no communications until hand stops
         self.latest_update = rospy.get_rostime()
@@ -123,6 +126,28 @@ class ReflexTakktileHand(ReflexHand):
 
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
+
+    def calibrate_fingers_manual(self, data = None):
+        # Calibrate the fingers manually through the command line prompts
+        # Saving the calibration data is implemented using the zero_pose_service
+        for motor in sorted(self.motors):
+            rospy.loginfo("Calibrating motor " + motor)
+            command = raw_input("Type 't' to tighten motor, 'l' to loosen \
+motor, or 'q' to indicate that the zero point has been reached\n")
+            while not command.lower() == 'q':
+                if command.lower() == 't' or command.lower() == 'tt':
+                    print "Tightening motor " + motor
+                    self.motors[motor].tighten(0.35 * len(command) - 0.3)
+                elif command.lower() == 'l' or command.lower() == 'll':
+                    print "Loosening motor " + motor
+                    self.motors[motor].loosen(0.35 * len(command) - 0.3)
+                else:
+                    print "Didn't recognize that command, use 't', 'l', or 'q'"
+                command = raw_input("Tighten: 't'\tLoosen: 'l'\tDone: 'q'\n")
+            rospy.loginfo("Saving current position for %s as the zero point", motor)
+        print "Calibration complete, writing data to file"
+        self.zero_pose_service()
+        return []
 
     def _publish_motor_commands(self):
         '''

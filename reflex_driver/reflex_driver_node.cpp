@@ -76,6 +76,7 @@ bool acquire_tactile = false;         // Updated by /calibrate_tactile ROS servi
 bool acquire_fingers = false;         // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
 bool first_capture = false;           // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
 bool all_fingers_moved = false;       // Updated in reflex_hand_state_cb()
+bool zero_current_pose = false;   // Updated by /zero_pose and /calibrate_fingers_manual ROS services and in reflex_hand_state_cb()
 vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calibration
 vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
 uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated in reflex_hand_state_cb() during calibration
@@ -231,6 +232,13 @@ bool calibrate_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response 
   return true;
 }
 
+// Saves the current finger and encoder positions the origin
+// Used with the /zero_pose service
+bool zero_pose(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res){
+  zero_current_pose = true;
+  return true;
+}
+
 
 // Sets the tactile threshold levels to be all one value
 void populate_tactile_threshold(int threshold) {
@@ -354,18 +362,20 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     calibrate_tactile_sensors(state, hand_msg);
   }
 
-  if (acquire_fingers && (ros::Time::now() > latest_calibration_time + ros::Duration(0.05))) {
+  // Auto calibrate the finger pose or zero the current finger and preshape positions
+  if ((acquire_fingers && (ros::Time::now() > latest_calibration_time + ros::Duration(0.05))) || zero_current_pose) {
     if (first_capture) {
       calibrate_encoders_locally(state);
       first_capture = false;
     }
     all_fingers_moved = check_for_finger_movement(state);
-    if (all_fingers_moved) {
+    if (all_fingers_moved || zero_current_pose) {
       acquire_fingers = false;
       ROS_INFO("FINISHED FINGER CALIBRATION: Encoder movement detected");
       calibrate_motors_locally(state);
       log_encoder_zero_to_file();
       log_motor_zero_to_file_and_close();
+      zero_current_pose = false;
     } else {
       move_fingers_in(state);
     }
@@ -581,6 +591,8 @@ int main(int argc, char **argv) {
   ROS_INFO("Advertising the /calibrate_fingers service");
   ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", calibrate_tactile);
   ROS_INFO("Advertising the /calibrate_tactile service");
+  ros::ServiceServer zero_pose_service = nh.advertiseService(ns + "/zero_pose", zero_pose);
+  ROS_INFO("Advertising the /zero_pose service");
   ros::ServiceServer set_thresh_service = nh.advertiseService(ns + "/set_tactile_threshold", set_tactile_threshold);
   ROS_INFO("Advertising the /set_tactile_threshold service");
 
