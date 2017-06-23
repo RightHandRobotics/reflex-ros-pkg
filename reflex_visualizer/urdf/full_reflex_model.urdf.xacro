@@ -42,7 +42,7 @@
       name="finger[${finger_id}]/flex_link[${flex_id}]">
       <visual>
         <origin
-          xyz="0.001 -0.007 0.003"
+          xyz="0 -0.007 0"
           rpy="${pi/2} 0 ${pi/2}" />
         <geometry>
           <mesh
@@ -54,34 +54,86 @@
         </material>
       </visual>
     </link>
+
+    <link name="finger[${finger_id}]/flex_link[${flex_id}]/virtual_link[1]"/>
+    <link name="finger[${finger_id}]/flex_link[${flex_id}]/virtual_link[2]"/>
+
   </xacro:macro>
 
 	<!-- Macro to one flex body link to the next -->
 	<xacro:macro name="flex_joint" params="finger_id link_parent link_child">
-		<joint name="finger[${finger_id}]/flex_joint_from_${link_parent}_to_${link_child}" type="continuous">
+		<joint name="finger[${finger_id}]/flex_link[${link_parent}]/flex_joint_from_flex_link[${link_parent}]_to_virtual_link[1]" type="continuous">
 			<parent link="finger[${finger_id}]/flex_link[${link_parent}]"/>
-			<child link="finger[${finger_id}]/flex_link[${link_child}]"/>
+			<child link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[1]"/>
 			<origin xyz="${flex_length/num_steps} 0 0" />
 			<axis xyz="0 -1 0"/>
 		</joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${link_parent}]/flex_joint_from_virtual_link[1]_to_virtual_link[2]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[1]"/>
+      <child link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[2]"/>
+      <origin xyz="0 0 0" />
+      <axis xyz="-1 0 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${link_parent}]/flex_joint_from_virtual_link[2]_to_flex_link[${link_child}]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${link_parent}]/virtual_link[2]"/>
+      <child link="finger[${finger_id}]/flex_link[${link_child}]"/>
+      <origin xyz="0 0 0" />
+      <axis xyz="0 0 -1"/>
+    </joint>
 	</xacro:macro>
 
 	<!-- Macro to make the joint from proximal to first link and from last link to distal  -->
 	<xacro:macro name="flex_to_segment_joint" params="finger_id">
-		<joint name="finger[${finger_id}]/flex_joint_from_prox_to_1" type="continuous">
+    
+    <link name="finger[${finger_id}]/prox/virtual_link[1]"/>
+    <link name="finger[${finger_id}]/prox/virtual_link[2]"/>
+
+		<joint name="finger[${finger_id}]/prox/flex_joint_from_prox_to_virtual_link[1]" type="continuous">
 			<parent link="proximal_${finger_id}"/>
-			<child link="finger[${finger_id}]/flex_link[1]"/>
+			<child link="finger[${finger_id}]/prox/virtual_link[1]"/>
 			<origin xyz="${prox_length} 0 -0.004"/>
 			<axis xyz="0 -1 0"/>
 		</joint>
 
-		<joint name="finger[${finger_id}]/flex_joint_from_${num_steps}_to_dist" type="continuous">
+    <joint name="finger[${finger_id}]/prox/flex_joint_from_virtual_link[1]_to_virtual_link[2]" type="continuous">
+      <parent link="finger[${finger_id}]/prox/virtual_link[1]"/>
+      <child link="finger[${finger_id}]/prox/virtual_link[2]"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="-1 0 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/prox/flex_joint_from_virtual_link[2]_to_flex_link[1]" type="continuous">
+      <parent link="finger[${finger_id}]/prox/virtual_link[2]"/>
+      <child link="finger[${finger_id}]/flex_link[1]"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 0 -1"/>
+    </joint>
+
+
+		<joint name="finger[${finger_id}]/flex_link[${num_steps}]/flex_joint_from_flex_link[${num_steps}]_to_virtual_link[1]" type="continuous">
 			<parent link="finger[${finger_id}]/flex_link[${num_steps}]"/>
-			<child link="distal_${finger_id}"/>
+			<child link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[1]"/>
 			<origin xyz="${flex_length/num_steps-0.01} 0 0.008"/>
 			<axis xyz="0 -1 0"/>
 		</joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${num_steps}]/flex_joint_from_virtual_link[1]_to_virtual_link[2]" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[1]"/>
+      <child link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[2]"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="-1 0 0"/>
+    </joint>
+
+    <joint name="finger[${finger_id}]/flex_link[${num_steps}]/flex_joint_from_virtual_link[2]_to_dist" type="continuous">
+      <parent link="finger[${finger_id}]/flex_link[${num_steps}]/virtual_link[2]"/>
+      <child link="distal_${finger_id}"/>
+      <origin xyz="0 0 0"/>
+      <axis xyz="0 0 -1"/>
+    </joint>
 	</xacro:macro>
+
 
 	<xacro:flex_link finger_id="1" flex_id="1"/>
   <xacro:flex_link finger_id="1" flex_id="2"/>
@@ -228,8 +280,8 @@
     name="proximal_1">
     <visual>
       <origin
-        xyz="-0.011 0.007 0.011"
-        rpy="3.1459 0 0"/>
+        xyz="0 0 0"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_1.STL" />
@@ -245,7 +297,7 @@
     type="continuous">
     <origin
       xyz="0.01 0 0.0186"
-      rpy="-6.20039667432211E-16 0.28 2.22044604925031E-16" />
+      rpy="-6.20039667432211E-16 2.40507565059625E-17 2.22044604925031E-16" />
     <parent
       link="swivel_1" />
     <child
@@ -257,8 +309,8 @@
     name="proximal_pad_1">
     <visual>
       <origin
-        xyz="-0.008 0.014 -0.002"
-        rpy="1.5708 1.5708 0" />
+        xyz="0 0 0"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
@@ -286,8 +338,8 @@
     name="distal_1">
     <visual>
       <origin
-        xyz="-0.077 0.007 0.007"
-        rpy="3.1459 0 0" />
+        xyz="0.01 0 -0.004"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_1.STL" />
@@ -302,7 +354,7 @@
     name="distal_joint_1"
     type="continuous">
     <origin
-      xyz="0.07600000000000001 0 0.00250000000000002"
+      xyz="0.0760000000000001 0 0.00250000000000002"
       rpy="0 0 0" />
     <parent
       link="proximal_1" />
@@ -315,8 +367,8 @@
     name="distal_pad_1">
     <visual>
       <origin
-        xyz="-0.00825 0.009 0.057"
-        rpy="1.5708 1.5708 0" />
+        xyz="0 -0.004 -0.01"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
@@ -331,7 +383,7 @@
     name="dist1_pad_joint"
     type="fixed">
     <origin
-      xyz="-0.01 0 0.001"
+      xyz="-0.0760000000000001 0 -0.0025"
       rpy="1.5707963267949 0 -1.5707963267949" />
     <parent
       link="distal_1" />
@@ -348,7 +400,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/swivel_2.STL" />
+          filename="package://reflex_visualizer/meshes/swivel_1.STL" />
       </geometry>
       <material
         name="">
@@ -373,8 +425,8 @@
     name="proximal_2">
     <visual>
       <origin
-        xyz="-0.011 0.007 0.011"
-        rpy="3.1459 0 0"/>
+        xyz="0 0 0"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_1.STL" />
@@ -390,7 +442,7 @@
     type="continuous">
     <origin
       xyz="0.01 0 0.0186"
-      rpy="-1.16908225836102E-15 0.28 1.11022302462515E-16" />
+      rpy="-1.16908225836102E-15 9.55493012556849E-16 1.11022302462515E-16" />
     <parent
       link="swivel_2" />
     <child
@@ -402,8 +454,8 @@
     name="proximal_pad_2">
     <visual>
       <origin
-        xyz="-0.008 0.014 -0.002"
-        rpy="1.5708 1.5708 0" />
+        xyz="0 0 0"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
@@ -431,8 +483,8 @@
     name="distal_2">
     <visual>
       <origin
-        xyz="-0.077 0.007 0.006"
-        rpy="3.1459 0 0" />
+        xyz="0.01 0 -0.004"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_1.STL" />
@@ -460,8 +512,8 @@
     name="distal_pad_2">
     <visual>
       <origin
-        xyz="-0.00825 0.009 0.057"
-        rpy="1.5708 1.5708 0" />
+        xyz="0 -0.004 -0.01"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
@@ -476,7 +528,7 @@
     name="dist2_pad_joint"
     type="fixed">
     <origin
-      xyz="-0.01 0 0.001"
+      xyz="-0.0760000000000001 0 -0.0025"
       rpy="1.5707963267949 0 -1.5707963267949" />
     <parent
       link="distal_2" />
@@ -489,8 +541,8 @@
     name="proximal_3">
     <visual>
       <origin
-        xyz="-0.011 0.007 0.011"
-        rpy="3.1459 0 0"/>
+        xyz="0 0 0"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_1.STL" />
@@ -506,7 +558,7 @@
     type="continuous">
     <origin
       xyz="-0.0299999999999996 0 0.0816000000000002"
-      rpy="-5.55111512312578E-17 0.28 3.14159265358979" />
+      rpy="-5.55111512312578E-17 -2.22044604925031E-16 3.14159265358979" />
     <parent
       link="base_link" />
     <child
@@ -518,8 +570,8 @@
     name="proximal_pad_3">
     <visual>
       <origin
-        xyz="-0.008 0.014 -0.002"
-        rpy="1.5708 1.5708 0" />
+        xyz="0 0 0"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
@@ -547,8 +599,8 @@
     name="distal_3">
     <visual>
       <origin
-        xyz="-0.077 0.007 0.006"
-        rpy="3.1459 0 0" />
+        xyz="0.01 0 -0.004"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_1.STL" />
@@ -576,8 +628,8 @@
     name="distal_pad_3">
     <visual>
       <origin
-        xyz="-0.00825 0.009 0.057"
-        rpy="1.5708 1.5708 0" />
+        xyz="0 -0.004 -0.01"
+        rpy="0 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
@@ -592,8 +644,8 @@
     name="dist3_pad_joint"
     type="fixed">
     <origin
-      xyz="-0.01 0 0.001"
-      rpy="1.5707963267949 0 -1.5707963267949" />
+      xyz="-0.0760000000000001 0 -0.0025"
+      rpy="1.5707963267949 -1.22460635382238E-16 -1.5707963267949" />
     <parent
       link="distal_3" />
     <child
@@ -648,7 +700,7 @@
   <link name="proximal_3_tactile"/>
 
   <joint name="distal_1_tactile_joint" type="fixed">
-    <origin xyz="-0.0062 0 0" rpy="0 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="distal_1" />
     <child link="distal_1_tactile" />
   </joint>
@@ -656,7 +708,7 @@
   <link name="distal_1_tactile"/>
 
   <joint name="distal_2_tactile_joint" type="fixed">
-    <origin xyz="-0.0062 0 0" rpy="0 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="distal_2" />
     <child link="distal_2_tactile" />
   </joint>
@@ -664,7 +716,7 @@
   <link name="distal_2_tactile"/>
 
   <joint name="distal_3_tactile_joint" type="fixed">
-    <origin xyz="-0.0062 0 0" rpy="0 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="distal_3" />
     <child link="distal_3_tactile" />
   </joint>
