@@ -364,7 +364,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 
   // Auto calibrate the finger pose or zero the current finger and preshape positions
   if ((acquire_fingers && (ros::Time::now() > latest_calibration_time + ros::Duration(0.05))) || zero_current_pose) {
-    if (first_capture) {
+    if (first_capture || zero_current_pose) {
       calibrate_encoders_locally(state);
       first_capture = false;
     }

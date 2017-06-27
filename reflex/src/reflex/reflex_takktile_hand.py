@@ -130,6 +130,7 @@ class ReflexTakktileHand(ReflexHand):
     def calibrate_fingers_manual(self, data = None):
         # Calibrate the fingers manually through the command line prompts
         # Saving the calibration data is implemented using the zero_pose_service
+        self.zero_pose_service()
         for motor in sorted(self.motors):
             rospy.loginfo("Calibrating motor " + motor)
             command = raw_input("Type 't' to tighten motor, 'l' to loosen \
