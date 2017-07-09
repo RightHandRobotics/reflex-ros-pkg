@@ -152,9 +152,12 @@ motor, or 'q' to indicate that the zero point has been reached\n")
                     last = enc_pos
                 else:
                     break
+            self.motors[self.namespace + motor_names[i]]._set_local_motor_zero_point()
         print "Calibration complete, writing data to file"
         self._zero_current_pose()
         self.calibrate_encoders_locally(self.encoder_last_value)
+        for i in range(3):
+            self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.5)
         for i in range(3):
             self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.0)
         return []
