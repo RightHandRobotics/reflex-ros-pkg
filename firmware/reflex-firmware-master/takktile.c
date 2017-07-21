@@ -36,7 +36,6 @@ void takktileInit()  //Initialize the takktile sensors for use
 }
 
 //Update finger or takktile status values in the handStatus struct
-//Use takktileNumber = -1 for the overall finger status
 void updateFingerStatus(uint8_t fingerNumber, uint8_t status){
   if (fingerNumber >= NUM_FINGERS) //Don't corrupt memory
     return;
@@ -51,7 +50,6 @@ void updateTakktileStatus(uint8_t fingerNumber, uint8_t takktileNumber, uint8_t 
 }
 
 //Check finger or takktile status values in the handStatus struct
-//Use takktileNumber = -1 for the overall finger status
 uint8_t checkFingerStatus(uint8_t fingerNumber){
   if (fingerNumber >= NUM_FINGERS) //Don't corrupt memory
     return 0;
