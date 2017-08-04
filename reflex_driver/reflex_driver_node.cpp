@@ -401,6 +401,19 @@ void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
   tactile_file.close();
 }
 
+// Opens imu calibration data file, and saves
+// current imu calibration values to file as the new calibrated "zero"
+void calibrate_imu_sensors(const reflex_hand::ReflexHandState* const state,
+                               reflex_msgs::Hand hand_msg) {
+  tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
+  tactile_file << "# Captured sensor values from unloaded state\n";
+  log_current_tactile_locally(state);
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    log_current_tactile_to_file(state, i);
+  }
+  acquire_tactile = false;
+  tactile_file.close();
+}
 
 // Save local variables tactile_offset_f* with current tactile position
 void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state) {
@@ -597,6 +610,7 @@ int main(int argc, char **argv) {
   nh.getParam("yaml_dir", buffer);
   finger_file_address = buffer + "/finger_calibrate.yaml";
   tactile_file_address = buffer + "/tactile_calibrate.yaml";
+  imu_file_address = buffer + "/imu_calibrate.yaml";
   ros::ServiceServer calibrate_fingers_service = nh.advertiseService(ns + "/calibrate_fingers", calibrate_fingers);
   latest_calibration_time = ros::Time::now();
   ROS_INFO("Advertising the /calibrate_fingers service");
