@@ -38,12 +38,10 @@ void imuInit()
     if(*id != BNO055_ID)
     {
       printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
-      //handStatus.imus[i] = 0;
     }
     else
     {
       printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
-      //handStatus.imus[i] = 1;
     }
   }
   // set imu mode
@@ -250,11 +248,11 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
       *state = IMU_STATE_WAIT;
       break;
     case IMU_STATE_WAIT:
-      printf("IMU_STATE_WAIT\n");
+      // printf("IMU_STATE_WAIT\n");
       imu_state_count[imuNumber] = 0;
       break;
     default:
-      printf("UNKNOWN\n");
+      // printf("UNKNOWN\n");
       *state = IMU_STATE_WAIT;
       break;
   }

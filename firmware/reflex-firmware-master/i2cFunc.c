@@ -18,44 +18,30 @@ uint8_t writeBytesI2C(uint32_t* port, uint8_t address, uint8_t* data, int len, i
   i2cPort->SR1 &= ~I2C_SR1_AF;
 
   
-  while (!(i2cPort->SR1 & I2C_SR1_SB) && (SYSTIME - initialTime < I2C_TIMEOUT)){
-    printf("A");
-  }
+  while (!(i2cPort->SR1 & I2C_SR1_SB) && (SYSTIME - initialTime < I2C_TIMEOUT));
 
   // Send address with write bit
   i2cPort->DR = ((uint8_t) addr); // puts the address to be sent on the buffer using global variable
 
-  // printf("b\n");
-  while(!(i2cPort->SR1 & (I2C_SR1_ADDR)) && (SYSTIME - initialTime < I2C_TIMEOUT)){
-      printf("B");
-  }
+  while(!(i2cPort->SR1 & (I2C_SR1_ADDR)) && (SYSTIME - initialTime < I2C_TIMEOUT));
 
   i2cPort->SR2; // un-stretch clock by reading here (?)
 
   for (int i = 0; i < len; ++i)
   {
       i2cPort->DR = data[i]; // Send the address of the desired register
-      while (!(i2cPort->SR1 & (I2C_SR1_BTF | I2C_SR1_AF)) && (SYSTIME - initialTime < I2C_TIMEOUT)){
-        printf("C");
-      }
+      while (!(i2cPort->SR1 & (I2C_SR1_BTF | I2C_SR1_AF)) && (SYSTIME - initialTime < I2C_TIMEOUT));
   }
   i2cPort->CR1 |= I2C_CR1_STOP;
 
-  while (isBusyI2CPort(port) && (SYSTIME - initialTime < I2C_TIMEOUT)){
-    printf("D");
-  }
+  while (isBusyI2CPort(port) && (SYSTIME - initialTime < I2C_TIMEOUT));
 
   if (SYSTIME - initialTime >= I2C_TIMEOUT)
   {
-    printf("writeBytesI2C: ");
-    printf(" initialTime: %d", initialTime);
-    printf(" finalTime: %d", (int) SYSTIME);
-    printf(" TIMEOUT PORT %u\n", (int) *port);
     return 0;
   }
-  static int maxTime = 0;
-  maxTime = (SYSTIME - initialTime) > maxTime ? (SYSTIME - initialTime) : maxTime;
-  // printf("writeBytesI2C: %d, maxTime: %d\n", (int) SYSTIME - initialTime, maxTime);
+  // static int maxTime = 0;
+  // maxTime = (SYSTIME - initialTime) > maxTime ? (SYSTIME - initialTime) : maxTime;
   return 1;
 }
 
@@ -85,15 +71,10 @@ uint8_t writeRegisterI2C(uint32_t* port, uint8_t address, uint8_t registerAddres
 
   if (SYSTIME - initialTime >= I2C_TIMEOUT)
   {
-    printf("writeRegisterI2C: ");
-    printf(" initialTime: %d", initialTime);
-    printf(" finalTime: %d", (int) SYSTIME);
-    printf(" TIMEOUT\n");
     return 0;
   }
-  static int maxTime = 0;
-  maxTime = (SYSTIME - initialTime) > maxTime ? (SYSTIME - initialTime) : maxTime;
-  // printf("writeRegisterI2C: %d, maxTime: %d\n", (int) SYSTIME - initialTime, maxTime);
+  // static int maxTime = 0;
+  // maxTime = (SYSTIME - initialTime) > maxTime ? (SYSTIME - initialTime) : maxTime;
   return 1;
 }
 
@@ -140,15 +121,8 @@ uint8_t readBytesI2C(uint32_t* port, uint8_t address, int numBytes, uint8_t* val
 
   if (SYSTIME - initialTime >= I2C_TIMEOUT)
   {
-    printf("readBytesI2C: ");
-    printf(" initialTime: %d", initialTime);
-    printf(" finalTime: %d", (int) SYSTIME);
-    printf(" TIMEOUT\n");
     return 0;
   }
-  // static int maxTime = 0; // CORRECT
-  // maxTime = (SYSTIME - initialTime) > maxTime ? (SYSTIME - initialTime) : maxTime;
-  // printf("readBytesI2C: %d, maxTime: %d\n", (int) SYSTIME - initialTime, maxTime);
   return 1;
 }
 

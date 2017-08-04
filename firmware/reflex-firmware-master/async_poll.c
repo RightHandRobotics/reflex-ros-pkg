@@ -1,6 +1,6 @@
 #include "async_poll.h"
 
-#define NUM_STATE_FUNCTIONS 14	
+#define NUM_STATE_FUNCTIONS 14
 
 typedef void (*async_poll_fptr)(uint8_t poll_arg);
 
