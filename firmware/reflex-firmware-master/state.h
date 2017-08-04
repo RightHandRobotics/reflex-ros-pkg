@@ -20,7 +20,25 @@ typedef struct
   uint8_t  dynamixel_voltages[4];               // 256-259
   uint8_t  dynamixel_temperatures[4];           // 260-263
   uint16_t imus[NUM_IMUS*4];                    // 264-295
+  uint8_t imus_calibration_status[NUM_IMUS]     // 296-299
+  uint16_t imus_calibration_data[NUM_IMUS*22]      // 300-387
 }__attribute__((packed)) state_t;
+
+// imus_calibration_status
+//   1 byte value containing calibration status
+//       bytes 0-1: Magnetometer
+//       bytes 2-3: Accelerometer
+//       bytes 4-5: Gyroscope
+//       bytes 6-7: Full System
+//   Values
+//       3: Fully Calibrated
+//       0: Not Calibrated
+
+// imu_calibration_data
+//   6 bytes of offsets (x, y, z) of each sensor within 1 IMU (Accelerometer, Magnetometer, Gyroscope)
+//       18 bytes total of offset values per IMU sensor
+//   4 bytes of radius total for the Accelerometer and Magnetometer (LSB, MSB for each)
+//   22 total bytes of calibration values per IMU
 
 //takktile_status_t
 //struct used to keep track of takktile sensor status per each finger
