@@ -44,6 +44,8 @@ namespace reflex_hand
     uint8_t  dynamixel_voltages_[4];
     uint8_t  dynamixel_temperatures_[4];
     int16_t  imus[NUM_IMUS*4];
+    int8_t  imu_calibration_status[NUM_IMUS];
+    uint16_t imu_calibration_data[NUM_IMUS*22];
     ReflexHandState();
   };
 
