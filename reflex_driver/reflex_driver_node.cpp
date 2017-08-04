@@ -23,6 +23,7 @@
 #include <reflex_msgs/RadianServoCommands.h>
 #include <reflex_msgs/SetSpeed.h>
 #include <reflex_msgs/SetTactileThreshold.h>
+#include <reflex_msgs/ImuCalibrationData.h>
 #include <ros/ros.h>
 #include <signal.h>
 #include <stdio.h>
@@ -55,6 +56,7 @@ ros::Publisher hand_pub;
 ros::Publisher raw_pub;
 
 ofstream tactile_file;        // Accesses tactile calibration file
+ofstrean imu_calibration_file;// Accesses IMU calibration file
 string tactile_file_address;  // Set in main()
 ofstream finger_file;         // Accesses finger calibration file
 string finger_file_address;   // Set in main()

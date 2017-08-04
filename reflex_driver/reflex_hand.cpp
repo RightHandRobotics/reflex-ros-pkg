@@ -163,17 +163,6 @@ bool ReflexHand::listen(const double max_seconds)
     int nbytes = recvfrom(rx_sock_, rxbuf, sizeof(rxbuf), 0, NULL, NULL);
     rx(rxbuf, nbytes);
   }
- 
-  /* 
-  if (rv < 0)
-    return false;
-  if (rv == 0 || !FD_ISSET(rx_sock_, &rdset))
-    return true; // nothing happened; hit timeout
-  if (nbytes < 0)
-    return false;
-  if (state_cb_)
-    state_cb_(&rx_state_);
-  */ 
   return true;
 }
 
@@ -218,6 +207,8 @@ typedef struct
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
   uint16_t imus[ReflexHandState::NUM_IMUS*4];
+  int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
+  uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*22];
 } __attribute__((packed)) mcu_state_format_1_t;
 
 void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
@@ -253,9 +244,12 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_loads_[i]    = rx_state_msg->dynamixel_loads[i];
     rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
+    rx_state_.imu_calibration_status[i] = rx_state_msg->imu_calibration_status[i];
   }
   for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)
         rx_state_.imus[i] = rx_state_msg->imus[i];
+  for (int i=0; i < ReflexHandState::NUM_IMUS*22; i++)
+        rx_state_.imu_calibration_data[i] = rx_state_msg.imu_calibration_data[i];
 
   // now that we have stuff the rx_state_ struct, fire off our callback
   if (state_cb_)
