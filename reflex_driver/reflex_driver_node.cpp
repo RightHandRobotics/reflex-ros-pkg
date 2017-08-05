@@ -56,8 +56,9 @@ ros::Publisher hand_pub;
 ros::Publisher raw_pub;
 
 ofstream tactile_file;        // Accesses tactile calibration file
-ofstrean imu_calibration_file;// Accesses IMU calibration file
+ofstream imu_calibration_file;// Accesses IMU calibration file
 string tactile_file_address;  // Set in main()
+string imu_file_address;  // Set in main()
 ofstream finger_file;         // Accesses finger calibration file
 string finger_file_address;   // Set in main()
 
@@ -71,6 +72,7 @@ vector<int> tactile_offset_f1;              // Loaded from yaml and reset during
 vector<int> tactile_offset_f2;              // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f3;              // Loaded from yaml and reset during calibration
 const int TACTILE_BASE_IDX[] = {0, 28, 14};  // Constant
+const int IMU_BASE_IDX[] = {0, 22, 44, 66};
 int encoder_last_value[] = {0, 0, 0};       // Updated constantly in reflex_hand_state_cb()
 int encoder_offset[] = {-1, -1, -1};        // Updated constantly in reflex_hand_state_cb()
 float load_last_value[] = {0, 0, 0, 0};     // Updated constantly in reflex_hand_state_cb()
@@ -82,6 +84,11 @@ bool first_capture = false;           // Updated by /calibrate_fingers ROS servi
 bool all_fingers_moved = false;       // Updated in reflex_hand_state_cb()
 vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calibration
 vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
+vector<double> imu_calibration_data_f1;  // Loaded from yaml during calibration
+vector<double> imu_calibration_data_f2;  // Loaded from yaml during calibration
+vector<double> imu_calibration_data_f3;  // Loaded from yaml during calibration
+vector<double> imu_calibration_data_palm;  // Loaded from yaml during calibration
+
 uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated in reflex_hand_state_cb() during calibration
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};  // Constant
 ros::Time latest_calibration_time;                          // Updated in reflex_hand_state_cb() during calibration
@@ -113,6 +120,14 @@ void load_params(ros::NodeHandle nh) {
     topic = "tactile_offset_f2";
   if (!nh.getParam("tactile_offset_f3", tactile_offset_f3))
     topic = "tactile_offset_f3";
+  if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
+    topic = "imu_calibration_data_f1";
+  if (!nh.getParam("imu_calibration_data_f2", imu_calibration_data_f2))
+    topic = "imu_calibration_data_f2";
+  if (!nh.getParam("imu_calibration_data_f3", imu_calibration_data_f3))
+    topic = "imu_calibration_data_f3";
+  if (!nh.getParam("imu_calibration_data_palm", imu_calibration_data_palm))
+    topic = "imu_calibration_data_palm";
   if (topic != "no error") {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
     ROS_FATAL("This is likely because the corresponding yaml file in");
@@ -403,20 +418,6 @@ void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
   tactile_file.close();
 }
 
-// Opens imu calibration data file, and saves
-// current imu calibration values to file as the new calibrated "zero"
-void calibrate_imu_sensors(const reflex_hand::ReflexHandState* const state,
-                               reflex_msgs::Hand hand_msg) {
-  tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
-  tactile_file << "# Captured sensor values from unloaded state\n";
-  log_current_tactile_locally(state);
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    log_current_tactile_to_file(state, i);
-  }
-  acquire_tactile = false;
-  tactile_file.close();
-}
-
 // Save local variables tactile_offset_f* with current tactile position
 void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state) {
   for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
@@ -425,7 +426,6 @@ void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state
     tactile_offset_f3[j] = state->tactile_pressures_[TACTILE_BASE_IDX[2] + j];
   }
 }
-
 
 void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state,
                                  int finger) {
@@ -487,6 +487,34 @@ void log_motor_zero_to_file_and_close() {
   finger_file.close();
 }
 
+// Opens imu calibration data file, and saves
+// current imu calibration values to file as the new calibrated "zero"
+void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state,
+                              reflex_msgs::ImuCalibrationData imu_cal) {
+  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
+  imu_calibration_file << "# Captured sensor values from unloaded state\n";
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS+1; i++) {  //There's an IMU on the palm too
+    log_current_imu_offsets_to_file(state, i);
+  }
+  imu_calibration_file.close();
+}
+
+void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const state,
+                                 int finger) {
+  string label;
+  if (finger==3){
+    label = "palm";
+  }
+  else{
+    label = "f" + finger;
+  }
+
+  imu_calibration_file << "imu_calibration_data" << label << ": [";
+  for (int i=0; i<21; i++){
+    imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + i] << ", ";
+  }
+  imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + 21] << "]\n ";
+}
 
 // Checks whether all fingers have moved more than CALIBRATION_ERROR, halts
 // the motion of fingers past that point

@@ -249,7 +249,7 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
   for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)
         rx_state_.imus[i] = rx_state_msg->imus[i];
   for (int i=0; i < ReflexHandState::NUM_IMUS*22; i++)
-        rx_state_.imu_calibration_data[i] = rx_state_msg.imu_calibration_data[i];
+        rx_state_.imu_calibration_data[i] = rx_state_msg->imu_calibration_data[i];
 
   // now that we have stuff the rx_state_ struct, fire off our callback
   if (state_cb_)
