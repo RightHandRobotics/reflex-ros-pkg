@@ -25,6 +25,13 @@ typedef enum
   IMU_STATE_WAIT = ASYNC_POLL_DONE
 } imu_async_poll_state_t;
 
+typedef enum 
+{
+	IMU_DATA = 0,
+	IMU_CAL_STATUS,
+	IMU_CAL_OFFSETS
+} imu_poll_type_t;
+
 extern imu_async_poll_state_t imu_poll_state[NUM_IMUS];
 
 void imuInit(void);

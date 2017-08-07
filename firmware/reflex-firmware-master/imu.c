@@ -2,6 +2,7 @@
 
 // GLOBAL ALL FILES VARIABLE
 imu_async_poll_state_t imu_poll_state[NUM_IMUS] = {STATE_WAIT, STATE_WAIT, STATE_WAIT, STATE_WAIT};
+imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DATA};
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 
 void imuInit()
@@ -234,12 +235,6 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
         handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
         handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
         handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
-
-        // for euler
-        // handState.imus[imuNumber*4] = 0;
-        // handState.imus[imuNumber*4 + 1] = ((int16_t)values[0]) | (((int16_t)values[1]) << 8);
-        // handState.imus[imuNumber*4 + 2] = ((int16_t)values[2]) | (((int16_t)values[3]) << 8);
-        // handState.imus[imuNumber*4 + 3] = ((int16_t)values[4]) | (((int16_t)values[5]) << 8);
       }
       else{
         handState.imus[imuNumber] = 0;
