@@ -4,6 +4,7 @@
 imu_async_poll_state_t imu_poll_state[NUM_IMUS] = {STATE_WAIT, STATE_WAIT, STATE_WAIT, STATE_WAIT};
 imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DATA};
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
+uint8_t imu_cal_values_read = 0;
 
 void imuInit()
 {
@@ -208,7 +209,9 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
   */
   imu_async_poll_state_t* state = (imu_async_poll_state_t*)&(imu_poll_state[imuNumber]);
   uint8_t values[8] = {0};
+  uint8_t numBytesToRead;
   uint8_t result;
+  uint8_t registerAddress;
   printf("\nIMU NUMBER: %d\nSTATE: ", imuNumber);
   if (checkIMUStatus(imuNumber)==0){
     *state = STATE_WAIT;
@@ -219,21 +222,31 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
     case IMU_STATE_SET_REGISTER:
       imu_state_count[imuNumber]++;
       printf("IMU_STATE_SET_REGISTER\n");
-      // if (imu_state_count[imuNumber]>0){    // Prevent the hand from getting stuck in a loop when IMU connection is lost
-      //   *state = IMU_STATE_READ_VALUES;  //agang addition
-      // }
-      // else{
-        if (handPorts.multiplexer)
-          selectMultiplexerPort(imuNumber);
-        
-        result = writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], BNO055_QUATERNION_DATA_W_LSB_ADDR)
+      if (handPorts.multiplexer)
+        selectMultiplexerPort(imuNumber);
+      
+      //Switch case to select the register address to read data from
+      switch(imu_poll_type[NUM_IMUS]){
+        case IMU_DATA:
+          registerAddress = BNO055_QUATERNION_DATA_W_LSB_ADDR;
+          break;
+        case IMU_CAL_STATUS:
+          registerAddress = BNO055_CALIB_STAT_ADDR;
+          break;
+        case IMU_CAL_OFFSETS:
+          registerAddress = ACCEL_OFFSET_X_LSB_ADDR;
+        default:
+          registerAddress = BNO055_QUATERNION_DATA_W_LSB_ADDR;
+          break;
+      }
 
-        //Check that the register write worked
-        if (result) 
-          *state = IMU_STATE_READ_VALUES;
+      result = writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddress);
 
+      //Check that the register write worked
+      if (result) 
         *state = IMU_STATE_READ_VALUES;
-      // }
+
+      *state = IMU_STATE_READ_VALUES;
 
       break;
     case IMU_STATE_READ_VALUES:
@@ -242,25 +255,74 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
         selectMultiplexerPort(imuNumber);
 
       result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
-      
-      if (result){
-        handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-        handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-        handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-        handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
-      }
-      else{
-        handState.imus[imuNumber] = 0;
+      //Switch case to read n number of bytes from the IMU dependent on what type of information is being read
+      switch(imu_poll_type[imuNumber]){
+        case IMU_DATA:
+          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
+          if (result){
+            handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
+            handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
+            handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
+            handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+          }
+          if (handState.imus_calibration_status[imuNumber]!=0xFF){
+            imu_poll_type[imuNumber] = IMU_CAL_STATUS;
+            *state = IMU_STATE_SET_REGISTER;
+          }
+          else{
+            *state = IMU_STATE_WAIT;
+          }
+          break;
+        case IMU_CAL_STATUS:  //There is one calibration status register
+          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, values);
+          if (result){
+            handState.imus_calibration_status[imuNumber] = values[0];
+          }
+          if ((handState.imus_calibration_status[imuNumber]==0xFF) && (imu_cal_values_read == 0)){
+            imu_poll_type[imuNumber] = IMU_CAL_OFFSETS;
+            *state = IMU_STATE_SET_REGISTER;
+          }
+          else{
+            *state = IMU_STATE_WAIT;
+          }
+          break;
+        case IMU_CAL_OFFSETS:  //There are 22 offset and radius registers
+          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 22, values);
+          if (result){
+            handState.imus_calibration_data[imuNumber*11] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
+            handState.imus_calibration_data[imuNumber*11 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
+            handState.imus_calibration_data[imuNumber*11 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
+            handState.imus_calibration_data[imuNumber*11 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+            handState.imus_calibration_data[imuNumber*11 + 4] = (((uint16_t)values[9]) << 8) | ((uint16_t)values[8]);
+            handState.imus_calibration_data[imuNumber*11 + 5] = (((uint16_t)values[11]) << 8) | ((uint16_t)values[10]);
+            handState.imus_calibration_data[imuNumber*11 + 6] = (((uint16_t)values[13]) << 8) | ((uint16_t)values[12]);
+            handState.imus_calibration_data[imuNumber*11 + 7] = (((uint16_t)values[15]) << 8) | ((uint16_t)values[14]);
+            handState.imus_calibration_data[imuNumber*11 + 8] = (((uint16_t)values[17]) << 8) | ((uint16_t)values[16]);
+            handState.imus_calibration_data[imuNumber*11 + 9] = (((uint16_t)values[19]) << 8) | ((uint16_t)values[18]);
+            handState.imus_calibration_data[imuNumber*11 + 10] = (((uint16_t)values[21]) << 8) | ((uint16_t)values[20]);
+            imu_cal_values_read = 1;
+          }
+          if (handState.imus_calibration_status[imuNumber]!=0xFF){
+            imu_poll_type[imuNumber] = IMU_DATA;
+            *state = IMU_STATE_SET_REGISTER;
+          }
+          else{
+            *state = IMU_STATE_WAIT;
+          }
+        default:  //Do nothing as this should never occur
+          *state = IMU_STATE_WAIT
+          break;
       }
 
-      *state = IMU_STATE_WAIT;
+      if (!result){
+        handState.imus[imuNumber] = 0;
+      }
       break;
     case IMU_STATE_WAIT:
-      // printf("IMU_STATE_WAIT\n");
       imu_state_count[imuNumber] = 0;
+      imu_poll_type[imuNumber] = IMU_DATA;
       break;
     default:
-      // printf("UNKNOWN\n");
       *state = IMU_STATE_WAIT;
       break;
   }
