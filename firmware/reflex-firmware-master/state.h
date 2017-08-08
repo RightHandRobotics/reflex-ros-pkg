@@ -21,7 +21,7 @@ typedef struct
   uint8_t  dynamixel_temperatures[4];           // 260-263
   uint16_t imus[NUM_IMUS*4];                    // 264-295
   uint8_t imus_calibration_status[NUM_IMUS]     // 296-299
-  uint16_t imus_calibration_data[NUM_IMUS*22]      // 300-387
+  uint16_t imus_calibration_data[NUM_IMUS*11]      // 300-387
 }__attribute__((packed)) state_t;
 
 // imus_calibration_status
