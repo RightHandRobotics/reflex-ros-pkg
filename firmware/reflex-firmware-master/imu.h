@@ -39,6 +39,8 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data);
 uint8_t selectMultiplexerPort(uint8_t port);
 void imu_poll_nonblocking_tick(const uint8_t imuNumber);
 uint8_t checkIMUStatus(uint8_t imuNumber);
+uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress);
+uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values)
 
 typedef enum
 {
