@@ -124,6 +124,16 @@ class ReflexTakktileHand(ReflexHand):
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
 
+    def calibrate_imus(self):
+        # Walk the user through the required motions for calibrating the BNO055 IMUs located on the hand
+
+        # Gyroscope (Stay still for 10 seconds)
+
+        # Accelerometer (Move in 45 degree increments over 1 axis for 30 seconds)
+
+        # Magnetometer (Move in simple random motions for 30 seconds)
+
+
     def _publish_motor_commands(self):
         '''
         Checks whether motors have updated their states and, if so, publishes
