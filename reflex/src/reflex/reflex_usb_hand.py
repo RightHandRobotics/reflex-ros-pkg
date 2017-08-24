@@ -34,16 +34,16 @@ import rospy
 from std_srvs.srv import Empty
 
 from reflex_hand import ReflexHand
-from reflex_sf_motor import ReflexSFMotor
+from reflex_usb_motor import ReflexUSBMotor
 import reflex_msgs.msg
 
 motor_names = ['_f1', '_f2', '_f3', '_preshape']
 
-class ReflexSFHand(ReflexHand):
+class ReflexUSBHand(ReflexHand):
     def __init__(self):
-        self.usb_hand_type = rospy.get_param('usb_hand_type')
+        self.usb_hand_type = rospy.get_param('usb_hand_type')  
         self.init_namespace = '/' + self.usb_hand_type
-        super(ReflexSFHand, self).__init__(self.init_namespace, ReflexSFMotor)
+        super(ReflexUSBHand, self).__init__(self.init_namespace, ReflexUSBMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
@@ -116,7 +116,6 @@ class ReflexSFHand(ReflexHand):
 
     def calibrate_manual(self, data=None):
         #Manual hand calibration
-        #Used in the reflex SF hand with no encoders
         for motor in sorted(self.motors):
             rospy.loginfo("Calibrating motor " + motor)
             command = raw_input("Type 't' to tighten motor, 'l' to loosen \
@@ -165,18 +164,18 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
     def _write_zero_point_data_to_file(self, filename, data):
         rospack = rospkg.RosPack()
-        reflex_sf_path = rospack.get_path("reflex")
+        reflex_usb_path = rospack.get_path("reflex")
         yaml_path = "yaml"
-        file_path = join(reflex_sf_path, yaml_path, filename)
+        file_path = join(reflex_usb_path, yaml_path, filename)
         with open(file_path, "w") as outfile:
             outfile.write(yaml.dump(data))
 
     def _zero_current_pose(self):
         data = dict(
-            reflex_sf_f1=dict(zero_point=self.motors[self.namespace + '_f1'].get_current_raw_motor_angle()),
-            reflex_sf_f2=dict(zero_point=self.motors[self.namespace + '_f2'].get_current_raw_motor_angle()),
-            reflex_sf_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
-            reflex_sf_preshape=dict(zero_point=self.motors[self.namespace + '_preshape'].get_current_raw_motor_angle())
+            reflex_usb_f1=dict(zero_point=self.motors[self.namespace + '_f1'].get_current_raw_motor_angle()),
+            reflex_usb_f2=dict(zero_point=self.motors[self.namespace + '_f2'].get_current_raw_motor_angle()),
+            reflex_usb_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
+            reflex_usb_preshape=dict(zero_point=self.motors[self.namespace + '_preshape'].get_current_raw_motor_angle())
         )
         self._write_zero_point_data_to_file(self.usb_hand_type + '_motor_zero_points.yaml', data)
 
@@ -225,7 +224,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
 def main():
     rospy.sleep(4.0)  # To allow services and parameters to load
-    hand = ReflexSFHand()
+    hand = ReflexUSBHand()
     rospy.on_shutdown(hand.disable_torque)
     r = rospy.Rate(20)
     while not rospy.is_shutdown():
