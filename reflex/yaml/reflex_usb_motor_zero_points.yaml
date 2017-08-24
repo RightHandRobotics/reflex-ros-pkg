@@ -1,0 +1,4 @@
+reflex_usb_f1: {zero_point: 25.241653864658225}
+reflex_usb_f2: {zero_point: 26.079207374843786}
+reflex_usb_f3: {zero_point: 23.588022575317503}
+reflex_usb_preshape: {zero_point: 23.408546823134884}
