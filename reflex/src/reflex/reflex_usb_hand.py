@@ -153,6 +153,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
                 else:
                     break
             self.motors[self.namespace + motor_names[i]]._set_local_motor_zero_point()
+        self.motors[self.namespace + motor_names[3]]._set_local_motor_zero_point()  #Zero preshape in place
         print "Calibration complete, writing data to file"
         self._zero_current_pose()
         self.calibrate_encoders_locally(self.encoder_last_value)
@@ -172,11 +173,18 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
     def _zero_current_pose(self):
         data = dict(
-            reflex_usb_f1=dict(zero_point=self.motors[self.namespace + '_f1'].get_current_raw_motor_angle()),
-            reflex_usb_f2=dict(zero_point=self.motors[self.namespace + '_f2'].get_current_raw_motor_angle()),
-            reflex_usb_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
-            reflex_usb_preshape=dict(zero_point=self.motors[self.namespace + '_preshape'].get_current_raw_motor_angle())
+            reflex_sf_f1=dict(zero_point=self.motors[self.namespace + '_f1'].get_current_raw_motor_angle()),
+            reflex_sf_f2=dict(zero_point=self.motors[self.namespace + '_f2'].get_current_raw_motor_angle()),
+            reflex_sf_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
+            reflex_sf_preshape=dict(zero_point=self.motors[self.namespace + '_preshape'].get_current_raw_motor_angle())
         )
+        if (self.usb_hand_type == 'reflex_plus'):
+            data = dict(
+                reflex_plus_f1 = data['reflex_sf_f1'],
+                reflex_plus_f2 = data['reflex_sf_f2'],
+                reflex_plus_f3 = data['reflex_sf_f3'],
+                reflex_plus_preshape = data['reflex_sf_preshape']
+            )
         self._write_zero_point_data_to_file(self.usb_hand_type + '_motor_zero_points.yaml', data)
 
     #Encoder data processing functions are based off encoder functions used
