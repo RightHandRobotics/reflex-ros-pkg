@@ -62,11 +62,13 @@ string finger_file_address;   // Set in main()
 vector<int> MOTOR_TO_JOINT_INVERTED;        // Loaded from yaml
 vector<double> MOTOR_TO_JOINT_GEAR_RATIO;   // Loaded from yaml
 int default_contact_threshold;              // Loaded from yaml
+
+
 reflex_msgs::SetTactileThreshold::Request contact_thresholds;   // Set by /set_tactile_threshold ROS service
 vector<int> tactile_offset_f1;              // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f2;              // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f3;              // Loaded from yaml and reset during calibration
-const int TACTILE_BASE_IDX[] = {0, 18, 9};  // Constant
+const int TACTILE_BASE_IDX[] = {0, 28, 14};  // Constant
 int encoder_last_value[] = {0, 0, 0};       // Updated constantly in reflex_hand_state_cb()
 int encoder_offset[] = {-1, -1, -1};        // Updated constantly in reflex_hand_state_cb()
 float load_last_value[] = {0, 0, 0, 0};     // Updated constantly in reflex_hand_state_cb()
@@ -304,6 +306,8 @@ float calc_distal_angle(float joint_angle, float proximal) {
 }
 
 
+
+
 // Takes hand state and returns calibrated tactile data for given finger
 int calc_pressure(const reflex_hand::ReflexHandState* const state, int finger, int sensor) {
   int raw_value = state->tactile_pressures_[TACTILE_BASE_IDX[finger] + sensor];
@@ -323,6 +327,8 @@ int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   reflex_msgs::Hand hand_msg;
 
+  const float scale = (1.0 / (1<<14));
+
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     encoder_offset[i] = update_encoder_offset(state->encoders_[i],
                                               encoder_last_value[i],
@@ -341,12 +347,18 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       hand_msg.finger[i].pressure[j] = calc_pressure(state, i, j);
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
+    for (int j = 0; j < 4; j++){
+      hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i*4 + j]);
+    }
   }
   hand_msg.motor[3].joint_angle = calc_motor_angle(MOTOR_TO_JOINT_INVERTED[3],
                                                    state->dynamixel_angles_[3],
                                                    MOTOR_TO_JOINT_GEAR_RATIO[3],
                                                    dynamixel_zero_point[3]);
   populate_motor_state(&hand_msg, state);
+  for (int i = 0; i < 4; i++) {
+    hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
+  }
   hand_pub.publish(hand_msg);
 
   // Capture the current tactile data and save it as a zero reference
@@ -527,11 +539,20 @@ float load_raw_to_signed(int load, int motor_idx) {
 
 
 int main(int argc, char **argv) {
+  //take in command line arguments specifying ethernet name, eth0 or eth1
+  std::vector<string> args;
+  ros::removeROSArgs(argc, argv, args);
+  string ethernet_name = args[1].data();
+
   // Initialize ROS node
-  ros::init(argc, argv, "reflex_takktile_driver");
+  char nodeName[27];
+  strcpy(nodeName, "reflex_takktile_driver_");
+  strcat(nodeName, ethernet_name.c_str());
+  ros::init(argc, argv, nodeName);
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
   populate_tactile_threshold(default_contact_threshold);
+  ROS_INFO("populate_tactile_threshold");
   string ns = "/reflex_takktile";
 
   // Advertise necessary topics
@@ -541,7 +562,7 @@ int main(int argc, char **argv) {
 
   // Intialize the reflex_hand object
   string network_interface;
-  nh_private.param<string>("network_interface", network_interface, "eth0");
+  nh_private.param<string>("network_interface", network_interface, ethernet_name);
   ROS_INFO("Starting reflex_hand_driver on network interface %s",
            network_interface.c_str());
   reflex_hand::ReflexHand rh(network_interface);
