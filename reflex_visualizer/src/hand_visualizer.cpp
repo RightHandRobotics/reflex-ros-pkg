@@ -72,7 +72,8 @@ int main(int argc, char **argv)
   ros::Publisher pub = n.advertise<reflex_msgs::Hand>("/reflex_sf/hand_state", 10);
   ros::Subscriber takktile_sub = n.subscribe("/reflex_takktile/hand_state", 10, publish_takktile_to_rviz);
   ros::Subscriber sf_sub = n.subscribe("/reflex_sf/hand_state", 10, publish_sf_to_rviz);
-  
+  ros::Subscriber plus_sub = n.subscribe("/reflex_plus/hand_state", 10, publish_plus_to_rviz);
+
   // Zero the hand and make it appear open. The sleeps are to let RVIZ start
   ros::Duration(2.0).sleep();
   reflex_msgs::Hand base_hand_state;
@@ -93,14 +94,12 @@ void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand) {
 
 
 void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand) {
-  if ((hand->finger[0].proximal==0) & (hand->finger[1].proximal==0) & (hand->finger[2].proximal==0)){
     publish_finger_to_rviz(hand, false);
-  }
-  else{
-    publish_finger_to_rviz(hand, true);
-  }
 }
 
+void publish_plus_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+    publish_finger_to_rviz(hand, true);
+}
 
 void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, bool takktile) {
   joint_state.header.stamp = ros::Time::now();
