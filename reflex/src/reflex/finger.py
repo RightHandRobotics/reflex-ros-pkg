@@ -33,6 +33,9 @@ class Finger(object):
     def get_proximal_angle(self):
         return self.finger_msg.proximal
 
+    def get_imu(self):
+        return self.finger_msg.imu
+
     def get_distal_angle_approximation(self):
         return self.finger_msg.distal_approx
 

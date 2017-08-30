@@ -1,0 +1,60 @@
+s  // // playing with the timer
+  // while(1)
+  // {
+  //   printf("InitialTime: %ld\n", SYSTIME);
+  //   udelay(1000);
+  //   printf("FinalTime: %ld\n", SYSTIME);
+  //   printf("%d\n", sizeof(int));
+  //   udelay(10000);
+  // }
+
+
+// printf("\tdisabling Takktile Sensors:\n");
+  // uint32_t maxtime = SYSTIME;
+  // for (int i = 0; i < NUM_FINGERS; i++)
+  // {
+  //   while(!disableAllSensors(i) && SYSTIME - maxtime < 1000000) // CORRECT
+  //   {
+  //     printf("trying finger %d ...\n", i);
+  //     if (i == 1)
+  //     {
+  //         printf("\tresetting SPI to I2C converter...");
+  //         resetConverter();
+  //         printf(" OK\n");
+
+  //         // Configure SPI to I2C Conversion
+  //         writeConverterRegister(SC18IS601_REGISTER_I2C_CLOCK, SC18IS601_I2C_CLOCK_369KHZ);
+  //     }
+  //   }
+  //   maxtime = SYSTIME;
+  //   printf("\t\t Finger %d disabled.\n", i);
+  // }
+
+// uint8_t setMode(uint8_t mode)
+// {
+//   uint8_t result = 0;
+//   for (int i = 0; i < NUM_IMUS; i++)
+//     result += setRegisterI2C(handPorts.imu[i], BNO055_ADDRESS_A, BNO055_OPR_MODE_ADDR, mode);
+//   return result == NUM_IMUS;
+// }
+// uint8_t setPowerMode(uint8_t mode)
+// {
+//   uint8_t result = 0;
+//   for (int i = 0; i < NUM_IMUS; i++)
+//     result += setRegisterI2C(handPorts.imu[i], BNO055_ADDRESS_A, BNO055_PWR_MODE_ADDR, mode);
+//   return result == NUM_IMUS;
+// }
+// uint8_t setPageID(void)
+// {
+//   uint8_t result = 0;
+//   for (int i = 0; i < NUM_IMUS; i++)
+//     result += setRegisterI2C(handPorts.imu[i], BNO055_ADDRESS_A, BNO055_PAGE_ID_ADDR, mode);
+//   return result == NUM_IMUS;
+// }
+// uint8_t reset(void)
+// {
+//   uint8_t result = 0;
+//   for (int i = 0; i < NUM_IMUS; i++)
+//     result += setRegisterI2C(handPorts.imu[i], BNO055_ADDRESS_A, BNO055_SYS_TRIGGER_ADDR, 0x20);
+//   return result == NUM_IMUS;
+// }

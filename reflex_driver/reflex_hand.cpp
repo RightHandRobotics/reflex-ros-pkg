@@ -44,7 +44,11 @@ ReflexHand::ReflexHand(const std::string &interface)
 : happy_(true)
 {
   ROS_INFO("ReflexHand constructor");
-  const char *mcast_addr_str = "224.0.0.124"; // parameterize someday !
+  ROS_INFO("ethernet: %s", interface.c_str());
+  std::string multicast_address_string = "224.0.0.124";
+
+  ROS_INFO("multicast address: %s", multicast_address_string.c_str());
+  const char *mcast_addr_str = multicast_address_string.c_str(); // parameterize someday !
   tx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   rx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   ROS_FATAL_COND(tx_sock_ < 0, "couldn't create socket");
@@ -202,7 +206,7 @@ void ReflexHand::setServoControlModes(const ControlMode mode)
 
 typedef struct
 {
-  uint8_t  header[4];
+  uint8_t  header[6];
   uint32_t systime;
   uint16_t tactile_pressures[ReflexHandState::NUM_TACTILE];
   uint16_t tactile_temperatures[ReflexHandState::NUM_TACTILE];
@@ -213,6 +217,10 @@ typedef struct
   uint16_t dynamixel_loads[4];
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
+  uint16_t imus[ReflexHandState::NUM_IMUS*4];
+  uint16_t rm_raw[ReflexHandState::NUM_RMS];                     //166-171
+  int32_t rm_fa[ReflexHandState::NUM_RMS];                    //172-183
+  uint8_t   rm_touch[ReflexHandState::NUM_RMS];   
 } __attribute__((packed)) mcu_state_format_1_t;
 
 void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
@@ -249,6 +257,15 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
   }
+  for (int i = 0; i < 3; i++)
+  {
+    rx_state_.rm_raw[i]    = rx_state_msg->rm_raw[i];
+    rx_state_.rm_fa[i] = rx_state_msg->rm_fa[i];
+    rx_state_.rm_touch[i] = rx_state_msg->rm_touch[i];
+  }
+  for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)
+        rx_state_.imus[i] = rx_state_msg->imus[i];
+
   // now that we have stuff the rx_state_ struct, fire off our callback
   if (state_cb_)
     state_cb_(&rx_state_);
