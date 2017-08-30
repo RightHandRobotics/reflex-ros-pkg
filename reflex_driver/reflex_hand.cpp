@@ -44,7 +44,11 @@ ReflexHand::ReflexHand(const std::string &interface)
 : happy_(true)
 {
   ROS_INFO("ReflexHand constructor");
-  const char *mcast_addr_str = "224.0.0.124"; // parameterize someday !
+  ROS_INFO("ethernet: %s", interface.c_str());
+  std::string multicast_address_string = "224.0.0.124";
+
+  ROS_INFO("multicast address: %s", multicast_address_string.c_str());
+  const char *mcast_addr_str = multicast_address_string.c_str(); // parameterize someday !
   tx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   rx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   ROS_FATAL_COND(tx_sock_ < 0, "couldn't create socket");
@@ -159,17 +163,6 @@ bool ReflexHand::listen(const double max_seconds)
     int nbytes = recvfrom(rx_sock_, rxbuf, sizeof(rxbuf), 0, NULL, NULL);
     rx(rxbuf, nbytes);
   }
- 
-  /* 
-  if (rv < 0)
-    return false;
-  if (rv == 0 || !FD_ISSET(rx_sock_, &rdset))
-    return true; // nothing happened; hit timeout
-  if (nbytes < 0)
-    return false;
-  if (state_cb_)
-    state_cb_(&rx_state_);
-  */ 
   return true;
 }
 
@@ -202,7 +195,7 @@ void ReflexHand::setServoControlModes(const ControlMode mode)
 
 typedef struct
 {
-  uint8_t  header[4];
+  uint8_t  header[6];
   uint32_t systime;
   uint16_t tactile_pressures[ReflexHandState::NUM_TACTILE];
   uint16_t tactile_temperatures[ReflexHandState::NUM_TACTILE];
@@ -213,6 +206,9 @@ typedef struct
   uint16_t dynamixel_loads[4];
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
+  uint16_t imus[ReflexHandState::NUM_IMUS*4];
+  int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
+  uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
 } __attribute__((packed)) mcu_state_format_1_t;
 
 void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
@@ -248,7 +244,13 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_loads_[i]    = rx_state_msg->dynamixel_loads[i];
     rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
+    rx_state_.imu_calibration_status[i] = rx_state_msg->imu_calibration_status[i];
   }
+  for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)
+        rx_state_.imus[i] = rx_state_msg->imus[i];
+  for (int i=0; i < ReflexHandState::NUM_IMUS*22; i++)
+        rx_state_.imu_calibration_data[i] = rx_state_msg->imu_calibration_data[i];
+
   // now that we have stuff the rx_state_ struct, fire off our callback
   if (state_cb_)
     state_cb_(&rx_state_);

@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Hand.msg
+  Imu.msg
   Finger.msg
   FingerPressure.msg
   Motor.msg
@@ -21,6 +22,7 @@ add_message_files(
   ForceCommand.msg
   RawServoCommands.msg
   RadianServoCommands.msg
+  ImuCalibrationData.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -28,6 +30,7 @@ add_service_files(
   FILES
   SetSpeed.srv
   SetTactileThreshold.srv
+  DistalRotation.srv
 )
 
 ## Generate added messages and services with any dependencies listed here

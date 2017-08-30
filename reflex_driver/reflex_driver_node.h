@@ -53,6 +53,8 @@ void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state, 
 void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state);
 void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state, int finger);
 void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state);
+void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state, reflex_msgs::ImuCalibrationData imu_cal);
+void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const state, int finger);
 bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state);
 void move_fingers_in(const reflex_hand::ReflexHandState* const state);
 void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state);

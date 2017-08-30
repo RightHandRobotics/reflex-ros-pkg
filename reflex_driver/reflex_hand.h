@@ -31,7 +31,8 @@ namespace reflex_hand
   {
   public:
     static const int NUM_FINGERS = 3;
-    static const int NUM_TACTILE = NUM_FINGERS * 9 + 11;
+    static const int NUM_TACTILE = NUM_FINGERS * 14 + 11;
+    static const int NUM_IMUS = 4;
     uint32_t systime_us_;
     uint16_t tactile_pressures_[NUM_TACTILE];
     uint16_t tactile_temperatures_[NUM_TACTILE];
@@ -42,6 +43,9 @@ namespace reflex_hand
     uint16_t dynamixel_loads_[4];
     uint8_t  dynamixel_voltages_[4];
     uint8_t  dynamixel_temperatures_[4];
+    int16_t  imus[NUM_IMUS*4];
+    int8_t  imu_calibration_status[NUM_IMUS];
+    uint16_t imu_calibration_data[NUM_IMUS*11];
     ReflexHandState();
   };
 
@@ -49,7 +53,7 @@ namespace reflex_hand
   {
   public:
     const static int NUM_SERVOS = 4;
-    const static int NUM_SENSORS_PER_FINGER = 9;
+    const static int NUM_SENSORS_PER_FINGER = 14;
     const static int PORT_BASE = 11333;
     static const uint16_t DYN_MIN_RAW = 0;
     static const uint16_t DYN_MAX_RAW = 4095;
