@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-//   Copyright 2014 Open Source Robotics Foundation, Inc.
-//   Copyright 2014-2015 Right Hand Robotics
+//   Copyright 2017 Open Source Robotics Foundation, Inc.
+//   Copyright 2017-2018 Right Hand Robotics
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -66,7 +66,6 @@ vector<int> MOTOR_TO_JOINT_INVERTED;        // Loaded from yaml
 vector<double> MOTOR_TO_JOINT_GEAR_RATIO;   // Loaded from yaml
 int default_contact_threshold;              // Loaded from yaml
 
-
 reflex_msgs::SetTactileThreshold::Request contact_thresholds;   // Set by /set_tactile_threshold ROS service
 vector<int> tactile_offset_f1;              // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f2;              // Loaded from yaml and reset during calibration
@@ -84,10 +83,17 @@ bool first_capture = false;           // Updated by /calibrate_fingers ROS servi
 bool all_fingers_moved = false;       // Updated in reflex_hand_state_cb()
 vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calibration
 vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
-vector<double> imu_calibration_data_f1;  // Loaded from yaml during calibration
-vector<double> imu_calibration_data_f2;  // Loaded from yaml during calibration
-vector<double> imu_calibration_data_f3;  // Loaded from yaml during calibration
-vector<double> imu_calibration_data_palm;  // Loaded from yaml during calibration
+
+// Loaded from yaml file during calibration
+/*
+vector<double> imu_calibration_data_f1; 
+//vector<double> imu_calibration_data_f2;  
+//vector<double> imu_calibration_data_f3; 
+//vector<double> imu_calibration_data_palm;  
+*/
+
+// TODO: Figure out what these do. Are these the preset calibration values (radii/offets)?
+//vector<double> imu_calibration_data_f1, imu_calibration_data_f2, imu_calibration_data_f3, imu_calibration_data_palm;
 
 uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated in reflex_hand_state_cb() during calibration
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};  // Constant
@@ -103,7 +109,7 @@ void signal_handler(int signum) {
 
 
 void load_params(ros::NodeHandle nh) {
-  string topic = "no error";
+  string topic = "No error";
   if (!nh.getParam("motor_zero_reference", dynamixel_zero_point))
     topic = "motor_zero_reference";
   if (!nh.getParam("encoder_zero_reference", encoder_zero_point))
@@ -120,7 +126,9 @@ void load_params(ros::NodeHandle nh) {
     topic = "tactile_offset_f2";
   if (!nh.getParam("tactile_offset_f3", tactile_offset_f3))
     topic = "tactile_offset_f3";
-  if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
+
+  // TODO: LANCE FIGURE OUT WHAT THESE DO!
+  /*if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
     topic = "imu_calibration_data_f1";
   if (!nh.getParam("imu_calibration_data_f2", imu_calibration_data_f2))
     topic = "imu_calibration_data_f2";
@@ -128,7 +136,9 @@ void load_params(ros::NodeHandle nh) {
     topic = "imu_calibration_data_f3";
   if (!nh.getParam("imu_calibration_data_palm", imu_calibration_data_palm))
     topic = "imu_calibration_data_palm";
-  if (topic != "no error") {
+  */
+
+  if (topic != "No error") {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
     ROS_FATAL("This is likely because the corresponding yaml file in");
     ROS_FATAL("reflex_driver/yaml were never loaded, or because they");
@@ -136,25 +146,28 @@ void load_params(ros::NodeHandle nh) {
     ROS_FATAL("be repaired by pasting the *_backup.yaml file text in");
     ros::shutdown();
   }
+
   ROS_INFO("Succesfully loaded all parameters");
 }
 
 
-// Takes raw Dynamixel values (0-4095) and writes them directly to the motors
-// NOTE: The Dynamixels have a resolution divider of 4. See what that means here:
-//     http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_0B1
+// Takes raw Dynamixel values (0-4095) and writes them directly to motors
+// NOTE: The Dynamixels have a resolution divider of 4. 
+// http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_0B1
 void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RawServoCommands::ConstPtr &msg) {
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
+
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = msg->raw_positions[i];
     raw_cmd_last_value[i] = targets[i];
   }
+
   rh->setServoTargets(targets);
 }
 
 
-// Commands the motors from radians, using the zero references from
+// Commands motors from radians using the zero references from
 // yaml/finger_calibrate.yaml to translate into the raw Dynamixel values
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
@@ -167,16 +180,19 @@ void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
 }
 
 
-// Takes a rad/s command and returns Dynamixel command
+// Takes in: rad/s command 
+// Returns: Dynamixel command
 uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
   float zeroed_command = MOTOR_TO_JOINT_INVERTED[motor_idx] * rad_command + dynamixel_zero_point[motor_idx];
   float motor_ratio = (MOTOR_TO_JOINT_GEAR_RATIO[motor_idx] / reflex_hand::ReflexHand::DYN_POS_SCALE);
   uint16_t command = (uint16_t) (zeroed_command * motor_ratio);
+
   if (command > reflex_hand::ReflexHand::DYN_MIN_RAW_WRAPPED) {
     ROS_WARN("Finger %d set out of range (%d), reset to %d", motor_idx + 1,
              (int16_t) command, reflex_hand::ReflexHand::DYN_MIN_RAW);
     command = reflex_hand::ReflexHand::DYN_MIN_RAW;
   }
+
   return command;
 }
 
@@ -186,10 +202,13 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
                      reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
   ros::Duration(0.02).sleep();
+
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
+
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = speed_rad_to_raw(req.motor[i], i);
   }
+
   rh->setServoTargets(targets);
   ros::Duration(0.035).sleep();  // Sleep necessary to prevent Brain Board freezing
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
@@ -204,15 +223,15 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
 uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
   uint16_t command = abs(rad_per_s_command) *
                      (MOTOR_TO_JOINT_GEAR_RATIO[motor_idx] / reflex_hand::ReflexHand::DYN_VEL_SCALE);
-  if (command > 1023) {
+  if (command > 1023) 
     command = 1023;
-  }
-  if (MOTOR_TO_JOINT_INVERTED[motor_idx] * rad_per_s_command < 0) {
+  
+  if (MOTOR_TO_JOINT_INVERTED[motor_idx] * rad_per_s_command < 0) 
     command += 1024;
-  }
-  if (command == 0) {
+  
+  if (command == 0)
     command = 1;  // 0 doesn't actually stop the motor
-  }
+
   return command;
 }
 
@@ -221,6 +240,7 @@ uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
 // When switching modes (VELOCITY and POSITION) the motor will wrap values if above 14024 or below 13000
 void check_for_potential_motor_wraps_and_rezero() {
   double motor_wrap;
+
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     motor_wrap = 1025 * (reflex_hand::ReflexHand::DYN_POS_SCALE / MOTOR_TO_JOINT_GEAR_RATIO[i]);
   }
@@ -283,6 +303,7 @@ int pressure_offset(int finger, int sensor) {
 // Given raw value and a past value, tracks encoder wraps: enc_offset variable
 int update_encoder_offset(int raw_value, int last_value, int current_offset) {
   int enc_offset = current_offset;
+
   if (enc_offset == -1) {
     // This case happens upon startup
     enc_offset = 0;
@@ -293,6 +314,7 @@ int update_encoder_offset(int raw_value, int last_value, int current_offset) {
     else if (last_value - raw_value < -5000)
       enc_offset = enc_offset - 16383;
   }
+
   return enc_offset;
 }
 
@@ -316,13 +338,11 @@ float calc_motor_angle(int inversion, int raw_dyn_value, double ratio, double ze
 
 
 // Calculates distal angle, "tendon spooled out" - "proximal encoder" angles
-// Could be improved
+// Could be improved. HOW SWAY?
 float calc_distal_angle(float joint_angle, float proximal) {
   float diff = joint_angle - proximal;
   return (diff < 0) ? 0 : diff;
 }
-
-
 
 
 // Takes hand state and returns calibrated tactile data for given finger
@@ -360,23 +380,46 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
                                                       encoder_zero_point[i]);
     hand_msg.finger[i].distal_approx = calc_distal_angle(hand_msg.motor[i].joint_angle,
                                                          hand_msg.finger[i].proximal);
-    for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+
+    for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
       hand_msg.finger[i].pressure[j] = calc_pressure(state, i, j);
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
+
     for (int j = 0; j < 4; j++){
       hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i*4 + j]);
     }
+
+    hand_msg.finger[i].imu.calibration_status = state->imu_calibration_status[i];
+    
+    /*
+    //testing this rn
+    for (int j = 0; j < 11; j++){
+      hand_msg.palmImu.calibration_data[j] = state->imu_calibration_data[11*i + j]; // TODO: change to use numimus
+    }
+    */
   }
+
   hand_msg.motor[3].joint_angle = calc_motor_angle(MOTOR_TO_JOINT_INVERTED[3],
                                                    state->dynamixel_angles_[3],
                                                    MOTOR_TO_JOINT_GEAR_RATIO[3],
                                                    dynamixel_zero_point[3]);
   populate_motor_state(&hand_msg, state);
-  for (int i = 0; i < 4; i++) {
+
+  //////////////////////////////////////// Palm IMU
+  for (int i = 0; i < 4; i++)
     hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
+
+  hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
+
+  // TODO: WHY ARE THEY ALL ZERO? IS IT BBY DEFAULT?
+  for (int i = 0; i < 11; i++){
+    hand_msg.palmImu.calibration_data[i] = state->imu_calibration_data[33 + i]; // TODO: change to use numimus
   }
+  
+
   hand_pub.publish(hand_msg);
+
 
   // Capture the current tactile data and save it as a zero reference
   if (acquire_tactile) {
@@ -581,7 +624,7 @@ float load_raw_to_signed(int load, int motor_idx) {
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) { 
   //take in command line arguments specifying ethernet name, eth0 or eth1
   std::vector<string> args;
   ros::removeROSArgs(argc, argv, args);

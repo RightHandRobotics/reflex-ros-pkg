@@ -63,8 +63,10 @@ ReflexHand::ReflexHand(const std::string &interface)
     ROS_FATAL("couldn't get ipv4 address of interface %s", interface.c_str());
     return;
   }
+
   std::string tx_iface_addr;
   bool found_interface = false;
+
   for (ifaddrs *ifa = ifaddr; ifa; ifa = ifa->ifa_next)
   {
     if (!ifa->ifa_addr)
@@ -86,6 +88,7 @@ ReflexHand::ReflexHand(const std::string &interface)
       break;
     }
   }
+
   freeifaddrs(ifaddr);
   if (!found_interface)
   {
@@ -133,7 +136,7 @@ ReflexHand::ReflexHand(const std::string &interface)
   ROS_INFO("constructor complete");
 }
 
-ReflexHand::~ReflexHand()
+ReflexHand::~ReflexHand() // TODO: lolwut? is this a destructor? 
 {
 }
 
@@ -158,11 +161,13 @@ bool ReflexHand::listen(const double max_seconds)
   timeout.tv_sec = (time_t)trunc(max_seconds);
   timeout.tv_usec = (suseconds_t)((max_seconds - timeout.tv_sec) * 1e6);
   int rv = select(rx_sock_ + 1, &rdset, NULL, NULL, &timeout);
+
   if (rv > 0 && FD_ISSET(rx_sock_, &rdset))
   {
     int nbytes = recvfrom(rx_sock_, rxbuf, sizeof(rxbuf), 0, NULL, NULL);
     rx(rxbuf, nbytes);
   }
+
   return true;
 }
 
@@ -207,11 +212,14 @@ typedef struct
   uint8_t  dynamixel_voltages[4];
   uint8_t  dynamixel_temperatures[4];
   uint16_t imus[ReflexHandState::NUM_IMUS*4];
+  ////////////////////////////////////////////////////////////// TODO: PUBLISH
   int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
   uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
 } __attribute__((packed)) mcu_state_format_1_t;
 
-void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
+
+//// TODO: CHECK IF PACKET LENGTH IS WHAT WE WANT
+void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len) 
 {
   // first, check the packet format "magic byte" and the length
   if (msg[0] != 1)
@@ -220,21 +228,26 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
               msg[0]);
     return;
   }
+
   if (msg_len != sizeof(mcu_state_format_1_t))  // The leftover palm data adds 44 bytes
   {
     ROS_ERROR("expected packet length %d, but saw %d instead",
               (int)sizeof(mcu_state_format_1_t), msg_len - 44);
     return;
   }
+
   mcu_state_format_1_t *rx_state_msg = (mcu_state_format_1_t *)msg;
   rx_state_.systime_us_ = rx_state_msg->systime;
+  
   for (int i = 0; i < ReflexHandState::NUM_FINGERS; i++)
     rx_state_.encoders_[i] = rx_state_msg->encoders[i];
+  
   for (int i = 0; i < ReflexHandState::NUM_TACTILE; i++)
   {
     rx_state_.tactile_pressures_[i]    = rx_state_msg->tactile_pressures[i];
     rx_state_.tactile_temperatures_[i] = rx_state_msg->tactile_temperatures[i];
   }
+  
   for (int i = 0; i < 4; i++)
   {
     rx_state_.dynamixel_error_states_[i] = 
@@ -246,6 +259,7 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
     rx_state_.imu_calibration_status[i] = rx_state_msg->imu_calibration_status[i];
   }
+  
   for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)
         rx_state_.imus[i] = rx_state_msg->imus[i];
   for (int i=0; i < ReflexHandState::NUM_IMUS*22; i++)
