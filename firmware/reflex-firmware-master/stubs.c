@@ -7,6 +7,7 @@
 *     true if you want to debug via UART, using the 4 pins on the brainboard, implies in higher latency
 *     false, if you want a faster normal functioning
 */
+
 #define DEBUG_VIA_UART false
 
 extern int _end;
@@ -15,8 +16,10 @@ caddr_t _sbrk(int incr)
 {
   static unsigned char *heap = NULL ;
   unsigned char *prev_heap ;
+
   if ( heap == NULL )
     heap = (unsigned char *)&_end ;
+
   prev_heap = heap;
   heap += incr ;
   return (caddr_t) prev_heap ;
@@ -24,7 +27,7 @@ caddr_t _sbrk(int incr)
 
 int _kill(__attribute__((unused)) int pid, 
           __attribute__((unused)) int sig) { return -1; }
-void _exit(__attribute__((unused)) int status) { while (1) {} } // spin...
+void _exit(__attribute__((unused)) int status) { while (1) {} } // Spin...
 int _getpid() { return 1; }
 
 int _write(__attribute__((unused)) int fd, const void *buf, size_t count)

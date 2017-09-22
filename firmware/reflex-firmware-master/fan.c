@@ -18,4 +18,3 @@ void fan_off()
 {
   GPIOD->BSRRH |= 1 << PORTD_FAN_EN;
 }
-

@@ -7,13 +7,13 @@ uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 uint8_t imu_cal_values_read = 0;
 
 /*
-  Description: initializes and sets important stuff. called in main.wc
+  Description: initializes and sets important stuff. called in main.c
 
   Returns: uint8_t result
 */
 void imuInit()
 {
-  // Initialize the IMUs by setting the register values
+  // Initialize IMUs by setting register values
   uint8_t id[1] = {0};
   uint8_t result;
 
@@ -39,6 +39,7 @@ void imuInit()
       result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
       result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
     }
+
     if(*id != BNO055_ID)
       printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
     else
@@ -83,7 +84,7 @@ void imuInit()
 }
 
 /*
-  Description: sets IMU registers
+  Description: Sets IMU registers
 
   Returns: uint8_t result
 */
@@ -96,22 +97,17 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
   uint8_t resultOp = 0;
   uint8_t response[1] = {0};
 
-
   for (int i = 0; i < NUM_IMUS; i++)
   {
     if (handPorts.multiplexer)
     {
       if (selectMultiplexerPort(i))
-      {
         printf("\t\tIMU on I2C Multiplexer port %d.\n", i);
-      }
       else
-      {
         printf("\t\tFailed to select port %d.\n", i);
-      }
     }
 
-    // Send data to register of IMU using either I2C or the SPI-to-I2C bridge (depends on finger)
+    // Send data to register of IMU using I2C or the SPI-to-I2C bridge (depends on finger)
     if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
       setRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
