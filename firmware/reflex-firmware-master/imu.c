@@ -6,7 +6,11 @@ imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DAT
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 uint8_t imu_cal_values_read = 0;
 
-// This function is called in main.c and initializes and sets stuff
+/*
+  Description: initializes and sets important stuff. called in main.wc
+
+  Returns: uint8_t result
+*/
 void imuInit()
 {
   // Initialize the IMUs by setting the register values
@@ -78,7 +82,11 @@ void imuInit()
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
 }
 
-// This function is called in " " and returns a unit8_t result
+/*
+  Description: sets IMU registers
+
+  Returns: uint8_t result
+*/
 uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
 {
   printf("\t\tRegister: 0x%02x Data: 0x%02x\n", registerAddr, data);
@@ -132,7 +140,11 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
   return result == NUM_IMUS;
 }
 
-// This function....
+/*
+  Description: Selects the IMU multiplexer port between I2C and SPI
+
+  Returns: uint8_t from function call to writeRegisterSPI() or writeRegister I2C
+*/
 uint8_t selectMultiplexerPort(uint8_t port)
 {
   if ((uint32_t) handPorts.imu[port] == SPI1_BASE)
@@ -201,7 +213,7 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 }
 
 /*
-  Description: Updates the state machine
+  Description: Updates IMU state machine
 
   Returns: void
   

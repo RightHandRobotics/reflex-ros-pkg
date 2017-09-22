@@ -12,6 +12,7 @@ void systime_init()
   TIM2->CR1 = TIM_CR1_CEN; // start counter
 }
 
+// Microsecond delay
 void udelay(int utime)
 {
   int mytime = SYSTIME;
