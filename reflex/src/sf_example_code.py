@@ -3,7 +3,6 @@
 # Example code for a script using the ReFlex Takktile hand
 # Note: you must connect a hand by running "roslaunch reflex reflex.launch" before you can run this script
 
-
 from math import pi, cos
 
 import rospy
