@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-//   Copyright 2014 Open Source Robotics Foundation, Inc.
-//   Copyright 2014-2015 Right Hand Robotics
+//   Copyright 2017 Open Source Robotics Foundation, Inc.
+//   Copyright 2017-2018 Right Hand Robotics
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.

@@ -17,7 +17,6 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
-
 #include <reflex_msgs/Hand.h>
 #include <reflex_msgs/RawServoCommands.h>
 #include <reflex_msgs/RadianServoCommands.h>
