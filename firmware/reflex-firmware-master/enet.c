@@ -643,14 +643,15 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
     //    set cal mode to each IMU
     // 2. Set calibrataion Data Msg -- cmd = 4, payload = 22*NUM_IMUS 
 
-    else if (cmd == 3 && payload_len == 0){ // Should this be >= similar to the prior else ifs
+    //else if (cmd == 3 && payload_len == 0){ // Should this be >= similar to the prior else ifs
+    else if (cmd == 3){ // Should this be >= similar to the prior else ifs
       // make service in 
       // Hand state. datacaliration = 0xFFFFFFFFFFFFFFf //set to all 1s
         //int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
         //uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
       int i = 0;
-      for (i=0;i<NUM_IMUS;i++)
-        handState.imus_calibration_status[i]=0x55;
+      for (i=0;i<NUM_IMUS*11;i++)
+        handState.imus_calibration_data[i]=0xFF;
 
     }
 
