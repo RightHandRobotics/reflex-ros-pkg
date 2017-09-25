@@ -63,4 +63,7 @@ void log_motor_zero_to_file_and_close();
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state);
 float load_raw_to_signed(int load, int motor_idx);
 
+bool initImuCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res);
+
 #endif

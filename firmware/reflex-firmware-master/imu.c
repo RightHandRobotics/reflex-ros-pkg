@@ -320,7 +320,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
         case IMU_CAL_OFFSETS:  // There are 22 offset AND radius registers
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 22, values);
-          if (result){
+          if (result){ //TODO: refactor into for loop
             handState.imus_calibration_data[imuNumber*11] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
             handState.imus_calibration_data[imuNumber*11 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
             handState.imus_calibration_data[imuNumber*11 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);

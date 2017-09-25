@@ -172,15 +172,56 @@ bool ReflexHand::listen(const double max_seconds)
   return true;
 }
 
+/*
+    Driver code sends UDP message to enet.c (firmware)
+
+*/
+void ReflexHand::initImuCal(){
+  uint8_t msg[1]; 
+  msg[0] = 3;               // Set first thing in array CommandPacket enum
+
+  tx(msg, sizeof(msg), PORT_BASE);
+}
+
+
+void ReflexHand::saveCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IMUS, use #define
+  uint8_t msg[89]; 
+  msg[0] = 4;               // Set first thing in array CommandPacket enum
+
+  for(int i = 0; i < 44; i++){
+    msg[1 + i*2] = (data[i] >> 8) & 0xff;
+    msg[2 + i*2] = data[i] & 0xff;
+  }
+
+
+  tx(msg, sizeof(msg), PORT_BASE);
+}
+
+/*
+    GETS CALLED IN reflex_driver_node.cpp
+
+*/
 void ReflexHand::setServoTargets(const uint16_t *targets)
 {
-  uint8_t msg[1 + 2*NUM_SERVOS];
-  msg[0] = CP_SET_SERVO_TARGET;
-  for (int i = 0; i < NUM_SERVOS; i++)
+  // NUM_SERVOS is set to 4 in reflex_hand.h, 
+  uint8_t msg[1 + 2*NUM_SERVOS]; 
+  
+  /*
+  In reflex_hand.h, Command
+
+    enum CommandPacket { CP_SET_SERVO_MODE = 1,C
+                         CP_SET_SERVO_TARGET = 2 };
+
+  */
+
+  msg[0] = CP_SET_SERVO_TARGET;               // Set first thing in array CommandPacket enum
+   
+  for (int i = 0; i < NUM_SERVOS; i++)        // Populate msg array
   {
     msg[1 + 2*i] = (targets[i] >> 8) & 0xff;
     msg[2 + 2*i] = targets[i] & 0xff;
   }
+
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
@@ -188,8 +229,10 @@ void ReflexHand::setServoControlModes(const ControlMode *modes)
 {
   uint8_t msg[NUM_SERVOS+1];
   msg[0] = CP_SET_SERVO_MODE; 
+
   for (int i = 0; i < NUM_SERVOS; i++)
     msg[i+1] = (uint8_t)modes[i];
+
   tx(msg, sizeof(msg), PORT_BASE);
 }
 

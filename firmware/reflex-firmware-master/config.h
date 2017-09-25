@@ -21,9 +21,9 @@
 #include "imu.h"
 
 //TIMEOUTS
-#define UART_TIMEOUT                   10000 // timeout in microseconds
-#define I2C_TIMEOUT                    5000  //700 // timeout in microseconds // CORRECT, put back value
-#define SPI_TIMEOUT                    5000 // timeout in microseconds
+#define UART_TIMEOUT                   10000 // Microseconds [us]
+#define I2C_TIMEOUT                    5000  //700  // CORRECT, put back value... <- what does this mean?
+#define SPI_TIMEOUT                    5000  
 
 
 // BAROMETER
@@ -32,18 +32,23 @@
 #define BCAST_DISABLE_ADDR             0x0D
 
 
-#define APB_MHZ                        42 // our APB frequency is 42 mhz
+// ADVANCED PERIPHERAL BUS
+#define APB_MHZ                        42 	// Our APB frequency is 42 mhz
 
-// for 100 kHz i2c: 42 mhz / (2 * 100 khz) = 210
-// for 400 kHz i2c: 42 mhz / (2 * 400 khz) =  53
-#define I2C_CCR                        53
+
+// I2C
+	
+// CCR: clock control register
+#define I2C_CCR                        53 	
+// For 100 kHz: 42 mhz / (2 * 100 khz) = 210
+// For 400 kHz: 42 mhz / (2 * 400 khz) =  53
+
 #define I2C_TRISE                      (APB_MHZ * 200 / 1000 + 1)
 #define I2C_READ                       1
 
 // FOR PRINTING INFO
 #define HAND_STATE_INFO  0
 #define HAND_STATUS_INFO 1
-
 
 
 // FUNCTION PROTOTYPES

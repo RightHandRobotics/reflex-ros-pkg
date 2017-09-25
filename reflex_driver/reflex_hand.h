@@ -45,9 +45,10 @@ namespace reflex_hand
     uint8_t  dynamixel_voltages_[4];
     uint8_t  dynamixel_temperatures_[4];
     int16_t  imus[NUM_IMUS*4];
+
     // TODO: PUBLISH THESE
-    int8_t  imu_calibration_status[NUM_IMUS];
-    uint16_t imu_calibration_data[NUM_IMUS*11];
+    int8_t  imu_calibration_status[NUM_IMUS]; // SIZE OF 4
+    uint16_t imu_calibration_data[NUM_IMUS*11]; // SIZE OF 44
     ReflexHandState();
   };
 
@@ -61,9 +62,13 @@ namespace reflex_hand
     static const uint16_t DYN_MAX_RAW = 4095;
     static const uint16_t DYN_MIN_RAW_WRAPPED = 16383;  // For checking negative wraps
     static const float DYN_POS_SCALE = (4 * 2 * 3.141596) / 4095;  // Assuming resolution divider of 4
-    static const float DYN_VEL_SCALE = 0.01194;  // rad/s for every velocity command -- http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
+    static const float DYN_VEL_SCALE = 0.01194;  // rad/s for every velocity command -- 
+        // http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
     static const float ENC_SCALE = (2 * 3.141596) / 16383;
-    enum ControlMode{CM_IDLE = 0, CM_VELOCITY = 1, CM_POSITION = 2};
+
+    enum ControlMode{   CM_IDLE = 0, 
+                        CM_VELOCITY = 1, 
+                        CM_POSITION = 2};
 
     typedef boost::function<void(const ReflexHandState * const)> StateCallback;
     void setStateCallback(StateCallback callback);
@@ -74,10 +79,14 @@ namespace reflex_hand
     void setServoTargets(const uint16_t *targets);
     void setServoControlModes(const ControlMode *modes);
     void setServoControlModes(const ControlMode mode);
+    void initImuCal();
+    void saveCalData(uint16_t data[44]);       
     bool happy() { return happy_; }
+
   private:
     enum CommandPacket { CP_SET_SERVO_MODE = 1,
                          CP_SET_SERVO_TARGET = 2 };
+
     int tx_sock_, rx_sock_;
     sockaddr_in mcast_addr_;
     StateCallback state_cb_;

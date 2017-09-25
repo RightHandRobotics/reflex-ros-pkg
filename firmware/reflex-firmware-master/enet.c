@@ -1,17 +1,21 @@
-#define ETH_MAC_LEN 6
-#define ETH_ETHERTYPE_IP    0x0800
-#define ETH_ETHERTYPE_ARP   0x0806
+#define ETH_MAC_LEN           6
+#define ETH_ETHERTYPE_IP      0x0800
+#define ETH_ETHERTYPE_ARP     0x0806
 #define ETH_IP_HEADER_LEN     5
 #define ETH_IP_VERSION        4
 #define ETH_IP_DONT_FRAGMENT  0x4000
-#define ETH_IP_PROTO_ICMP  0x01
-#define ETH_IP_PROTO_UDP   0x11
+#define ETH_IP_PROTO_ICMP     0x01
+#define ETH_IP_PROTO_UDP      0x11
+
 
 // TODO: be smarter about multicast group choice.. What does multicast mean?
+        // http://www.erg.abdn.ac.uk/users/gorry/course/intro-pages/uni-b-mcast.html
 #define MCAST_IP 0xe000007c
-#define MCAST_IP 0xe000007c
+// #define MCAST_IP 0xe000007c
+
 
 #include "enet.h"
+
 
 static volatile eth_dma_desc_t g_eth_dma_rx_desc[ETH_DMA_NRXD] ALIGN4;
 static volatile eth_dma_desc_t g_eth_dma_tx_desc[ETH_DMA_NTXD] ALIGN4;
@@ -19,13 +23,13 @@ static volatile uint8_t g_eth_dma_rx_buf[ETH_DMA_NRXD][ETH_NBUF] ALIGN4;
 static volatile uint8_t g_eth_dma_tx_buf[ETH_DMA_NTXD][ETH_NBUF] ALIGN4;
 static volatile eth_dma_desc_t *g_eth_dma_rx_next_desc = &g_eth_dma_rx_desc[0];
 static volatile eth_dma_desc_t *g_eth_dma_tx_next_desc = &g_eth_dma_tx_desc[0];
-
 static volatile uint8_t  g_eth_rxpool[ETH_RAM_RXPOOL_LEN] ALIGN4;
 static volatile uint16_t g_eth_rxpool_wpos = 0;
 static volatile uint8_t *g_eth_rxpool_start[ETH_RAM_RXPOOL_NPTR] ALIGN4;
 static volatile uint16_t g_eth_rxpool_len[ETH_RAM_RXPOOL_NPTR] ALIGN4;
 static volatile uint16_t g_eth_rxpool_ptrs_wpos = 0;
 static volatile uint16_t g_eth_rxpool_ptrs_rpos = 0;
+
 
 /*
   Description: Reads from physical registers
@@ -43,6 +47,7 @@ uint16_t enet_read_phy_reg(const uint8_t reg_idx)
   return ETH->MACMIIDR & 0xffff;
 }
 
+
 /*
   Description: Writes to physical registers
   Takes in: Register number, value to place in register
@@ -51,12 +56,14 @@ uint16_t enet_read_phy_reg(const uint8_t reg_idx)
 void enet_write_phy_reg(const uint8_t reg_idx, const uint16_t reg_val)
 {
   while (ETH->MACMIIAR & ETH_MACMIIAR_MB) { } // Ensure MII is idle
-  ETH->MACMIIDR = reg_val; // Set the outgoing data word
+  
+  ETH->MACMIIDR = reg_val;                    // Set outgoing data word
   ETH->MACMIIAR = (ENET_PHY_ADDR << 11)   |
                   ((reg_idx & 0x1f) << 6) |
-                  ETH_MACMIIAR_CR_Div102  | // MDC clock divider
-                  ETH_MACMIIAR_MW         | // Set write bit
-                  ETH_MACMIIAR_MB; // Start it up
+                  ETH_MACMIIAR_CR_Div102  |   // MDC clock divider
+                  ETH_MACMIIAR_MW         |   // Set write bit
+                  ETH_MACMIIAR_MB;            // Start it up
+
   while (ETH->MACMIIAR & ETH_MACMIIAR_MB) { } // Spin waiting for MII to finish
 
   uint16_t readback_val = enet_read_phy_reg(reg_idx);
@@ -67,8 +74,9 @@ void enet_write_phy_reg(const uint8_t reg_idx, const uint16_t reg_val)
   }
 }
 
+
 /*
-  Description: Ethernet initiiate
+  Description: Initialize Ethernet
   Returns: void
 
 */
@@ -77,13 +85,13 @@ void enet_init()
   printf("enet_init()\r\n");
 
   // Set up ethernet pins on Port A
-  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN     |  // And all the i/o ports we
-                  RCC_AHB1ENR_GPIOBEN     |  // will be using to talk to
-                  RCC_AHB1ENR_GPIOCEN;       // the ethernet PHY
+  RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN     |               // AND all the IO ports we
+                  RCC_AHB1ENR_GPIOBEN     |               // will be using to talk to
+                  RCC_AHB1ENR_GPIOCEN;                    // the ethernet PHY
 
   GPIOA->MODER |= (2 << (PORTA_ETH_REFCLK * 2)) |
                   (2 << (PORTA_ETH_MDIO   * 2)) |
-                  (2 << (PORTA_ETH_CRSDV  * 2)); // Set these guys as AF pins
+                  (2 << (PORTA_ETH_CRSDV  * 2));          // Set these guys as AF pins
   GPIOA->AFR[0] |= (11 << (PORTA_ETH_REFCLK * 4)) |
                    (11 << (PORTA_ETH_MDIO   * 4)) |
                    (11 << (PORTA_ETH_CRSDV  * 4));
@@ -97,8 +105,8 @@ void enet_init()
                    (11 << ((PORTB_ETH_TXD1 - 8) * 4));
   GPIOB->OSPEEDR |= (3 << (PORTB_ETH_TXEN * 2)) |
                     (3 << (PORTB_ETH_TXD0 * 2)) |
-                    (3 << (PORTB_ETH_TXD1 * 2)); // Make the TX pins go fast
-  GPIOB->MODER |= (1 << (PORTB_PHY_RESET * 2)); // reset = GPIO output pin
+                    (3 << (PORTB_ETH_TXD1 * 2));          // Make the TX pins go fast
+  GPIOB->MODER |= (1 << (PORTB_PHY_RESET * 2));           // reset = GPIO output pin
 
   // Set up ethernet pins on Port C
   GPIOC->MODER  |= ( 2 << (PORTC_ETH_MDC  * 2)) |
@@ -112,51 +120,53 @@ void enet_init()
   RCC->AHB1RSTR |= RCC_AHB1RSTR_ETHMACRST;
   for (volatile int i = 0; i < 1000; i++) { } // Wait for sysconfig to come up
   
-  // Hold the MAC in reset while we set it to RMII mode
-  for (volatile int i = 0; i < 1000; i++) { } // Wait for sysconfig to come up
-  SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL; // Set the MAC in RMII mode
+  // Hold MAC in reset while we set it to RMII mode
+  for (volatile int i = 0; i < 1000; i++) { }   // Wait for sysconfig to come up
+  SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;       // Set the MAC in RMII mode
   for (volatile int i = 0; i < 100000; i++) { } // Wait for sysconfig to come up
   RCC->AHB1ENR |= RCC_AHB1ENR_ETHMACRXEN  |
                   RCC_AHB1ENR_ETHMACTXEN  |
-                  RCC_AHB1ENR_ETHMACEN    ;  // Turn on your ethernet PLS
+                  RCC_AHB1ENR_ETHMACEN    ;     // Turn on your ethernet PLS
   for (volatile int i = 0; i < 100000; i++) { } // Wait
-  RCC->AHB1RSTR &= ~RCC_AHB1RSTR_ETHMACRST; // release MAC reset
+  RCC->AHB1RSTR &= ~RCC_AHB1RSTR_ETHMACRST;     // Release MAC reset
   for (volatile int i = 0; i < 100000; i++) { } 
   RCC->AHB1RSTR |= RCC_AHB1RSTR_ETHMACRST;
   for (volatile int i = 0; i < 100000; i++) { } 
-  RCC->AHB1RSTR &= ~RCC_AHB1RSTR_ETHMACRST; // release MAC reset
-  for (volatile int i = 0; i < 100000; i++) { } // wait for sysconfig ... (?)
+  RCC->AHB1RSTR &= ~RCC_AHB1RSTR_ETHMACRST;     // Release MAC reset
+  for (volatile int i = 0; i < 100000; i++) { } // Wait for sysconfig ... (?)
 
   ETH->DMABMR |= ETH_DMABMR_SR;
   for (volatile uint32_t i = 0; i < 100000; i++) { }
-  while (ETH->DMABMR & ETH_DMABMR_SR) { } // Wait for reset
+  while (ETH->DMABMR & ETH_DMABMR_SR) { }       // Wait for reset
   for (volatile uint32_t i = 0; i < 100000; i++) { }
-  ETH->DMAOMR |= ETH_DMAOMR_FTF; // Flush DMA
-  while (ETH->DMAOMR & ETH_DMAOMR_FTF) { } // wait for it to flush
+  ETH->DMAOMR |= ETH_DMAOMR_FTF;                // Flush DMA
+  while (ETH->DMAOMR & ETH_DMAOMR_FTF) { }      // Wait for it to flush
 
   // Configure Ethernet peripheral
-  ETH->MACCR |= 0x02000000 | // CSTF = strip FCS. why isn't there a symbol ?
-                ETH_MACCR_FES  | // enable 100 mbit mode
-                ETH_MACCR_DM   | // full duplex
-                ETH_MACCR_IPCO | // ipv4 checksum auto-generation for RX
-                ETH_MACCR_APCS;  // automatically remove pad+CRC from frames
-  ETH->MACFFR |= ETH_MACFFR_RA; // for now, don't try to filter in hardware
+  ETH->MACCR |= 0x02000000 |      // CSTF = strip FCS. why isn't there a symbol ?
+                ETH_MACCR_FES  |  // enable 100 mbit mode
+                ETH_MACCR_DM   |  // full duplex
+                ETH_MACCR_IPCO |  // ipv4 checksum auto-generation for RX
+                ETH_MACCR_APCS;   // automatically remove pad+CRC from frames
+
+  ETH->MACFFR |= ETH_MACFFR_RA;   // for now, don't try to filter in hardware
 
   // Generate decent reset pulse now
   GPIOB->BSRRL = 1 << PORTB_PHY_RESET;
   for (volatile uint32_t i = 0; i < 100000; i++) { }
-  GPIOB->BSRRH = 1 << PORTB_PHY_RESET; // assert reset (pull it low)
-  for (volatile uint32_t i = 0; i < 100000; i++) { } // let some time pass
-  GPIOB->BSRRL = 1 << PORTB_PHY_RESET; // de-assert reset (pull it high)
+  GPIOB->BSRRH = 1 << PORTB_PHY_RESET; // Assert reset (pull it low)
+  for (volatile uint32_t i = 0; i < 100000; i++) { } // Let some time pass
+  GPIOB->BSRRL = 1 << PORTB_PHY_RESET; // De-assert reset (pull it high)
 
-  // todo: only need to wait until registers read back something other
+  // TODO: only need to wait until registers read back something other
   // than 0xffff . then we don't have to wait as long.
-  for (volatile uint32_t i = 0; i < 1000000; i++) { } // let it initialize
+  for (volatile uint32_t i = 0; i < 1000000; i++) { } // Let it initialize
   printf("waiting for PHY to wake up...\r\n");
   while (enet_read_phy_reg(0) == 0xffff) { }
-  for (volatile uint32_t i = 0; i < 1000000; i++) { } // let it initialize
+  for (volatile uint32_t i = 0; i < 1000000; i++) { } // Let it initialize
   printf("done with PHY reset.\r\n");
   printf("setting software strap registers...\r\n");
+
   enet_write_phy_reg(0x09, 0x7821); // enable auto MDIX,
                                     // set INT/PWDN to be interrupt output
                                     // enable auto-negotiation
@@ -170,22 +180,22 @@ void enet_init()
   // Set up TX descriptors
   for (int i = 0; i < ETH_DMA_NTXD; i++)
   {
-    g_eth_dma_tx_desc[i].des0 = 0x00100000 | // set address-chained bit
-                                0x00c00000 ; // set insert-checksum bits
+    g_eth_dma_tx_desc[i].des0 = 0x00100000 | // Set address-chained bit
+                                0x00c00000 ; // Set insert-checksum bits
     g_eth_dma_tx_desc[i].des1 = 0;
-    g_eth_dma_tx_desc[i].des2 = (uint32_t)&g_eth_dma_tx_buf[i][0]; // pointer to buf
+    g_eth_dma_tx_desc[i].des2 = (uint32_t)&g_eth_dma_tx_buf[i][0];   // Pointer to buf
     if (i < ETH_DMA_NTXD-1)
-      g_eth_dma_tx_desc[i].des3 = (uint32_t)&g_eth_dma_tx_desc[i+1]; // chain to next
+      g_eth_dma_tx_desc[i].des3 = (uint32_t)&g_eth_dma_tx_desc[i+1]; // Chain to next
     else
-      g_eth_dma_tx_desc[i].des3 = (uint32_t)&g_eth_dma_tx_desc[0]; // loop to first
+      g_eth_dma_tx_desc[i].des3 = (uint32_t)&g_eth_dma_tx_desc[0];   // Loop to first
   }
     
   // Set up RX descriptors
   for (int i = 0; i < ETH_DMA_NRXD; i++)
   {
-    g_eth_dma_rx_desc[i].des0 = 0x80000000; // set "own" bit = DMA has control
-    g_eth_dma_rx_desc[i].des1 = 0x00004000 | // set the RCH bit = chained addr2
-                            ETH_NBUF; // buffer size in addr1
+    g_eth_dma_rx_desc[i].des0 = 0x80000000;   // Set "own" bit = DMA has control
+    g_eth_dma_rx_desc[i].des1 = 0x00004000 |  // Set the RCH bit = chained addr2
+                            ETH_NBUF;         // buffer size in addr1
     g_eth_dma_rx_desc[i].des2 = (uint32_t)&g_eth_dma_rx_buf[i][0];
     if (i < ETH_DMA_NRXD-1)
       g_eth_dma_rx_desc[i].des3 = (uint32_t)&g_eth_dma_rx_desc[i+1];
@@ -219,11 +229,17 @@ void enet_init()
   ETH->DMAOMR |= ETH_DMAOMR_ST | ETH_DMAOMR_SR; // enable ethernet DMA tx/rx
 }
 
+
+/*
+  Description: TODO: ........................................................................ (?)
+  Takes in: Nothing
+  Returns: void
+*/
 void eth_vector()
 {
   volatile uint32_t dmasr = ETH->DMASR;
 
-  ETH->DMASR = dmasr; // clear pending bits in the status register
+  ETH->DMASR = dmasr; // Clear pending bits in the status register
   //printf("eth_vector()\r\n");
 
   if (dmasr & ETH_DMASR_RS)
@@ -231,14 +247,16 @@ void eth_vector()
     // We received one or more frames. spin through and find them...
     while (!(g_eth_dma_rx_next_desc->des0 & 0x80000000))
     {
-      // todo: check all of the error status bits in des0...
+      // TODO: check all of the error status bits in des0...
       const uint16_t rxn = (g_eth_dma_rx_next_desc->des0 & 0x3fff0000) >> 16;
-      // see if this packet will run off the end of the buffer. if so, wrap.
+      // See if this packet will run off the end of the buffer. if so, wrap. .... (?) buffer wrapping?
       if (g_eth_rxpool_wpos + rxn >= ETH_RAM_RXPOOL_LEN)
         g_eth_rxpool_wpos = 0;
+
       const uint16_t wp = g_eth_rxpool_ptrs_wpos;
       g_eth_rxpool_start[wp] = &g_eth_rxpool[g_eth_rxpool_wpos];
       g_eth_rxpool_len[wp] = rxn;
+
       memcpy((uint8_t *)&g_eth_rxpool[g_eth_rxpool_wpos],
              (const uint8_t *)g_eth_dma_rx_next_desc->des2,
              rxn);
@@ -246,8 +264,10 @@ void eth_vector()
       //printf("ethernet rx %d into rxpool ptr %d\r\n", rxn, wp);
       
       g_eth_rxpool_ptrs_wpos++;
+
       if (g_eth_rxpool_ptrs_wpos >= ETH_RAM_RXPOOL_NPTR)
         g_eth_rxpool_ptrs_wpos = 0;
+
       g_eth_rxpool_wpos += rxn;
 
       /*
@@ -256,16 +276,22 @@ void eth_vector()
         printf("%02d: 0x%02x\r\n", i, p[i]);
       */
 
-      g_eth_dma_rx_next_desc->des0 |= 0x80000000; // give it back to the DMA
-      // advance the rx pointer for next time
+      g_eth_dma_rx_next_desc->des0 |= 0x80000000; // Give it back to DMA
+      // Advance RX pointer for next time
       g_eth_dma_rx_next_desc = (eth_dma_desc_t *)g_eth_dma_rx_next_desc->des3;
     }
   }
+
   dmasr = ETH->DMASR;
   
   //printf("dmasr = 0x%08x\r\n", (int)dmasr);
 }
 
+
+/*
+  Description: Returns link status (enum)
+  Takes in: Nothing
+*/
 enet_link_status_t enet_get_link_status()
 {
   uint16_t status = enet_read_phy_reg(0x01);
@@ -286,6 +312,12 @@ enet_link_status_t enet_get_link_status()
   return ENET_LINK_DOWN;
 }
 
+
+/*
+  Description: Sends raw packet.  ......................(?) what is the meaning of raw?
+  Takes in: pointer to packet, packet length
+  Returns: nothing
+*/
 void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len)
 {
   //printf("eth tx %d\r\n", pkt_len);
@@ -295,6 +327,7 @@ void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len)
     err_set(ERR_ETH_BUFFER_FULL);
     return; // if it's set, then we have run out of ringbuffer room and can't TX
   }
+
   err_unset(ERR_ETH_BUFFER_FULL);
   
   /*
@@ -325,13 +358,23 @@ void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len)
   //printf(" rmii status = 0x%04x\r\n", (unsigned)r);
 }
 
-// TODO: find ways for this to be overridden on CPUs with built-ins for this
-uint16_t eth_htons(const uint16_t x)
+/*
+  Description: idk ........................(?) Figure out this bit manipulation witchcraft
+  Takes in: uint16_t
+  TODO: Rename x
+*/
+uint16_t eth_htons(const uint16_t x) /////////////// What is htons?
 {
-  return ((x & 0xff) << 8) | ((x >> 8) & 0xff);
+  // TODO: find ways for this to be overridden on CPUs with built-ins for this
+  return ((x & 0xff) << 8) | ((x >> 8) & 0xff); 
 }
 
-uint32_t eth_htonl(const uint32_t x)
+/*
+  Description: idk ........................(?) Figure out this bit manipulation witchcraft
+  Takes in: uint32_t
+  TODO: Rename x
+*/
+uint32_t eth_htonl(const uint32_t x) /////////////// What is htonl?
 {
   return ((x & 0x000000ff) << 24)  |
          ((x & 0x0000ff00) << 8)   |
@@ -339,12 +382,14 @@ uint32_t eth_htonl(const uint32_t x)
          ((x & 0xff000000) >> 24);
 }
 
+// STRUCTS
 typedef struct
 {
   uint8_t  dest_addr[ETH_MAC_LEN];
   uint8_t  source_addr[ETH_MAC_LEN];
   uint16_t ethertype : 16;
-} __attribute__((packed)) eth_eth_header_t;
+} __attribute__((packed)) eth_eth_header_t; // TODO: Rename eth_eth to something more useful..
+
 
 typedef struct
 {
@@ -363,6 +408,7 @@ typedef struct
   uint32_t dest_addr    : 32;
 } __attribute__((packed)) eth_ip_header_t;
 
+
 typedef struct
 {
   eth_ip_header_t ip;
@@ -372,9 +418,11 @@ typedef struct
   uint16_t checksum;
 } __attribute__((packed)) eth_udp_header_t;
 
+
 static uint8_t  g_eth_udpbuf[1500] __attribute__((aligned(8))) = {0};
 static uint8_t  g_eth_src_mac[6] = { 0xa4, 0xf3, 0xc1, 0x00, 0x01, 0x00 };
-static uint32_t g_eth_src_ip = 0x0a636363; // todo... not this.
+static uint32_t g_eth_src_ip = 0x0a636363; // TODO: not this.
+
 
 void enet_send_udp_mcast(const uint32_t mcast_ip, const uint16_t mcast_port,
                          const uint8_t *payload, const uint16_t payload_len)
@@ -387,6 +435,7 @@ void enet_send_udp_mcast(const uint32_t mcast_ip, const uint16_t mcast_port,
                       g_eth_src_ip, mcast_port,
                       payload, payload_len);
 }
+
 
 void enet_send_udp_ucast(const uint8_t *dest_mac,
                          const uint32_t dest_ip, const uint16_t dest_port,
@@ -491,20 +540,42 @@ bool eth_dispatch_eth(const uint8_t *data, const uint16_t len)
   }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// uint8_t *data is a pointer
+// const uint16_t len is the length of the data
+
 bool eth_dispatch_ip(const uint8_t *data, const uint16_t len)
 {
-  const eth_ip_header_t *ip = (const eth_ip_header_t *)data;
-  if (ip->version != 4) // we only handle ipv4 (for now...)
+  // Create instance of IP header
+  const eth_ip_header_t *ip = (const eth_ip_header_t *)data; // Ask john to explain masking
+
+  if (ip->version != 4) // We only handle ipv4 (for now...)
     return false;
-  // if it's unicast, verify our IP address, otherwise ignore the packet
+
+  // This if, if statement is GROSS
+
+  // If it's unicast, verify IP address, else ignore the packet ......... (?) what is unicast?
   if (ip->eth.dest_addr[0] == g_eth_src_mac[0])
     if (ip->source_addr != eth_htonl(g_eth_src_ip))
       return false;
-  if (ip->proto == ETH_IP_PROTO_UDP)
+  /*
+  Refactor note: Why not like below?
+
+  if (ip->eth.dest_addr[0] == g_eth_src_mac[0] && ip->source_addr != eth_htonl(g_eth_src_ip))
+    return false;
+  */
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+  if (ip->proto == ETH_IP_PROTO_UDP) // #define ETH_IP_PROTO_UDP      0x11
     return eth_dispatch_udp(data, len);
-  return false; // if we get here, we aren't smart enough to handle this packet
+
+//////////////////////////////////////////////////////////////////////////////////////////
+  return false; // if we get here, we aren't smart(?) enough to handle this packet
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+// Gets called once above by eth_dispatch_ip
 bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
 {
   const eth_udp_header_t *udp = (const eth_udp_header_t *)data;
@@ -512,8 +583,10 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
   const uint16_t payload_len = eth_htons(udp->len) - 8;
   const uint8_t *payload = data + sizeof(eth_udp_header_t);
   //printf("  udp len: %d\r\n", udp_payload_len);
+
   if (payload_len > len - sizeof(eth_udp_header_t))
     return false; // ignore fragmented UDP packets.
+
 
   //printf("dispatch udp @ %8u\r\n", (unsigned)SYSTIME);
   //printf("dispatch udp: port = %d  payload_len = %d\r\n", port, payload_len);
@@ -572,11 +645,25 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
 
     else if (cmd == 3 && payload_len == 0){ // Should this be >= similar to the prior else ifs
       // make service in 
-      // Hand state. datacaliration = 0xFFFF
+      // Hand state. datacaliration = 0xFFFFFFFFFFFFFFf //set to all 1s
+        //int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
+        //uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
+      int i = 0;
+      for (i=0;i<NUM_IMUS;i++)
+        handState.imus_calibration_status[i]=0x55;
+
     }
 
-    else if (cmd == 4 && payload_len == 22*NUM_IMUS){
 
+
+
+
+
+
+
+
+
+    else if (cmd == 4 && payload_len == 22*NUM_IMUS){
     }
 
     
@@ -596,7 +683,7 @@ void enetTX()
   //net_send_udp_mcast(MCAST_IP, 11333, (uint8_t *)&tx_state, sizeof(tx_state));
 }
 
-void ethernetService(void)
+void ethernetService()
 {
   if (enet_get_link_status() == ENET_LINK_UP)
   {

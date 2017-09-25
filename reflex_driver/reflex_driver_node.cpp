@@ -17,6 +17,7 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////// TODO: Figure out where these cfome from
 #include <reflex_msgs/Hand.h>
 #include <reflex_msgs/RawServoCommands.h>
 #include <reflex_msgs/RadianServoCommands.h>
@@ -25,6 +26,8 @@
 #include <reflex_msgs/ImuCalibrationData.h>
 #include <ros/ros.h>
 #include <signal.h>
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <std_srvs/Empty.h>
@@ -49,6 +52,7 @@ using namespace std;
 //      /calibrate_fingers      Calibrates encoder and motor values
 //      /disable_torque         Disables finger torque
 //      /set_tactile_threshold  Sets threshold for "contact" for each sensor individually
+//      /initImuCal        Starts imu calibration
 
 
 ros::Publisher hand_pub;
@@ -57,7 +61,7 @@ ros::Publisher raw_pub;
 ofstream tactile_file;        // Accesses tactile calibration file
 ofstream imu_calibration_file;// Accesses IMU calibration file
 string tactile_file_address;  // Set in main()
-string imu_file_address;  // Set in main()
+string imu_file_address;      // Set in main()
 ofstream finger_file;         // Accesses finger calibration file
 string finger_file_address;   // Set in main()
 
@@ -85,7 +89,7 @@ vector<double> encoder_zero_point;    // Loaded from yaml and reset during calib
 
 // Loaded from yaml file during calibration
 /*
-vector<double> imu_calibration_data_f1; 
+//vector<double> imu_calibration_data_f1; 
 //vector<double> imu_calibration_data_f2;  
 //vector<double> imu_calibration_data_f3; 
 //vector<double> imu_calibration_data_palm;  
@@ -94,7 +98,7 @@ vector<double> imu_calibration_data_f1;
 // TODO: Figure out what these do. Are these the preset calibration values (radii/offets)?
 //vector<double> imu_calibration_data_f1, imu_calibration_data_f2, imu_calibration_data_f3, imu_calibration_data_palm;
 
-uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated in reflex_hand_state_cb() during calibration
+uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated itxn reflex_hand_state_cb() during calibration
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};  // Constant
 ros::Time latest_calibration_time;                          // Updated in reflex_hand_state_cb() during calibration
 
@@ -137,6 +141,7 @@ void load_params(ros::NodeHandle nh) {
     topic = "imu_calibration_data_palm";
   */
 
+
   if (topic != "No error") {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
     ROS_FATAL("This is likely because the corresponding yaml file in");
@@ -162,8 +167,10 @@ void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
     raw_cmd_last_value[i] = targets[i];
   }
 
+  // What is targets?
   rh->setServoTargets(targets);
 }
+
 
 
 // Commands motors from radians using the zero references from
@@ -171,10 +178,13 @@ void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
                           const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
+
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     targets[i] = pos_rad_to_raw(msg->radian_commands[i], i);
     raw_cmd_last_value[i] = targets[i];
   }
+
+
   rh->setServoTargets(targets);
 }
 
@@ -196,7 +206,7 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
 }
 
 
-// Changes the travel speed of the motor
+// Changes travel speed of motor
 bool set_motor_speed(reflex_hand::ReflexHand *rh,
                      reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
@@ -217,8 +227,8 @@ bool set_motor_speed(reflex_hand::ReflexHand *rh,
 }
 
 
-// Takes a rad/s command and returns Dynamixel command
-//     http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
+// Takes rad/s command and returns Dynamixel command
+// http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
 uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
   uint16_t command = abs(rad_per_s_command) *
                      (MOTOR_TO_JOINT_GEAR_RATIO[motor_idx] / reflex_hand::ReflexHand::DYN_VEL_SCALE);
@@ -235,21 +245,31 @@ uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
 }
 
 
-// Checks whether the motor positions will reset after mode switch, and corrects zero point
+// Checks whether motor positions will reset after mode switch, and corrects zero point
 // When switching modes (VELOCITY and POSITION) the motor will wrap values if above 14024 or below 13000
 void check_for_potential_motor_wraps_and_rezero() {
   double motor_wrap;
-
-  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
+  for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) 
     motor_wrap = 1025 * (reflex_hand::ReflexHand::DYN_POS_SCALE / MOTOR_TO_JOINT_GEAR_RATIO[i]);
-  }
 }
 
 
-bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
+bool disable_torque(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_IDLE);
   return true;
 }
+
+bool initImuCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res){
+  rh->initImuCal();
+  return true;
+}
+
+/*bool saveCalData(){
+
+  
+}*/
 
 
 // Sets the procedure to calibrate the tactile values in motion
@@ -260,7 +280,7 @@ bool calibrate_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response 
 }
 
 
-// Sets the procedure to calibrate the fingers in motion
+// Sets procedure to calibrate the fingers in motion
 bool calibrate_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   ROS_INFO("Beginning finger calibration sequence...");
   acquire_fingers = true;
@@ -270,7 +290,7 @@ bool calibrate_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response 
 }
 
 
-// Sets the tactile threshold levels to be all one value
+// Sets tactile threshold levels to be all one value
 void populate_tactile_threshold(int threshold) {
   for(int i=0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     for (int j=0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
@@ -303,10 +323,9 @@ int pressure_offset(int finger, int sensor) {
 int update_encoder_offset(int raw_value, int last_value, int current_offset) {
   int enc_offset = current_offset;
 
-  if (enc_offset == -1) {
-    // This case happens upon startup
-    enc_offset = 0;
-  } else {
+  if (enc_offset == -1)
+    enc_offset = 0; // This case happens upon startup
+  else {
     // If the encoder value jumps, that means it has wrapped a revolution
     if (last_value - raw_value > 5000)
       enc_offset = enc_offset + 16383;
@@ -675,7 +694,11 @@ int main(int argc, char **argv) {
   ros::ServiceServer disable_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
       (ns + "/disable_torque", boost::bind(disable_torque, &rh, _1, _2));
-  ROS_INFO("Advertising the /disable_torque service");
+///////========= Adding new service initImuCal
+  ros::ServiceServer initImuCal_service =
+    nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
+      (ns + "/initImuCal", boost::bind(initImuCal, &rh, _1, _2));
+  ROS_INFO("Advertising the /initImuCal service");
 
   // Initialize the /calibrate_tactile and /calibrate_fingers services
   string buffer;
