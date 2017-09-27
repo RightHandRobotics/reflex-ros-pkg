@@ -11,7 +11,6 @@
 // TODO: be smarter about multicast group choice.. What does multicast mean?
         // http://www.erg.abdn.ac.uk/users/gorry/course/intro-pages/uni-b-mcast.html
 #define MCAST_IP 0xe000007c
-// #define MCAST_IP 0xe000007c
 
 
 #include "enet.h"
@@ -650,22 +649,15 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
         //int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
         //uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
       int i = 0;
-      for (i=0;i<NUM_IMUS*11;i++)
-        handState.imus_calibration_data[i]=0xFF;
+      for (i = 0; i < NUM_IMUS*11; i++)
+        handState.imus_calibration_data[i] = 0xFF;
 
     }
 
 
+    else if (cmd == 4 && payload_len == 22*NUM_IMUS){}
 
-
-
-
-
-
-
-
-    else if (cmd == 4 && payload_len == 22*NUM_IMUS){
-    }
+    else if (cmd == 5){}
 
     
   }
