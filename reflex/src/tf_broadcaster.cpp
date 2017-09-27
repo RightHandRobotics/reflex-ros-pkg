@@ -207,7 +207,7 @@ void poseCallback(const reflex_msgs::HandConstPtr& msg) {
     }
   }
 
-  for (int i = 0; i <3 ; i++) {
+  for (int i = 0; i < 3 ; i++) {
     for (int j = 0; j < 4; j++) {
       sprintf(s1, "Distal_%d", (i+1));
       sprintf(s2, "Distal_%d/sensor_%d", (i+1), (j+1));
