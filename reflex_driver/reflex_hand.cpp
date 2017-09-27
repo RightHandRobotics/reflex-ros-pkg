@@ -45,15 +45,15 @@ ReflexHand::ReflexHand(const std::string &interface)
 : happy_(true)
 {
   ROS_INFO("ReflexHand constructor");
-  ROS_INFO("ethernet: %s", interface.c_str());
+  ROS_INFO("Ethernet: %s", interface.c_str());
   std::string multicast_address_string = "224.0.0.124";
 
-  ROS_INFO("multicast address: %s", multicast_address_string.c_str());
+  ROS_INFO("Multicast address: %s", multicast_address_string.c_str());
   const char *mcast_addr_str = multicast_address_string.c_str(); // parameterize someday !
   tx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
   rx_sock_ = socket(AF_INET, SOCK_DGRAM, 0);
-  ROS_FATAL_COND(tx_sock_ < 0, "couldn't create socket");
-  ROS_FATAL_COND(rx_sock_ < 0, "couldn't create socket");
+  ROS_FATAL_COND(tx_sock_ < 0, "Couldn't create socket");
+  ROS_FATAL_COND(rx_sock_ < 0, "Couldn't create socket");
   memset(&mcast_addr_, 0, sizeof(mcast_addr_));
   mcast_addr_.sin_family = AF_INET;
   mcast_addr_.sin_addr.s_addr = inet_addr(mcast_addr_str);
@@ -61,7 +61,7 @@ ReflexHand::ReflexHand(const std::string &interface)
   ifaddrs *ifaddr;
   if (getifaddrs(&ifaddr) == -1)
   {
-    ROS_FATAL("couldn't get ipv4 address of interface %s", interface.c_str());
+    ROS_FATAL("Couldn't get ipv4 address of interface %s", interface.c_str());
     return;
   }
 
@@ -72,15 +72,20 @@ ReflexHand::ReflexHand(const std::string &interface)
   {
     if (!ifa->ifa_addr)
       continue;
+
     int family = ifa->ifa_addr->sa_family;
+
     if (family != AF_INET)
       continue;
+
     char host[NI_MAXHOST];
     if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
                     host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))
       continue;
+
     ROS_INFO("found address %s on interface %s",
              host, ifa->ifa_name);
+
     if (std::string(ifa->ifa_name) == interface)
     {
       ROS_INFO("using %s as the tx interface for IPv4 UDP multicast", host);
@@ -91,6 +96,7 @@ ReflexHand::ReflexHand(const std::string &interface)
   }
 
   freeifaddrs(ifaddr);
+
   if (!found_interface)
   {
     ROS_FATAL("Unable to find IPv4 address of interface %s. Perhaps it "
@@ -104,13 +110,13 @@ ReflexHand::ReflexHand(const std::string &interface)
   int result = 0, loopback = 0;
   result = setsockopt(tx_sock_, IPPROTO_IP, IP_MULTICAST_IF,
                       (char *)&local_addr, sizeof(local_addr));
-  ROS_FATAL_COND(result < 0, "couldn't set local interface for udp tx sock, fails with errno: %d", errno);
+  ROS_FATAL_COND(result < 0, "Couldn't set local interface for udp tx sock, fails with errno: %d", errno);
   result = setsockopt(tx_sock_, IPPROTO_IP, IP_MULTICAST_LOOP, 
                       &loopback, sizeof(loopback));
-  ROS_FATAL_COND(result < 0, "couldn't turn off outgoing multicast loopback, fails with errno: %d", errno);
+  ROS_FATAL_COND(result < 0, "Couldn't turn off outgoing multicast loopback, fails with errno: %d", errno);
 
   /////////////////////////////////////////////////////////////////////
-  // set up the rx side of things
+  // Set up RX side of things
   int reuseaddr = 1;
   result = setsockopt(rx_sock_, SOL_SOCKET, SO_REUSEADDR,
                       &reuseaddr, sizeof(reuseaddr));
@@ -137,12 +143,11 @@ ReflexHand::ReflexHand(const std::string &interface)
   ROS_INFO("constructor complete");
 }
 
-ReflexHand::~ReflexHand() // TODO: lolwut? is this a destructor? 
+ReflexHand::~ReflexHand() 
 {
 }
 
-void ReflexHand::tx(const uint8_t *msg, 
-                    const uint16_t msg_len, 
+void ReflexHand::tx(const uint8_t *msg, const uint16_t msg_len, 
                     const uint16_t port)
 {
   // ROS_INFO("ReflexHand::tx %d bytes to port %d", msg_len, port);
@@ -184,7 +189,8 @@ void ReflexHand::initImuCal(){
 }
 
 
-void ReflexHand::saveCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IMUS, use #define
+/*
+void ReflexHand::loadIMUCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IMUS, use #define
   uint8_t msg[89]; 
   msg[0] = 4;               // Set first thing in array CommandPacket enum
 
@@ -193,9 +199,9 @@ void ReflexHand::saveCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IMUS,
     msg[2 + i*2] = data[i] & 0xff;
   }
 
-
   tx(msg, sizeof(msg), PORT_BASE);
 }
+*/
 
 /*
     GETS CALLED IN reflex_driver_node.cpp
@@ -265,7 +271,7 @@ typedef struct
 //// TODO: CHECK IF PACKET LENGTH IS WHAT WE WANT
 void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len) 
 {
-  // first, check the packet format "magic byte" and the length
+  // First, check the packet format "magic byte" and the length
   if (msg[0] != 1)
   {
     ROS_ERROR("unexpected magic byte received on UDP multicast port: 0x%02x",
@@ -294,8 +300,7 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
   
   for (int i = 0; i < 4; i++)
   {
-    rx_state_.dynamixel_error_states_[i] = 
-      rx_state_msg->dynamixel_error_states[i];
+    rx_state_.dynamixel_error_states_[i] = rx_state_msg->dynamixel_error_states[i];
     rx_state_.dynamixel_angles_[i]   = rx_state_msg->dynamixel_angles[i];
     rx_state_.dynamixel_speeds_[i]   = rx_state_msg->dynamixel_speeds[i];
     rx_state_.dynamixel_loads_[i]    = rx_state_msg->dynamixel_loads[i];

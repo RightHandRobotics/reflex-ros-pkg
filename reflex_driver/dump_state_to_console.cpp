@@ -25,6 +25,7 @@ using std::string;
 using reflex_hand::ReflexHandState;
 
 static bool g_done = false;
+
 void signal_handler(int signum)
 {
   if (signum == SIGINT || signum == SIGTERM)
@@ -42,15 +43,18 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const s)
     if (i != 0 && i < 30 && i % 9 == 8)
       printf("\n  ");
   }
+
   printf("\n");
 
   printf("tactile temperatures:\n  ");
+
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_TACTILE; i++)
   {
     printf("%5hu ", s->tactile_temperatures_[i]);
     if (i != 0 && i < 30 && i % 9 == 8)
       printf("\n  ");
   }
+
   printf("\n");
 
   printf("dynamixel:\n");
@@ -72,20 +76,24 @@ int main(int argc, char **argv)
   reflex_hand::ReflexHand rh(network_interface);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
+  
   if (!rh.happy())
   {
     ROS_FATAL("error during ReflexHand initialization. Have a nice day.");
     return 1;
   }
+  
   rh.setStateCallback(reflex_hand_state_cb);
+  
   while (!g_done)
   {
     if (!rh.listen(0.001))
     {
-      ROS_ERROR("error in listen");
+      ROS_ERROR("Error in listen");
       break;
     }
   }
-  ROS_INFO("have a nice day.");
+
+  ROS_INFO("Have a nice day.");
   return 0;
 }

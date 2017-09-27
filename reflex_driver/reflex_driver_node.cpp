@@ -16,6 +16,25 @@
 //   limitations under the License.
 //
 /////////////////////////////////////////////////////////////////////////////
+/*
+
+PUBLIC EXPOSURE BY THIS DRIVER
+Published topics
+      /hand_state             Contains the current state of the hand
+
+subscribed topics
+      /radian_hand_command    Executes radian commands, assuming hand is calibrated
+
+Advertised services
+      /calibrate_tactile      Calibrates tactile sensors at current level
+      /calibrate_fingers      Calibrates encoder and motor values
+      /disable_torque         Disables finger torque
+      /set_tactile_threshold  Sets threshold for "contact" for each sensor individually
+      /initImuCal             Starts IMU calibration
+      /loadIMUCalData         Loads data from yaml to firmware
+      /saveIMUCalData         Save data from firmware to yaml
+
+*/
 
 //////////////////////////////////////////// TODO: Figure out where these cfome from
 #include <reflex_msgs/Hand.h>
@@ -40,20 +59,6 @@
 #include "./reflex_hand.h"
 #include "./reflex_driver_node.h"
 using namespace std;
-
-
-// Public exposure by this driver
-// Published topics
-//      /hand_state             Contains the current state of the hand
-// Subscribed topics
-//      /radian_hand_command    Executes radian commands, assuming hand is calibrated
-// Advertised services
-//      /calibrate_tactile      Calibrates tactile sensors at current level
-//      /calibrate_fingers      Calibrates encoder and motor values
-//      /disable_torque         Disables finger torque
-//      /set_tactile_threshold  Sets threshold for "contact" for each sensor individually
-//      /initImuCal        Starts imu calibration
-
 
 ros::Publisher hand_pub;
 ros::Publisher raw_pub;
@@ -87,22 +92,15 @@ bool all_fingers_moved = false;       // Updated in reflex_hand_state_cb()
 vector<double> dynamixel_zero_point;  // Loaded from yaml and reset during calibration
 vector<double> encoder_zero_point;    // Loaded from yaml and reset during calibration
 
-// Loaded from yaml file during calibration
-/*
-//vector<double> imu_calibration_data_f1; 
-//vector<double> imu_calibration_data_f2;  
-//vector<double> imu_calibration_data_f3; 
-//vector<double> imu_calibration_data_palm;  
-*/
-
-// TODO: Figure out what these do. Are these the preset calibration values (radii/offets)?
-//vector<double> imu_calibration_data_f1, imu_calibration_data_f2, imu_calibration_data_f3, imu_calibration_data_palm;
+/////////////////////////////////////////////////////// TODO: Verify correct data type
+vector<int> imu_calibration_data_f1, imu_calibration_data_f2, imu_calibration_data_f3, imu_calibration_data_palm;  
+bool acquire_imus = false;  
 
 uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated itxn reflex_hand_state_cb() during calibration
 const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};  // Constant
 ros::Time latest_calibration_time;                          // Updated in reflex_hand_state_cb() during calibration
 
-bool g_done = false;    // Updated by the signum handler
+bool g_done = false;    // Updated by signum handler below
 
 
 void signal_handler(int signum) {
@@ -130,8 +128,10 @@ void load_params(ros::NodeHandle nh) {
   if (!nh.getParam("tactile_offset_f3", tactile_offset_f3))
     topic = "tactile_offset_f3";
 
-  // TODO: LANCE FIGURE OUT WHAT THESE DO!
-  /*if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
+  ///////////// TODO: understand NodeHandle object "nh", getParam function, and what a topic is
+
+/*
+  if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
     topic = "imu_calibration_data_f1";
   if (!nh.getParam("imu_calibration_data_f2", imu_calibration_data_f2))
     topic = "imu_calibration_data_f2";
@@ -139,9 +139,8 @@ void load_params(ros::NodeHandle nh) {
     topic = "imu_calibration_data_f3";
   if (!nh.getParam("imu_calibration_data_palm", imu_calibration_data_palm))
     topic = "imu_calibration_data_palm";
-  */
-
-
+*/
+  
   if (topic != "No error") {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
     ROS_FATAL("This is likely because the corresponding yaml file in");
@@ -170,7 +169,6 @@ void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
   // What is targets?
   rh->setServoTargets(targets);
 }
-
 
 
 // Commands motors from radians using the zero references from
@@ -239,14 +237,16 @@ uint16_t speed_rad_to_raw(float rad_per_s_command, int motor_idx) {
     command += 1024;
   
   if (command == 0)
-    command = 1;  // 0 doesn't actually stop the motor
+    command = 1;  // 0 does not actually stop the motor
 
   return command;
 }
 
 
-// Checks whether motor positions will reset after mode switch, and corrects zero point
-// When switching modes (VELOCITY and POSITION) the motor will wrap values if above 14024 or below 13000
+// Checks whether motor positions will reset after mode switch, 
+// and corrects zero point.
+// When switching modes (VELOCITY and POSITION),  
+// motor will wrap values if above 14024 or below 13000
 void check_for_potential_motor_wraps_and_rezero() {
   double motor_wrap;
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) 
@@ -266,13 +266,8 @@ bool initImuCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req,
   return true;
 }
 
-/*bool saveCalData(){
 
-  
-}*/
-
-
-// Sets the procedure to calibrate the tactile values in motion
+// Sets procedure to calibrate the tactile values in motion
 bool calibrate_tactile(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res) {
   acquire_tactile = true;
   ROS_INFO("Zeroing tactile data at current values...");
@@ -325,6 +320,7 @@ int update_encoder_offset(int raw_value, int last_value, int current_offset) {
 
   if (enc_offset == -1)
     enc_offset = 0; // This case happens upon startup
+  
   else {
     // If the encoder value jumps, that means it has wrapped a revolution
     if (last_value - raw_value > 5000)
@@ -404,9 +400,8 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
 
-    for (int j = 0; j < 4; j++){
+    for (int j = 0; j < 4; j++)
       hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i*4 + j]);
-    }
 
     hand_msg.finger[i].imu.calibration_status = state->imu_calibration_status[i];
     
@@ -439,10 +434,13 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   hand_pub.publish(hand_msg);
 
 
+  if (acquire_imus) 
+    log_imu_calibration_data(state);
+  
   // Capture the current tactile data and save it as a zero reference
-  if (acquire_tactile) {
+  if (acquire_tactile) 
     calibrate_tactile_sensors(state, hand_msg);
-  }
+  
 
   if (acquire_fingers && (ros::Time::now() > latest_calibration_time + ros::Duration(0.05))) {
     if (first_capture) {
@@ -456,9 +454,12 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       calibrate_motors_locally(state);
       log_encoder_zero_to_file();
       log_motor_zero_to_file_and_close();
-    } else {
+    } 
+
+    else 
       move_fingers_in(state);
-    }
+    
+
     latest_calibration_time = ros::Time::now();
   }
   return;
@@ -484,7 +485,6 @@ void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state
   for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
     tactile_offset_f1[j] = state->tactile_pressures_[TACTILE_BASE_IDX[0] + j];
     tactile_offset_f2[j] = state->tactile_pressures_[TACTILE_BASE_IDX[1] + j];
-    tactile_offset_f3[j] = state->tactile_pressures_[TACTILE_BASE_IDX[2] + j];
   }
 }
 
@@ -548,33 +548,56 @@ void log_motor_zero_to_file_and_close() {
   finger_file.close();
 }
 
-// Opens imu calibration data file, and saves
-// current imu calibration values to file as the new calibrated "zero"
-void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state,
-                              reflex_msgs::ImuCalibrationData imu_cal) {
-  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
-  imu_calibration_file << "# Captured sensor values from unloaded state\n";
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS+1; i++) {  //There's an IMU on the palm too
-    log_current_imu_offsets_to_file(state, i);
-  }
-  imu_calibration_file.close();
+/////////////////////////////////////////////////// TODO save data 
+
+
+bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res){
+  acquire_imus = true;
+  return true;  
 }
 
-void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const state,
-                                 int finger) {
-  string label;
-  if (finger==3){
-    label = "palm";
-  }
-  else{
-    label = "f" + finger;
-  }
+/////////////////////////////////////////////////// TODO
+/*
+bool loadIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, std_srvs::Empty::Response &res){
+  // Argument for loadIMUCalData
+  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
 
-  imu_calibration_file << "imu_calibration_data" << label << ": [";
-  for (int i=0; i<21; i++){
+  imu_calibration_file.open(im)
+  return true;  
+}
+*/
+
+// Opens IMU calibration data file, and saves
+// Current IMU calibration values to file as the new calibrated "zero"
+void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state) {
+  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
+  imu_calibration_file << "# Captured sensor values from unloaded state fdasfkljdas;lkfjdklsfjd;laskfj REWORD\n";
+
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS+1; i++)  // There's an IMU on the palm too
+    log_current_imu_offsets_to_file(state, i);
+  
+  imu_calibration_file.close();
+  acquire_imus = false;
+}
+
+void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const state, int finger) {
+  string label;
+
+  /*
+  if (finger == 3)
+    label = "palm";
+  else
+    label = "f" + finger;
+  */
+
+  //imu_calibration_file << "imu_calibration_data" << label << ": [";
+  imu_calibration_file << "imu_calibration_data" << ": [";
+
+  for (int i = 0; i < 21; i++)
     imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + i] << ", ";
-  }
+
   imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + 21] << "]\n ";
+  imu_calibration_file << "\n";
 }
 
 // Checks whether all fingers have moved more than CALIBRATION_ERROR, halts
@@ -612,9 +635,10 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
 }
 
 
-// Captures the current hand state to a debug message and publishes
+// Captures current hand state and publishes to a debug message 
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
+
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     hand_msg->motor[i].raw_angle = (float) state->dynamixel_angles_[i];
     hand_msg->motor[i].velocity = (float) state->dynamixel_speeds_[i];
@@ -627,13 +651,14 @@ void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::Reflex
 }
 
 
-// Takes the load, converts it to a float, then does a rolling filter
+// Takes load, converts to a float, then does a rolling filter 
+////////////////////// What is a rolling filter?
 float load_raw_to_signed(int load, int motor_idx) {
-  if (load > 1023) {
+  if (load > 1023)
     load = (load - 1023);
-  } else {
+  else
     load = -1 * load;
-  }
+
   float signed_load = (float) (MOTOR_TO_JOINT_INVERTED[motor_idx] * load);
   float load_filter = 0.25;  // Rolling filter of noisy data
   float filter_load = load_filter * signed_load + (1 - load_filter) * load_last_value[motor_idx];
@@ -643,7 +668,7 @@ float load_raw_to_signed(int load, int motor_idx) {
 
 
 int main(int argc, char **argv) { 
-  //take in command line arguments specifying ethernet name, eth0 or eth1
+  // Take in command line arguments specifying ethernet name, eth0 or eth1
   std::vector<string> args;
   ros::removeROSArgs(argc, argv, args);
   string ethernet_name = args[1].data();
@@ -656,7 +681,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
   populate_tactile_threshold(default_contact_threshold);
-  ROS_INFO("populate_tactile_threshold");
+  ROS_INFO("Populate_tactile_threshold");
   string ns = "/reflex_takktile";
 
   // Advertise necessary topics
@@ -664,22 +689,24 @@ int main(int argc, char **argv) {
   ROS_INFO("Publishing the /hand_state topic");
   raw_pub = nh.advertise<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 1);
 
-  // Intialize the reflex_hand object
+  // Intialize reflex_hand object
   string network_interface;
-  nh_private.param<string>("network_interface", network_interface, ethernet_name);
+  nh_private.param<string>("Network_interface", network_interface, ethernet_name);
   ROS_INFO("Starting reflex_hand_driver on network interface %s",
            network_interface.c_str());
   reflex_hand::ReflexHand rh(network_interface);
+  
   if (!rh.happy()) {
     ROS_FATAL("Error during initialization. bailing now. have a nice day.");
     return 1;
   }
+
   rh.setStateCallback(reflex_hand_state_cb);
   rh.setServoControlModes(reflex_hand::ReflexHand::CM_POSITION);
   signal(SIGINT, signal_handler);
   signal(SIGTERM, signal_handler);
 
-  // Subscribe to the hand command topics
+  // Subscribe to hand command topics
   ros::Subscriber raw_positions_sub =
     nh.subscribe<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 10,
                                                 boost::bind(receive_raw_cmd_cb, &rh, _1));
@@ -687,31 +714,50 @@ int main(int argc, char **argv) {
     nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 10,
                                                    boost::bind(receive_angle_cmd_cb, &rh, _1));
 
-  // Initialize the hand command services
+  // Initialize hand command services
   ros::ServiceServer set_speed_service =
     nh.advertiseService<reflex_msgs::SetSpeed::Request, reflex_msgs::SetSpeed::Response>
     (ns + "/set_speed", boost::bind(set_motor_speed, &rh, _1, _2));
   ros::ServiceServer disable_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
       (ns + "/disable_torque", boost::bind(disable_torque, &rh, _1, _2));
-///////========= Adding new service initImuCal
+
+///////========================================================= Adding new service initImuCal
+
+
+
   ros::ServiceServer initImuCal_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
       (ns + "/initImuCal", boost::bind(initImuCal, &rh, _1, _2));
   ROS_INFO("Advertising the /initImuCal service");
+  
 
-  // Initialize the /calibrate_tactile and /calibrate_fingers services
+  // Initializes saveIMUCalData service
+  ros::ServiceServer saveIMUCalData_service = nh.advertiseService(ns + "/saveIMUCalData", 
+    saveIMUCalData);
+  ROS_INFO("Advertising the /saveIMUCalData service");
+
+
+
+
+///////========================================================= Adding new service initImuCal
+
+  // Initialize /calibrate_tactile and /calibrate_fingers services
   string buffer;
   nh.getParam("yaml_dir", buffer);
   finger_file_address = buffer + "/finger_calibrate.yaml";
   tactile_file_address = buffer + "/tactile_calibrate.yaml";
-  imu_file_address = buffer + "/imu_calibrate.yaml";
-  ros::ServiceServer calibrate_fingers_service = nh.advertiseService(ns + "/calibrate_fingers", calibrate_fingers);
+  imu_file_address = buffer + "/imu_calibrate.yaml"; ///////////////////// Lance copy format
+  
+  ros::ServiceServer calibrate_fingers_service = nh.advertiseService(ns + "/calibrate_fingers", 
+    calibrate_fingers);
   latest_calibration_time = ros::Time::now();
   ROS_INFO("Advertising the /calibrate_fingers service");
-  ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", calibrate_tactile);
+  ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", 
+    calibrate_tactile);
   ROS_INFO("Advertising the /calibrate_tactile service");
-  ros::ServiceServer set_thresh_service = nh.advertiseService(ns + "/set_tactile_threshold", set_tactile_threshold);
+  ros::ServiceServer set_thresh_service = nh.advertiseService(ns + "/set_tactile_threshold", 
+    set_tactile_threshold);
   ROS_INFO("Advertising the /set_tactile_threshold service");
 
   ROS_INFO("Entering main reflex_driver loop...");
