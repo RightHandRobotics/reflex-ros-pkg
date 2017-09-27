@@ -567,7 +567,7 @@ bool eth_dispatch_ip(const uint8_t *data, const uint16_t len)
 
   // If it's unicast, verify IP address, else ignore the packet ......... (?) what is unicast?
   if (ip->eth.dest_addr[0] == g_eth_src_mac[0])
-    if (ip->source_addr != eth_htonl(g_eth_src_ip))
+    if ( ip->source_addr != eth_htonl(g_eth_src_ip) )
       return false;
   /*
   Refactor note: Why not like below?
@@ -596,7 +596,7 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
   //printf("  udp len: %d\r\n", udp_payload_len);
 
   if (payload_len > len - sizeof(eth_udp_header_t))
-    return false; // ignore fragmented UDP packets.
+    return false; // Ignore fragmented UDP packets.
 
 
   //printf("dispatch udp @ %8u\r\n", (unsigned)SYSTIME);
@@ -612,40 +612,46 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
   if (port == 11333 && payload_len > 0)
   {
     const uint8_t cmd = payload[0];
-    //printf("  enet rx cmd = 0x%02x\r\n", cmd);
+
+    // printf("  enet rx cmd = 0x%02x\r\n", cmd); OLD COMMENT. I think this is for debugging
+
     if (cmd == 0) // CORRECT
-    {
       printf("Received printStatusCommand...\n");
 
-    }
-    else if (cmd == 1 && payload_len >= 5)
+    else if (cmd == 1 && payload_len >= 5) /////////////////////////////// Why payload_len >= 5?
     {
-      /*
-      printf("    modes: %d %d %d %d\r\n",
+      for (int i = 0; i < NUM_DMXL; i++)
+        dmxl_set_control_mode( i, (dmxl_control_mode_t)payload[1+i] );
+      
+      delay_ms(1); // Be sure control mode messages get through
+      return true;
+
+      /* OLD COMMENT FOR DEBUGGING
+        printf("    modes: %d %d %d %d\r\n",
              payload[1], payload[2], payload[3], payload[4]);
       */
-      for (int i = 0; i < NUM_DMXL; i++)
-        dmxl_set_control_mode(i, (dmxl_control_mode_t)payload[1+i]);
-      delay_ms(1); // be sure they control mode messages get through
-      return true;
+
     }
 
-    else if (cmd == 2 && payload_len >= 9)
+    else if (cmd == 2 && payload_len >= 9) /////////////////////////////// Why payload_len >= 9?
     {
       uint16_t targets[NUM_DMXL];
+      
       for (int i = 0; i < NUM_DMXL; i++)
-        targets[i] = (payload[1+2*i] << 8) | payload[2+2*i];
-      /*
-      printf("targets: %06d %06d %06d %06d\r\n",
-             targets[0], targets[1], targets[2], targets[3]);
-      */
-      /*
-      for (int i = 0; i < NUM_DMXL; i++)
-        dmxl_set_control_target(i, targets[i]);
-      */
+        targets[i] = (payload[1 + 2*i] << 8) | payload[2 + 2*i];
       dmxl_set_all_control_targets(targets);
-      //dmxl_set_control_target(0, targets[0]); // debugging... just do #0
       return true;
+
+      /* OLD COMMENT FOR DEBUGGING
+        printf("targets: %06d %06d %06d %06d\r\n",
+               targets[0], targets[1], targets[2], targets[3]);
+    
+        .......................==================== Not sure what this is for
+        for (int i = 0; i < NUM_DMXL; i++)
+          dmxl_set_control_target(i, targets[i]);
+        //dmxl_set_control_target(0, targets[0]); // debugging... just do #0
+
+      */
     }
 
     // Add two new messages here:
@@ -655,18 +661,20 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
     // 2. Set calibrataion Data Msg -- cmd = 4, payload = 22*NUM_IMUS 
 
     //else if (cmd == 3 && payload_len == 0){ // Should this be >= similar to the prior else ifs
+
     else if (cmd == 3){ // Should this be >= similar to the prior else ifs
       // make service in 
       // Hand state. datacaliration = 0xFFFFFFFFFFFFFFf //set to all 1s
         //int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
         //uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
+
       int i = 0;
       for (i = 0; i < NUM_IMUS*11; i++)
         handState.imus_calibration_data[i] = 0xFF;
 
     }
 
-
+    // Load
     else if (cmd == 4 && payload_len == 22*NUM_IMUS){}
 
     else if (cmd == 5){}
