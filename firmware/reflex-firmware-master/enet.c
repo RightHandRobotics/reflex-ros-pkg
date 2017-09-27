@@ -73,6 +73,10 @@ void enet_write_phy_reg(const uint8_t reg_idx, const uint16_t reg_val)
   }
 }
 
+void waitwaitwaitwaitwait(int duration){
+  for (volatile int i = 0; i < duration; i++) { }
+}
+
 
 /*
   Description: Initialize Ethernet
@@ -83,7 +87,7 @@ void enet_init()
 {
   printf("enet_init()\r\n");
 
-  // Set up ethernet pins on Port A
+  // Set up Ethernet pins on Port A
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN     |               // AND all the IO ports we
                   RCC_AHB1ENR_GPIOBEN     |               // will be using to talk to
                   RCC_AHB1ENR_GPIOCEN;                    // the ethernet PHY
@@ -95,7 +99,7 @@ void enet_init()
                    (11 << (PORTA_ETH_MDIO   * 4)) |
                    (11 << (PORTA_ETH_CRSDV  * 4));
 
-  // Set up ethernet pins on Port B
+  // Set up Ethernet pins on Port B
   GPIOB->MODER |= (2 << (PORTB_ETH_TXEN * 2)) |
                   (2 << (PORTB_ETH_TXD0 * 2)) |
                   (2 << (PORTB_ETH_TXD1 * 2));
@@ -107,7 +111,7 @@ void enet_init()
                     (3 << (PORTB_ETH_TXD1 * 2));          // Make the TX pins go fast
   GPIOB->MODER |= (1 << (PORTB_PHY_RESET * 2));           // reset = GPIO output pin
 
-  // Set up ethernet pins on Port C
+  // Set up Ethernet pins on Port C
   GPIOC->MODER  |= ( 2 << (PORTC_ETH_MDC  * 2)) |
                    ( 2 << (PORTC_ETH_RXD0 * 2)) |
                    ( 2 << (PORTC_ETH_RXD1 * 2));
@@ -115,62 +119,63 @@ void enet_init()
                    (11 << (PORTC_ETH_RXD0 * 4)) |
                    (11 << (PORTC_ETH_RXD1 * 4));
 
-  RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN; // Enable the sysconfig block
+  RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;         // Enable the sysconfig block
   RCC->AHB1RSTR |= RCC_AHB1RSTR_ETHMACRST;
-  for (volatile int i = 0; i < 1000; i++) { } // Wait for sysconfig to come up
+  waitwaitwaitwaitwait(1000);                   // Wait for sysconfig to come up
   
   // Hold MAC in reset while we set it to RMII mode
-  for (volatile int i = 0; i < 1000; i++) { }   // Wait for sysconfig to come up
+  waitwaitwaitwaitwait(1000);                   // Wait for sysconfig to come up
   SYSCFG->PMC |= SYSCFG_PMC_MII_RMII_SEL;       // Set the MAC in RMII mode
-  for (volatile int i = 0; i < 100000; i++) { } // Wait for sysconfig to come up
+  waitwaitwaitwaitwait(100000);                 // Wait for sysconfig to come up
   RCC->AHB1ENR |= RCC_AHB1ENR_ETHMACRXEN  |
                   RCC_AHB1ENR_ETHMACTXEN  |
                   RCC_AHB1ENR_ETHMACEN    ;     // Turn on your ethernet PLS
-  for (volatile int i = 0; i < 100000; i++) { } // Wait
+  waitwaitwaitwaitwait(100000);                 // Wait
   RCC->AHB1RSTR &= ~RCC_AHB1RSTR_ETHMACRST;     // Release MAC reset
-  for (volatile int i = 0; i < 100000; i++) { } 
+  waitwaitwaitwaitwait(100000);
   RCC->AHB1RSTR |= RCC_AHB1RSTR_ETHMACRST;
-  for (volatile int i = 0; i < 100000; i++) { } 
+  waitwaitwaitwaitwait(100000);
   RCC->AHB1RSTR &= ~RCC_AHB1RSTR_ETHMACRST;     // Release MAC reset
-  for (volatile int i = 0; i < 100000; i++) { } // Wait for sysconfig ... (?)
+  waitwaitwaitwaitwait(100000);                 // Wait for sysconfig ... (?)
 
   ETH->DMABMR |= ETH_DMABMR_SR;
-  for (volatile uint32_t i = 0; i < 100000; i++) { }
+
+  waitwaitwaitwaitwait(100000);
   while (ETH->DMABMR & ETH_DMABMR_SR) { }       // Wait for reset
-  for (volatile uint32_t i = 0; i < 100000; i++) { }
+  waitwaitwaitwaitwait(100000);
   ETH->DMAOMR |= ETH_DMAOMR_FTF;                // Flush DMA
   while (ETH->DMAOMR & ETH_DMAOMR_FTF) { }      // Wait for it to flush
 
   // Configure Ethernet peripheral
   ETH->MACCR |= 0x02000000 |      // CSTF = strip FCS. why isn't there a symbol ?
-                ETH_MACCR_FES  |  // enable 100 mbit mode
-                ETH_MACCR_DM   |  // full duplex
-                ETH_MACCR_IPCO |  // ipv4 checksum auto-generation for RX
-                ETH_MACCR_APCS;   // automatically remove pad+CRC from frames
+                ETH_MACCR_FES  |  // Enable 100 mbit mode
+                ETH_MACCR_DM   |  // Full duplex
+                ETH_MACCR_IPCO |  // Ipv4 checksum auto-generation for RX
+                ETH_MACCR_APCS;   // Automatically remove pad+CRC from frames
 
-  ETH->MACFFR |= ETH_MACFFR_RA;   // for now, don't try to filter in hardware
+  ETH->MACFFR |= ETH_MACFFR_RA;   // For now, don't try to filter in hardware
 
   // Generate decent reset pulse now
   GPIOB->BSRRL = 1 << PORTB_PHY_RESET;
-  for (volatile uint32_t i = 0; i < 100000; i++) { }
+  waitwaitwaitwaitwait(100000);
   GPIOB->BSRRH = 1 << PORTB_PHY_RESET; // Assert reset (pull it low)
-  for (volatile uint32_t i = 0; i < 100000; i++) { } // Let some time pass
+  waitwaitwaitwaitwait(100000);        // Let some time pass
   GPIOB->BSRRL = 1 << PORTB_PHY_RESET; // De-assert reset (pull it high)
 
   // TODO: only need to wait until registers read back something other
-  // than 0xffff . then we don't have to wait as long.
-  for (volatile uint32_t i = 0; i < 1000000; i++) { } // Let it initialize
+  // than 0xffff . hen we don't have to wait as long.
+  waitwaitwaitwaitwait(1000000);                      // Let it initialize
   printf("waiting for PHY to wake up...\r\n");
   while (enet_read_phy_reg(0) == 0xffff) { }
-  for (volatile uint32_t i = 0; i < 1000000; i++) { } // Let it initialize
+  waitwaitwaitwaitwait(1000000);                      // Let it initialize
   printf("done with PHY reset.\r\n");
   printf("setting software strap registers...\r\n");
 
-  enet_write_phy_reg(0x09, 0x7821); // enable auto MDIX,
-                                    // set INT/PWDN to be interrupt output
-                                    // enable auto-negotiation
-  enet_write_phy_reg(0x09, 0xf821); // exit software-strap mode
-  enet_write_phy_reg(0x04, 0x0101); // only advertise 100-FD mode
+  enet_write_phy_reg(0x09, 0x7821); // Enable auto MDIX,
+                                    // Set INT/PWDN to be interrupt output
+                                    // Enable auto-negotiation
+  enet_write_phy_reg(0x09, 0xf821); // Exit software-strap mode
+  enet_write_phy_reg(0x04, 0x0101); // Only advertise 100-FD mode
 
   // Cycle through and read a bunch of PHY registers to make sure it's alive
   for (int i = 0; i < 32; i++)
@@ -196,6 +201,7 @@ void enet_init()
     g_eth_dma_rx_desc[i].des1 = 0x00004000 |  // Set the RCH bit = chained addr2
                             ETH_NBUF;         // buffer size in addr1
     g_eth_dma_rx_desc[i].des2 = (uint32_t)&g_eth_dma_rx_buf[i][0];
+    
     if (i < ETH_DMA_NRXD-1)
       g_eth_dma_rx_desc[i].des3 = (uint32_t)&g_eth_dma_rx_desc[i+1];
     else
@@ -215,10 +221,12 @@ void enet_init()
   ETH->DMATDLAR = (uint32_t)&g_eth_dma_tx_desc[0]; // point TX DMA to first desc
   ETH->DMARDLAR = (uint32_t)&g_eth_dma_rx_desc[0]; // point RX DMA to first desc
   ETH->DMAOMR = ETH_DMAOMR_TSF; // enable store-and-forward mode
+  
   /*
   ETH->DMABMR = ETH_DMABMR_AAB | ETH_DMABMR_USP |
                 ETH_DMABMR_RDP_1Beat | ETH_DMABMR_RTPR_1_1 |
                 ETH_DMABMR_PBL_1Beat | ETH_DMABMR_EDE;
+  
   */
   ETH->DMAIER = ETH_DMAIER_NISE | ETH_DMAIER_RIE;
   ETH->MACCR |= ETH_MACCR_TE | // enable transmitter
@@ -238,7 +246,7 @@ void eth_vector()
 {
   volatile uint32_t dmasr = ETH->DMASR;
 
-  ETH->DMASR = dmasr; // Clear pending bits in the status register
+  ETH->DMASR = dmasr; // Clear pending bits in status register
   //printf("eth_vector()\r\n");
 
   if (dmasr & ETH_DMASR_RS)
@@ -248,6 +256,7 @@ void eth_vector()
     {
       // TODO: check all of the error status bits in des0...
       const uint16_t rxn = (g_eth_dma_rx_next_desc->des0 & 0x3fff0000) >> 16;
+
       // See if this packet will run off the end of the buffer. if so, wrap. .... (?) buffer wrapping?
       if (g_eth_rxpool_wpos + rxn >= ETH_RAM_RXPOOL_LEN)
         g_eth_rxpool_wpos = 0;
@@ -260,7 +269,7 @@ void eth_vector()
              (const uint8_t *)g_eth_dma_rx_next_desc->des2,
              rxn);
       
-      //printf("ethernet rx %d into rxpool ptr %d\r\n", rxn, wp);
+      //printf("Ethernet RX %d into rxpool ptr %d\r\n", rxn, wp);
       
       g_eth_rxpool_ptrs_wpos++;
 
@@ -276,6 +285,7 @@ void eth_vector()
       */
 
       g_eth_dma_rx_next_desc->des0 |= 0x80000000; // Give it back to DMA
+      
       // Advance RX pointer for next time
       g_eth_dma_rx_next_desc = (eth_dma_desc_t *)g_eth_dma_rx_next_desc->des3;
     }
@@ -361,10 +371,10 @@ void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len)
   Description: idk ........................(?) Figure out this bit manipulation witchcraft
   Takes in: uint16_t
   TODO: Rename x
+  TODO: find ways for this to be overridden on CPUs with built-ins for this
 */
 uint16_t eth_htons(const uint16_t x) /////////////// What is htons?
 {
-  // TODO: find ways for this to be overridden on CPUs with built-ins for this
   return ((x & 0xff) << 8) | ((x >> 8) & 0xff); 
 }
 
@@ -375,10 +385,8 @@ uint16_t eth_htons(const uint16_t x) /////////////// What is htons?
 */
 uint32_t eth_htonl(const uint32_t x) /////////////// What is htonl?
 {
-  return ((x & 0x000000ff) << 24)  |
-         ((x & 0x0000ff00) << 8)   |
-         ((x & 0x00ff0000) >> 8)   |
-         ((x & 0xff000000) >> 24);
+  return ((x & 0x000000ff) << 24) |  ((x & 0x0000ff00) << 8) |
+         ((x & 0x00ff0000) >> 8)  |  ((x & 0xff000000) >> 24);
 }
 
 // STRUCTS
@@ -430,6 +438,7 @@ void enet_send_udp_mcast(const uint32_t mcast_ip, const uint16_t mcast_port,
                           (uint8_t)((mcast_ip & 0xff0000) >> 16),
                           (uint8_t)((mcast_ip & 0x00ff00) >>  8),
                           (uint8_t) (mcast_ip & 0x0000ff) };
+
   enet_send_udp_ucast(dest_mac, mcast_ip, mcast_port,
                       g_eth_src_ip, mcast_port,
                       payload, payload_len);
@@ -442,11 +451,13 @@ void enet_send_udp_ucast(const uint8_t *dest_mac,
                          const uint8_t *payload, const uint16_t payload_len)
 {
   eth_udp_header_t *h = (eth_udp_header_t *)&g_eth_udpbuf[0];
+  
   for (int i = 0; i < 6; i++)
   {
     h->ip.eth.dest_addr[i] = dest_mac[i];
     h->ip.eth.source_addr[i] = g_eth_src_mac[i];
   }
+
   h->ip.eth.ethertype = eth_htons(ETH_ETHERTYPE_IP);
   h->ip.header_len = ETH_IP_HEADER_LEN;
   h->ip.version = ETH_IP_VERSION; // ipv4
@@ -455,15 +466,15 @@ void enet_send_udp_ucast(const uint8_t *dest_mac,
   h->ip.len = eth_htons(20 + 8 + payload_len);
   h->ip.id = 0;
   h->ip.flag_frag = eth_htons(ETH_IP_DONT_FRAGMENT);
-  h->ip.ttl = 1; // not sure here...
+  h->ip.ttl = 1; // not sure here... ?????????????????/*/**/*/
   h->ip.proto = ETH_IP_PROTO_UDP;
   h->ip.checksum = 0; // will be filled by the ethernet TX machinery
   h->ip.dest_addr = eth_htonl(dest_ip);
-  h->ip.source_addr = eth_htonl(source_ip); //); // todo: something else
+  h->ip.source_addr = eth_htonl(source_ip); //); // todo: something else ???????????????
   h->dest_port = eth_htons(dest_port);
-  h->source_port = eth_htons(source_port); //1234;
+  h->source_port = eth_htons(source_port); // 1234;
   h->len = eth_htons(8 + payload_len);
-  h->checksum = 0; // will be filled by the ethernet TX machinery
+  h->checksum = 0; // Will be filled by the ethernet TX machinery
   memcpy(g_eth_udpbuf + sizeof(eth_udp_header_t), payload, payload_len);
   eth_send_raw_packet(g_eth_udpbuf, sizeof(eth_udp_header_t) + payload_len);
   /*
@@ -512,6 +523,7 @@ uint_fast8_t enetRX()
       if (e->dest_addr[i] != 0xff)
         broadcast_match = 0;
     }
+    
     if (e->dest_addr[0] != 0x01 || e->dest_addr[1] != 0x00 || e->dest_addr[2] != 0x5e)
       multicast_match = 0;
     //printf("  ucast_match = %d, bcast_match = %d, mcast_match = %d\r\n",
