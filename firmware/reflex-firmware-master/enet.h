@@ -24,12 +24,12 @@
 #define PORTC_ETH_RXD0   4
 #define PORTC_ETH_RXD1   5
 
-// address is hard-wired on board using internal chip pullups.
-#define ENET_PHY_ADDR 0x01
+// Address is hard-wired on-board using internal chip pullups
+#define ENET_PHY_ADDR    0x01
 
-#define ETH_NBUF 2048
-#define ETH_DMA_NRXD 16
-#define ETH_DMA_NTXD  4
+#define ETH_NBUF         2048
+#define ETH_DMA_NRXD     16
+#define ETH_DMA_NTXD     4
 
 typedef struct
 {
@@ -45,7 +45,7 @@ typedef struct
 #define ETH_RAM_RXPOOL_NPTR   128
 
 ///////////////////////////////////////////////////////////////////////////
-// local functions
+// Local functions
 void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len); // static
 bool eth_dispatch_eth(const uint8_t *data, const uint16_t len); // static
 bool eth_dispatch_ip(const uint8_t *data, const uint16_t len); // static

@@ -367,6 +367,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
             imu_cal_values_read = 1;
           }
+          
           if (handState.imus_calibration_status[imuNumber]!=0xFF){
             imu_poll_type[imuNumber] = IMU_DATA;
             *state = IMU_STATE_SET_REGISTER;
