@@ -15,7 +15,7 @@
 #############################################################################
 
 __author__ = 'Eric Schneider'
-__copyright__ = 'Copyright (c) 2015 RightHand Robotics'
+__copyright__ = 'Copyright (c) 2017 RightHand Robotics'
 __license__ = 'Apache License 2.0'
 __maintainer__ = 'RightHand Robotics'
 __email__ = 'reflex-support@righthandrobotics.com'
