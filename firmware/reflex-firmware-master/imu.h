@@ -12,11 +12,12 @@
 #include "error.h"
 #include "ports.h"
 
-#define I2C_MULTIPLEXER_ADDRESS     (0x70)
-#define BNO055_ADDRESS_A            (0x28)
-#define BNO055_ADDRESS_B            (0x29)
-#define BNO055_ID                   (0xA0)
-#define NUM_BNO055_OFFSET_REGISTERS (22)
+#define I2C_MULTIPLEXER_ADDRESS       (0x70)
+#define BNO055_ADDRESS_A              (0x28)
+#define BNO055_ADDRESS_B              (0x29)
+#define BNO055_ID                     (0xA0)
+#define NUM_BNO055_OFFSET_REGISTERS   (22)
+
 
 typedef enum 
 {
@@ -25,6 +26,7 @@ typedef enum
   IMU_STATE_WAIT = ASYNC_POLL_DONE
 } imu_async_poll_state_t;
 
+
 typedef enum 
 {
 	IMU_DATA = 0,
@@ -32,7 +34,9 @@ typedef enum
 	IMU_CAL_OFFSETS
 } imu_poll_type_t;
 
+
 extern imu_async_poll_state_t imu_poll_state[NUM_IMUS];
+
 
 void imuInit(void);
 uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data);
@@ -42,9 +46,10 @@ uint8_t checkIMUStatus(uint8_t imuNumber);
 uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress);
 uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values);
 
+
 typedef enum
 {
-	/* Page id register definition */
+	/* Page ID register definition */
 	BNO055_PAGE_ID_ADDR                                     = 0X07,
 
 	/* PAGE0 REGISTER DEFINITION START*/
@@ -192,12 +197,14 @@ typedef enum
 	MAG_RADIUS_MSB_ADDR                                     = 0X6A
 } bno055_reg_t;
 
+
 typedef enum
 {
 	POWER_MODE_NORMAL                                       = 0X00,
 	POWER_MODE_LOWPOWER                                     = 0X01,
 	POWER_MODE_SUSPEND                                      = 0X02
 } bno055_powermode_t;
+
 
 typedef enum
 {
@@ -217,6 +224,7 @@ typedef enum
 	OPERATION_MODE_NDOF                                     = 0X0C
 } bno055_opmode_t;
 
+
 typedef enum
 {
 	REMAP_CONFIG_P0                                         = 0x21,
@@ -229,10 +237,11 @@ typedef enum
 	REMAP_CONFIG_P7                                         = 0x24
 } bno055_axis_remap_config_t;
 
+
 typedef enum
 {
 	REMAP_SIGN_P0                                           = 0x04,
-	REMAP_SIGN_P1                                           = 0x00, // default
+	REMAP_SIGN_P1                                           = 0x00, // Default
 	REMAP_SIGN_P2                                           = 0x06,
 	REMAP_SIGN_P3                                           = 0x02,
 	REMAP_SIGN_P4                                           = 0x03,
@@ -240,6 +249,7 @@ typedef enum
 	REMAP_SIGN_P6                                           = 0x07,
 	REMAP_SIGN_P7                                           = 0x05
 } bno055_axis_remap_sign_t;
+
 
 typedef struct
 {
@@ -249,6 +259,7 @@ typedef struct
 	uint16_t sw_rev;
 	uint8_t  bl_rev;
 } bno055_rev_info_t;
+
 
 typedef enum
 {
@@ -262,4 +273,3 @@ typedef enum
 
 
 #endif
-

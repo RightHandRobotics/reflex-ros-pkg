@@ -1,5 +1,6 @@
 #include "config.h"
 
+
 void init()
 {  
   systime_init();                  // Sets timing functions, important to be before anything else that uses time
@@ -30,6 +31,7 @@ void init()
   printf("Hand initialization ended.\n");
 }
 
+
 void printInfo(uint type)
 {
   switch(type)
@@ -41,8 +43,10 @@ void printInfo(uint type)
       for (int j = 0; j < NUM_FINGERS; j++)
       {
         printf("Pressures %d: ", j);
+        
         for (int i = 0; i < SENSORS_PER_FINGER; i++)
           printf("%3d ", handState.takktile_pressures[j * SENSORS_PER_FINGER + i]);
+        
         printf("\n");
       }
 
@@ -57,6 +61,7 @@ void printInfo(uint type)
 
         printf("\n");
       }
+
       break;
 
     case HAND_STATUS_INFO:
