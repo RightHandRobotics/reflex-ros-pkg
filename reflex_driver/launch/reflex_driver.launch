@@ -8,6 +8,7 @@
 	<rosparam file="$(find reflex_driver)/yaml/motor_constants.yaml" command="load"/>
 	<rosparam file="$(find reflex_driver)/yaml/finger_calibrate.yaml" command="load"/>
 	<rosparam file="$(find reflex_driver)/yaml/tactile_calibrate.yaml" command="load"/>
+	<rosparam file="$(find reflex_driver)/yaml/imu_calibrate.yaml" command="load"/>
 
 	<arg name="eth" />
 	<node name="driver_node_0" pkg="reflex_driver" type="reflex_driver_node" output="screen" required="true" args="$(arg eth)"/>
