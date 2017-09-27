@@ -17,84 +17,93 @@
 //
 /////////////////////////////////////////////////////////////////////////////
 
+
 #ifndef REFLEX_HAND_H
 #define REFLEX_HAND_H
+
 
 #include <netinet/in.h>
 #include <vector>
 #include <boost/function.hpp>
 #include <string>
 
+
 namespace reflex_hand
 {
 
   class ReflexHandState
   {
-  public:
-    static const int NUM_FINGERS = 3;
-    static const int NUM_TACTILE = NUM_FINGERS * 14 + 11;
-    static const int NUM_IMUS = 4;
-    uint32_t systime_us_;
-    uint16_t tactile_pressures_[NUM_TACTILE];
-    uint16_t tactile_temperatures_[NUM_TACTILE];
-    uint16_t encoders_[NUM_FINGERS];
-    uint8_t  dynamixel_error_states_[4];
-    uint16_t dynamixel_angles_[4];
-    uint16_t dynamixel_speeds_[4];
-    uint16_t dynamixel_loads_[4];
-    uint8_t  dynamixel_voltages_[4];
-    uint8_t  dynamixel_temperatures_[4];
-    int16_t  imus[NUM_IMUS*4];
+      public:
+        static const int NUM_FINGERS = 3;
+        static const int NUM_TACTILE = NUM_FINGERS * 14 + 11;
+        static const int NUM_IMUS = 4;
 
-    // TODO: PUBLISH THESE
-    int8_t  imu_calibration_status[NUM_IMUS]; // SIZE OF 4
-    uint16_t imu_calibration_data[NUM_IMUS*11]; // SIZE OF 44
-    ReflexHandState();
+        uint32_t systime_us_;
+        uint16_t tactile_pressures_[NUM_TACTILE];
+        uint16_t tactile_temperatures_[NUM_TACTILE];
+        uint16_t encoders_[NUM_FINGERS];
+        uint8_t  dynamixel_error_states_[4];
+        uint16_t dynamixel_angles_[4];
+        uint16_t dynamixel_speeds_[4];
+        uint16_t dynamixel_loads_[4];
+        uint8_t  dynamixel_voltages_[4];
+        uint8_t  dynamixel_temperatures_[4];
+
+        int16_t  imus[NUM_IMUS*4];
+
+        // TODO: PUBLISH THESE
+        int8_t  imu_calibration_status[NUM_IMUS];   // SIZE OF 4
+        uint16_t imu_calibration_data[NUM_IMUS * 11]; // SIZE OF 44
+        ReflexHandState();
   };
 
   class ReflexHand
   {
-  public:
-    const static int NUM_SERVOS = 4;
-    const static int NUM_SENSORS_PER_FINGER = 14;
-    const static int PORT_BASE = 11333;
-    static const uint16_t DYN_MIN_RAW = 0;
-    static const uint16_t DYN_MAX_RAW = 4095;
-    static const uint16_t DYN_MIN_RAW_WRAPPED = 16383;  // For checking negative wraps
-    static const float DYN_POS_SCALE = (4 * 2 * 3.141596) / 4095;  // Assuming resolution divider of 4
-    static const float DYN_VEL_SCALE = 0.01194;  // rad/s for every velocity command -- 
-        // http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
-    
-    static const float ENC_SCALE = (2 * 3.141596) / 16383;
+      public:
+        const static int NUM_SERVOS = 4;
+        const static int NUM_SENSORS_PER_FINGER = 14;
+        const static int PORT_BASE = 11333;
+        
+        static const uint16_t DYN_MIN_RAW = 0;
+        static const uint16_t DYN_MAX_RAW = 4095;
+        static const uint16_t DYN_MIN_RAW_WRAPPED = 16383;  // For checking negative wraps
+        
+        static const float DYN_POS_SCALE = (4 * 2 * 3.141596) / 4095;  // Assuming resolution divider of 4
+        static const float DYN_VEL_SCALE = 0.01194;  // rad/s for every velocity command -- 
+            // http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_20
+        
+        static const float ENC_SCALE = (2 * 3.141596) / 16383;
 
-    enum ControlMode{   CM_IDLE = 0, 
-                        CM_VELOCITY = 1, 
-                        CM_POSITION = 2};
+        enum ControlMode{   CM_IDLE =     0, 
+                            CM_VELOCITY = 1, 
+                            CM_POSITION = 2};
 
-    typedef boost::function<void(const ReflexHandState * const)> StateCallback;
-    void setStateCallback(StateCallback callback);
+        typedef boost::function<void(const ReflexHandState * const)> StateCallback;
+        void setStateCallback(StateCallback callback);
 
-    ReflexHand(const std::string &interface);
-    ~ReflexHand();
-    bool listen(const double max_seconds);
-    void setServoTargets(const uint16_t *targets);
-    void setServoControlModes(const ControlMode *modes);
-    void setServoControlModes(const ControlMode mode);
-    void initImuCal();
-    void loadIMUCalData(uint16_t data[44]);       
-    bool happy() { return happy_; }
+        ReflexHand(const std::string &interface);
+        ~ReflexHand();
 
-  private:
-    enum CommandPacket { CP_SET_SERVO_MODE = 1,
-                         CP_SET_SERVO_TARGET = 2 };
+        bool listen(const double max_seconds);
+        void setServoTargets(const uint16_t *targets);
+        void setServoControlModes(const ControlMode *modes);
+        void setServoControlModes(const ControlMode mode);
+        void initIMUCal();
+        void loadIMUCalData(uint16_t data[44]); ///////////////////////////////////// uint16_t!!!!!!!!!!!!!!!!      
+        void refreshIMUCalData();
+        bool happy() { return happy_; }
 
-    int tx_sock_, rx_sock_;
-    sockaddr_in mcast_addr_;
-    StateCallback state_cb_;
-    ReflexHandState rx_state_;
-    bool happy_;
-    void tx(const uint8_t *msg, const uint16_t msg_len, const uint16_t port);
-    void rx(const uint8_t *msg, const uint16_t msg_len);
+      private:
+        enum CommandPacket { CP_SET_SERVO_MODE = 1,
+                             CP_SET_SERVO_TARGET = 2 };
+
+        int tx_sock_, rx_sock_;
+        sockaddr_in mcast_addr_;
+        StateCallback state_cb_;
+        ReflexHandState rx_state_;
+        bool happy_;
+        void tx(const uint8_t *msg, const uint16_t msg_len, const uint16_t port);
+        void rx(const uint8_t *msg, const uint16_t msg_len);
   };
 
 }
