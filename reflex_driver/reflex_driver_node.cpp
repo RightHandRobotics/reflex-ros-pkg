@@ -597,31 +597,25 @@ bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &re
 bool loadIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res){
   ROS_INFO("Loading IMU calibration data...");
-  
-  // Open yaml file
-  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
-  ROS_INFO("Opened imu_calibrate.yaml...");
 
   // Make local array to copy vector passed in
-  uint16_t buffer[88]; // Should this be 88?
+  uint8_t buffer[88]; 
 
   // https://stackoverflow.com/questions/6499183/converting-a-uint32-value-into-a-uint8-array4'
   ///////////////////////// make enum for imus
   for (int i = 0; i < 22; i++){
-    buffer[i] = imu_calibration_data_f1[i] & 0x0000ffff;
-    buffer[22 + i] = imu_calibration_data_f2[i] & 0x0000ffff;
-    buffer[44 + i] = imu_calibration_data_f3[i] & 0x0000ffff;
-    buffer[66 + i] = imu_calibration_data_palm[i] & 0x0000ffff;
+    buffer[i] = imu_calibration_data_f1[i] & 0xff;
+    buffer[22 + i] = imu_calibration_data_f2[i] & 0xff;
+    buffer[44 + i] = imu_calibration_data_f3[i] & 0xff;
+    buffer[66 + i] = imu_calibration_data_palm[i] & 0xff;
     //ROS_INFO_STREAM(buffer[i]);
   }
   
-  for (int i = 0; i < 88; i++)
-    ROS_INFO_STREAM(buffer[i]);
-  
-  acquire_imus = true;
+  /*for (int i = 0; i < 88; i++)
+    ROS_INFO_STREAM(buffer[i]);*/
 
-  // Close yaml file
-  imu_calibration_file.close();
+  rh->loadIMUCalData(buffer);
+
   return true;
 }
 
