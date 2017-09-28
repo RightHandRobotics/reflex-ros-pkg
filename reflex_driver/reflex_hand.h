@@ -49,8 +49,6 @@ namespace reflex_hand
         uint8_t  dynamixel_temperatures_[4];
 
         int16_t  imus[NUM_IMUS*4];
-
-        // TODO: PUBLISH THESE
         int8_t  imu_calibration_status[NUM_IMUS];     // SIZE OF 4
         uint16_t imu_calibration_data[NUM_IMUS * 11]; // SIZE OF 44
         ReflexHandState();
@@ -88,11 +86,9 @@ namespace reflex_hand
         void setServoControlModes(const ControlMode *modes);
         void setServoControlModes(const ControlMode mode);
 
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         void initIMUCal();
-        void loadIMUCalData(uint8_t data[88]); // MUST BE uint16
+        void loadIMUCalData(uint8_t data[88]); 
         void refreshIMUCalData(); 
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         bool happy() { return happy_; }
 

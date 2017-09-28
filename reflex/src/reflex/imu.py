@@ -64,6 +64,7 @@ def axis_angle_to_matrix(angle, axis):
         [t*x*z - y*s, t*y*z + x*s, t*z*z + c]])
 
 ######## NOT IMPLEMENTED YET #########
+'''
 # # matrix_to_angle_axis: generates the axis and angle of rotation from a rotation matrix
 # # float[3][3] m: the rotation matrix
 # # return float[4]: the angle of rotation followed by the x, y, and z components of the axis of rotation
@@ -72,6 +73,7 @@ def axis_angle_to_matrix(angle, axis):
 #     x = (m21 - m12)/math.sqrt((m21 - m12)2+(m02 - m20)2+(m10 - m01)2)
 #     y = (m02 - m20)/math.sqrt((m21 - m12)2+(m02 - m20)2+(m10 - m01)2)
 #     z = (m10 - m01)/math.sqrt((m21 - m12)2+(m02 - m20)2+(m10 - m01)2)
+'''
 
 # matrix_to_euler_angle: converts a rotation matrix to its equivalent set of euler angles
 # float[3][3] m: the rotation matrix to convert
@@ -105,40 +107,43 @@ def get_distal_rotation(palmQuat, preshape, proximal, fingerQuat):
     # return r_distal
 
 ######### NOT IMPLEMENTED YET #######
-# # get_fingertipImu_orientation: determines the homogeneous transform of the fingertipIMU from the palmIMU
-# # float[4] palmQuat: the quaternion values from the palm IMU
-# # float preshape: the number of radians the preshape has rotated
-# # float proximal: the number of radians the proximal link rotated, as determined by the encoder
-# # float fingerQuat: the quaternion values from the finger IMU
-# def get_fingertipImu_orientation(palmQuat, preshape, proximal, fingerQuat):
-#     r_palmImu = quaternion_to_matrix(palmQuat)
-#     r_preshape = axis_angle_to_matrix(preshape, [0, 0, -1])
-#     r_proximal = axis_angle_to_matrix(proximal, [0, -1, 0])
-#     r_fingertipImu = quaternion_to_matrix(fingerQuat)
+'''
+get_fingertipImu_orientation: determines the homogeneous transform of the fingertipIMU from the palmIMU
+ float[4] palmQuat: the quaternion values from the palm IMU
+ float preshape: the number of radians the preshape has rotated
+ float proximal: the number of radians the proximal link rotated, as determined by the encoder
+ float fingerQuat: the quaternion values from the finger IMU
+ 
+ def get_fingertipImu_orientation(palmQuat, preshape, proximal, fingerQuat):
+     r_palmImu = quaternion_to_matrix(palmQuat)
+     r_preshape = axis_angle_to_matrix(preshape, [0, 0, -1])
+     r_proximal = axis_angle_to_matrix(proximal, [0, -1, 0])
+     r_fingertipImu = quaternion_to_matrix(fingerQuat)
 
-#     r_distal = np.dot(np.dot(np.dot(np.linalg.inv(r_proximal), 
-#                                     np.linalg.inv(r_preshape)), 
-#                                     np.linalg.inv(r_palmImu)), 
-#                                     r_fingertipImu)
-
-
-#     t_palmImu = np.zeros((3,1))
-#     t_preshape = np.zeros((3,1))
-#     t_proximal = np.zeros((3,1))
-#     t_distal = np.zeros((3,1))
+     r_distal = np.dot(np.dot(np.dot(np.linalg.inv(r_proximal), 
+                                     np.linalg.inv(r_preshape)), 
+                                     np.linalg.inv(r_palmImu)), 
+                                     r_fingertipImu)
 
 
-#     g_palmImu = generate_ht(r_palmImu, t_palmImu)
-#     g_preshape = generate_ht(r_preshape, t_preshape)
-#     g_proximal = generate_ht(r_proximal, t_proximal)
-#     g_distal = generate_ht(r_distal, np.dot(t_distal/2,np.identity(3)+r_distal))
+     t_palmImu = np.zeros((3,1))
+     t_preshape = np.zeros((3,1))
+     t_proximal = np.zeros((3,1))
+     t_distal = np.zeros((3,1))
 
-#     g_fingertipImu = np.dot(np.dot(np.dot(g_palmImu, 
-#                                         g_preshape), 
-#                                         g_proximal), 
-#                                         g_distal)
 
-#     return g_fingertipImu
+     g_palmImu = generate_ht(r_palmImu, t_palmImu)
+     g_preshape = generate_ht(r_preshape, t_preshape)
+     g_proximal = generate_ht(r_proximal, t_proximal)
+     g_distal = generate_ht(r_distal, np.dot(t_distal/2,np.identity(3)+r_distal))
+
+     g_fingertipImu = np.dot(np.dot(np.dot(g_palmImu, 
+                                         g_preshape), 
+                                         g_proximal), 
+                                         g_distal)
+
+     return g_fingertipImu
+'''
 
 def handle_distal_rotation_srv(data):
     distal_rot = get_distal_rotation(data.palm_imu_quat,

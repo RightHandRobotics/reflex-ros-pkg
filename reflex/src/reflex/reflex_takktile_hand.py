@@ -45,6 +45,7 @@ class ReflexTakktileHand(ReflexHand):
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs.srv.SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
+        
         # ............................................TODO(LANCE): Figure this out! Use this for prompts similar to the two lines above
         self.calibrate_imus = rospy.ServiceProxy(self.namespace + '/imu_calibrate', Empty)
 
@@ -137,7 +138,8 @@ class ReflexTakktileHand(ReflexHand):
         self.calibrate_imus_service()
 
         # Gyroscope (Stay still for 10 seconds)
-        # TODO(LANCE): rospy.
+        
+        # TODO(LANCE): PROMPT!!!
         self.calibrate_imu_gyro_service()
         # Accelerometer (Move in 45 degree increments over 1 axis for 30 seconds)
         self.calibrate_imu_acc_service()

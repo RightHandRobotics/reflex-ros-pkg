@@ -329,7 +329,6 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
     *state = STATE_WAIT;
   
   /*
-
   States:
     #1 IMU_STATE_SET_REGISTER -> 
     #2 IMU_STATE_READ_VALUES  -> 
