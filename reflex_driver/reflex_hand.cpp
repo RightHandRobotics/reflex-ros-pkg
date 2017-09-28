@@ -188,36 +188,22 @@ void ReflexHand::initIMUCal(){
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
+////////////////////////////////////////////////////////// TX ONLY TAKES UIINT16
+void ReflexHand::loadIMUCalData(uint8_t data[88]){
+  uint8_t msg[89];
+  msg[0] = 4;
 
-void ReflexHand::saveIMUCalData(uint16_t data[44]){ // TODO: Change to 22*NUM_IMUS, use #define
-  uint8_t msg[89];  // TODO: Change to 22*NUM_IMUS + 1, use #define
-  msg[0] = 4;               
-
-  // Converts uint16_t to uint8_t
-  for(int i = 0; i < 44; i++){
-    msg[1 + i*2] = (data[i] >> 8) & 0xff;
-    msg[2 + i*2] = data[i] & 0xff;
+  for(int i = 0; i < 88; i++){
+    msg[i+1] = data[i] & 0xff;
   }
 
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
-////////////////////////////////////////////////////////// TX ONLY TAKES UIINT16
-void ReflexHand::loadIMUCalData(uint16_t data[88 * 2]){
-  uint8_t msg[177];
-  msg[0] = 5;
-
-  for(int i = 0; i < 88 * 2; i++)
-    msg[i + 1] = data[i] & 0x0000ffff;
-
-  tx(msg, sizeof(msg), PORT_BASE);
-
-}
-
 
 void ReflexHand::refreshIMUCalData(){
   uint8_t msg[1];
-  msg[0] = 6;
+  msg[0] = 5;
 
 
   tx(msg, sizeof(msg), PORT_BASE);
