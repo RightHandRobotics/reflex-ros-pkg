@@ -30,7 +30,6 @@
 
 namespace reflex_hand
 {
-
   class ReflexHandState
   {
       public:
@@ -52,7 +51,7 @@ namespace reflex_hand
         int16_t  imus[NUM_IMUS*4];
 
         // TODO: PUBLISH THESE
-        int8_t  imu_calibration_status[NUM_IMUS];   // SIZE OF 4
+        int8_t  imu_calibration_status[NUM_IMUS];     // SIZE OF 4
         uint16_t imu_calibration_data[NUM_IMUS * 11]; // SIZE OF 44
         ReflexHandState();
   };
@@ -88,9 +87,14 @@ namespace reflex_hand
         void setServoTargets(const uint16_t *targets);
         void setServoControlModes(const ControlMode *modes);
         void setServoControlModes(const ControlMode mode);
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         void initIMUCal();
-        void loadIMUCalData(uint16_t data[44]); ///////////////////////////////////// uint16_t!!!!!!!!!!!!!!!!      
+        void saveIMUCalData(uint16_t data[44]); ///////////////////////////////////// uint16_t!!!!!!!!!!!!!!!!      
+        void loadIMUCalData(uint32_t data[44]);
         void refreshIMUCalData();
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         bool happy() { return happy_; }
 
       private:

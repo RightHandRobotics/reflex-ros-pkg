@@ -83,12 +83,12 @@ ReflexHand::ReflexHand(const std::string &interface)
                     host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST))
       continue;
 
-    ROS_INFO("found address %s on interface %s",
+    ROS_INFO("Found address %s on interface %s",
              host, ifa->ifa_name);
 
     if (std::string(ifa->ifa_name) == interface)
     {
-      ROS_INFO("using %s as the tx interface for IPv4 UDP multicast", host);
+      ROS_INFO("using %s as the TX interface for IPv4 UDP multicast", host);
       tx_iface_addr = host;
       found_interface = true;
       break;
@@ -143,9 +143,11 @@ ReflexHand::ReflexHand(const std::string &interface)
   ROS_INFO("constructor complete");
 }
 
+
 ReflexHand::~ReflexHand() 
 {
 }
+
 
 void ReflexHand::tx(const uint8_t *msg, const uint16_t msg_len, 
                     const uint16_t port)
@@ -156,6 +158,7 @@ void ReflexHand::tx(const uint8_t *msg, const uint16_t msg_len,
                      (sockaddr *)&mcast_addr_, sizeof(mcast_addr_));
   ROS_ERROR_COND(nsent < 0, "woah. sendto() returned %d", nsent);
 }
+
 
 bool ReflexHand::listen(const double max_seconds)
 {
@@ -179,21 +182,22 @@ bool ReflexHand::listen(const double max_seconds)
 
 /*
     Driver code sends UDP message to enet.c (firmware)
-
 */
-void ReflexHand::initImuCal(){
+void ReflexHand::initIMUCal(){
   uint8_t msg[1]; 
   msg[0] = 3;               // Set first thing in array CommandPacket enum
 
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-void ReflexHand::loadIMUCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IMUS, use #define
-  uint8_t msg[89]; 
+// Should rename this to save?
+void ReflexHand::saveIMUCalData(uint16_t data[44]){ // TODO: Change to 22*NUM_IMUS, use #define
+  uint8_t msg[89];  // TODO: Change to 22*NUM_IMUS + 1, use #define
   msg[0] = 4;               // Set first thing in array CommandPacket enum
 
+  // Converts uint16_t to uint8_t
   for(int i = 0; i < 44; i++){
     msg[1 + i*2] = (data[i] >> 8) & 0xff;
     msg[2 + i*2] = data[i] & 0xff;
@@ -201,7 +205,28 @@ void ReflexHand::loadIMUCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IM
 
   tx(msg, sizeof(msg), PORT_BASE);
 }
-*/
+
+void ReflexHand::loadIMUCalData(uint32_t data[44]){
+  uint8_t msg[45];
+  msg[0] = 5;
+
+  for(int i = 0; i < 44; i++)
+    msg[i + 1] = data[i] & 0x0000ffff;
+
+  tx(msg, sizeof(msg), PORT_BASE);
+
+}
+
+
+void ReflexHand::refreshIMUCalData(){
+  uint8_t msg[1];
+  msg[0] = 6;
+
+
+  tx(msg, sizeof(msg), PORT_BASE);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
     GETS CALLED IN reflex_driver_node.cpp
@@ -209,7 +234,7 @@ void ReflexHand::loadIMUCalData(uint16_t data[44]){ // TODO: Change to 11*NUM_IM
 */
 void ReflexHand::setServoTargets(const uint16_t *targets)
 {
-  // NUM_SERVOS is set to 4 in reflex_hand.h, 
+  // NUM_SERVOS set to 4 in reflex_hand.h, 
   uint8_t msg[1 + 2*NUM_SERVOS]; 
   
   /*
@@ -231,9 +256,10 @@ void ReflexHand::setServoTargets(const uint16_t *targets)
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
+
 void ReflexHand::setServoControlModes(const ControlMode *modes)
 {
-  uint8_t msg[NUM_SERVOS+1];
+  uint8_t msg[NUM_SERVOS + 1];
   msg[0] = CP_SET_SERVO_MODE; 
 
   for (int i = 0; i < NUM_SERVOS; i++)
@@ -241,6 +267,7 @@ void ReflexHand::setServoControlModes(const ControlMode *modes)
 
   tx(msg, sizeof(msg), PORT_BASE);
 }
+
 
 void ReflexHand::setServoControlModes(const ControlMode mode)
 {
@@ -301,12 +328,12 @@ void ReflexHand::rx(const uint8_t *msg, const uint16_t msg_len)
   for (int i = 0; i < 4; i++)
   {
     rx_state_.dynamixel_error_states_[i] = rx_state_msg->dynamixel_error_states[i];
-    rx_state_.dynamixel_angles_[i]   = rx_state_msg->dynamixel_angles[i];
-    rx_state_.dynamixel_speeds_[i]   = rx_state_msg->dynamixel_speeds[i];
-    rx_state_.dynamixel_loads_[i]    = rx_state_msg->dynamixel_loads[i];
-    rx_state_.dynamixel_voltages_[i] = rx_state_msg->dynamixel_voltages[i];
+    rx_state_.dynamixel_angles_[i]       = rx_state_msg->dynamixel_angles[i];
+    rx_state_.dynamixel_speeds_[i]       = rx_state_msg->dynamixel_speeds[i];
+    rx_state_.dynamixel_loads_[i]        = rx_state_msg->dynamixel_loads[i];
+    rx_state_.dynamixel_voltages_[i]     = rx_state_msg->dynamixel_voltages[i];
     rx_state_.dynamixel_temperatures_[i] = rx_state_msg->dynamixel_temperatures[i];
-    rx_state_.imu_calibration_status[i] = rx_state_msg->imu_calibration_status[i];
+    rx_state_.imu_calibration_status[i]  = rx_state_msg->imu_calibration_status[i];
   }
   
   for (int i = 0; i < ReflexHandState::NUM_IMUS*4; i++)

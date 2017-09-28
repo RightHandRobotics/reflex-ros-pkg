@@ -477,6 +477,7 @@ void enet_send_udp_ucast(const uint8_t *dest_mac,
   h->checksum = 0; // Will be filled by the ethernet TX machinery
   memcpy(g_eth_udpbuf + sizeof(eth_udp_header_t), payload, payload_len);
   eth_send_raw_packet(g_eth_udpbuf, sizeof(eth_udp_header_t) + payload_len);
+  
   /*
   uint8_t raw_test_pkt[128] =
   { 0x01, 0x00, 0x5e, 0x00, 0x00, 0x7b, 0x90, 0x2b,
@@ -526,21 +527,23 @@ uint_fast8_t enetRX()
     
     if (e->dest_addr[0] != 0x01 || e->dest_addr[1] != 0x00 || e->dest_addr[2] != 0x5e)
       multicast_match = 0;
+
     //printf("  ucast_match = %d, bcast_match = %d, mcast_match = %d\r\n",
     //       unicast_match, broadcast_match, multicast_match);
     //printf("dispatch @ %8u\r\n", (unsigned)SYSTIME);
+
     if (unicast_match || multicast_match || broadcast_match)
       num_pkts_rx += eth_dispatch_eth(start, len) ? 1 : 0;
     if (++g_eth_rxpool_ptrs_rpos >= ETH_RAM_RXPOOL_NPTR)
       g_eth_rxpool_ptrs_rpos = 0;
   }
+
   return num_pkts_rx;
 }
 
-///// AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHHHH
+// Dispatch according to protocol
 bool eth_dispatch_eth(const uint8_t *data, const uint16_t len)
 {
-  // dispatch according to protocol
   const eth_eth_header_t *e = (const eth_eth_header_t *)data;
   switch (eth_htons(e->ethertype))
   {
@@ -563,25 +566,13 @@ bool eth_dispatch_ip(const uint8_t *data, const uint16_t len)
   if (ip->version != 4) // We only handle ipv4 (for now...)
     return false;
 
-  // This if, if statement is GROSS
-
-  // If it's unicast, verify IP address, else ignore the packet ......... (?) what is unicast?
   if (ip->eth.dest_addr[0] == g_eth_src_mac[0])
     if ( ip->source_addr != eth_htonl(g_eth_src_ip) )
       return false;
-  /*
-  Refactor note: Why not like below?
-
-  if (ip->eth.dest_addr[0] == g_eth_src_mac[0] && ip->source_addr != eth_htonl(g_eth_src_ip))
-    return false;
-  */
-
-//////////////////////////////////////////////////////////////////////////////////////////
 
   if (ip->proto == ETH_IP_PROTO_UDP) // #define ETH_IP_PROTO_UDP      0x11
     return eth_dispatch_udp(data, len);
 
-//////////////////////////////////////////////////////////////////////////////////////////
   return false; // if we get here, we aren't smart(?) enough to handle this packet
 }
 
@@ -621,16 +612,13 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
     else if (cmd == 1 && payload_len >= 5) /////////////////////////////// Why payload_len >= 5?
     {
       for (int i = 0; i < NUM_DMXL; i++)
-        dmxl_set_control_mode( i, (dmxl_control_mode_t)payload[1+i] );
+        dmxl_set_control_mode( i, (dmxl_control_mode_t)payload[1 + i] );
       
       delay_ms(1); // Be sure control mode messages get through
       return true;
 
-      /* OLD COMMENT FOR DEBUGGING
-        printf("    modes: %d %d %d %d\r\n",
-             payload[1], payload[2], payload[3], payload[4]);
-      */
 
+      //printf("    modes: %d %d %d %d\r\n", payload[1], payload[2], payload[3], payload[4]); // Old for debug
     }
 
     else if (cmd == 2 && payload_len >= 9) /////////////////////////////// Why payload_len >= 9?
@@ -638,7 +626,7 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       uint16_t targets[NUM_DMXL];
       
       for (int i = 0; i < NUM_DMXL; i++)
-        targets[i] = (payload[1 + 2*i] << 8) | payload[2 + 2*i];
+        targets[i] = (payload[1 + 2 * i] << 8) | payload[2 + 2 * i];
       dmxl_set_all_control_targets(targets);
       return true;
 
@@ -654,32 +642,100 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       */
     }
 
-    // Add two new messages here:
-    // 1. Start calibration msg -- cmd = 3, payload = 0
-    //    - set a global veriable, that tells the imu state machine to send the 
-    //    set cal mode to each IMU
-    // 2. Set calibrataion Data Msg -- cmd = 4, payload = 22*NUM_IMUS 
+    /*
+     Add two new messages here:
+         1. Start calibration msg -- cmd = 3, payload = 0
+            - set a global veriable, that tells the imu state machine to send the 
+            set cal mode to each IMU
+         2. Set calibrataion Data Msg -- cmd = 4, payload = 22*NUM_IMUS 
+    */
 
-    //else if (cmd == 3 && payload_len == 0){ // Should this be >= similar to the prior else ifs
-
-    else if (cmd == 3){ // Should this be >= similar to the prior else ifs
-      // make service in 
-      // Hand state. datacaliration = 0xFFFFFFFFFFFFFFf //set to all 1s
-        //int8_t  imu_calibration_status[ReflexHandState::NUM_IMUS];
-        //uint16_t imu_calibration_data[ReflexHandState::NUM_IMUS*11];
-
+    // Initialize IMU Calibration
+    else if (cmd == 3){
       int i = 0;
-      for (i = 0; i < NUM_IMUS*11; i++)
-        handState.imus_calibration_data[i] = 0xFF;
-
+      for (i = 0; i < NUM_IMUS * 11; i++)
+        handState.imus_calibration_data[i] = 0xff; // Set everything to 1
     }
 
-    // Load
-    else if (cmd == 4 && payload_len == 22*NUM_IMUS){}
+    /*
+    Accelerometer Offset registers
+    ACCEL_OFFSET_X_LSB_ADDR                                 = 0X55,
+    ACCEL_OFFSET_X_MSB_ADDR                                 = 0X56,
+    ACCEL_OFFSET_Y_LSB_ADDR                                 = 0X57,
+    ACCEL_OFFSET_Y_MSB_ADDR                                 = 0X58,
+    ACCEL_OFFSET_Z_LSB_ADDR                                 = 0X59,
+    ACCEL_OFFSET_Z_MSB_ADDR                                 = 0X5A,
 
-    else if (cmd == 5){}
+    Magnetometer Offset registers 
+    MAG_OFFSET_X_LSB_ADDR                                   = 0X5B,
+    MAG_OFFSET_X_MSB_ADDR                                   = 0X5C,
+    MAG_OFFSET_Y_LSB_ADDR                                   = 0X5D,
+    MAG_OFFSET_Y_MSB_ADDR                                   = 0X5E,
+    MAG_OFFSET_Z_LSB_ADDR                                   = 0X5F,
+    MAG_OFFSET_Z_MSB_ADDR                                   = 0X60,
 
+    Gyroscope Offset registers
+    GYRO_OFFSET_X_LSB_ADDR                                  = 0X61,
+    GYRO_OFFSET_X_MSB_ADDR                                  = 0X62,
+    GYRO_OFFSET_Y_LSB_ADDR                                  = 0X63,
+    GYRO_OFFSET_Y_MSB_ADDR                                  = 0X64,
+    GYRO_OFFSET_Z_LSB_ADDR                                  = 0X65,
+    GYRO_OFFSET_Z_MSB_ADDR                                  = 0X66,
+
+    Radius registers 
+    ACCEL_RADIUS_LSB_ADDR                                   = 0X67,
+    ACCEL_RADIUS_MSB_ADDR                                   = 0X68,
+    MAG_RADIUS_LSB_ADDR                                     = 0X69,
+    MAG_RADIUS_MSB_ADDR                                     = 0X6A
+    */
+
+
+    // Load Calibration
+    else if (cmd == 4 && payload_len == 88){ // 44
+      
+
+      int i = 0;
+      for(i = 0; i < 88; i++){
+        //enet_write_phy_reg(,);
+
+      }
+
+      enet_write_phy_reg(0X55, data[0]);
+      enet_write_phy_reg(0X56, data[1]);
+      enet_write_phy_reg(0X57, data[2]);
+      enet_write_phy_reg(0X58, data[3]);
+      enet_write_phy_reg(0X59, data[4]);
+      enet_write_phy_reg(0X5A, data[5]);
+
+      enet_write_phy_reg(0X5B, data[7]);
+      enet_write_phy_reg(0X5C, data[8]);
+      enet_write_phy_reg(0X5D, data[9]);
+      enet_write_phy_reg(0X5E, data[10]);
+      enet_write_phy_reg(0X5F, data[11]);
+      enet_write_phy_reg(0X60, data[12]);
+      
+      enet_write_phy_reg(0X60, data[13]);
+      enet_write_phy_reg(0X61, data[14]);
+      enet_write_phy_reg(0X62, data[15]);
+      enet_write_phy_reg(0X63, data[16]);
+      enet_write_phy_reg(0X64, data[17]);
+      enet_write_phy_reg(0X65, data[18]);
+      
+      enet_write_phy_reg(0X66, data[19]);
+      enet_write_phy_reg(0X63, data[20]);
+      enet_write_phy_reg(0X64, data[21]);
+      enet_write_phy_reg(0X65, data[22]);
+
+      return true;      
+      }
     
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Refresh
+    else if (cmd == 5){
+      return true;
+    }
   }
 
   // If we get here, we haven't handled this packet. return false
@@ -703,6 +759,7 @@ void ethernetService()
     err_unset(ERR_NO_ETHERNET);
     enetTX();
   }
+
   else
     err_set(ERR_NO_ETHERNET);
 
