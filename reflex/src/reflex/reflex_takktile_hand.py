@@ -45,9 +45,8 @@ class ReflexTakktileHand(ReflexHand):
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs.srv.SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
-
-        # ....................................................................................................???
-        #self.calibrate_imus = rospy.ServiceProxy(self.namespace + '/calibrate_imu', Empty)
+        # ............................................TODO(LANCE): Figure this out! Use this for prompts similar to the two lines above
+        self.calibrate_imus = rospy.ServiceProxy(self.namespace + '/imu_calibrate', Empty)
 
         rospy.Service(self.namespace + '/enable_tactile_stops', Empty, self.enable_tactile_stops)
         rospy.Service(self.namespace + '/disable_tactile_stops', Empty, self.disable_tactile_stops)
@@ -57,7 +56,7 @@ class ReflexTakktileHand(ReflexHand):
         rospy.Subscriber(self.namespace + '/hand_state',
                          reflex_msgs.msg.Hand, self._receive_hand_state_cb)
 
-    # ....................................................................============================================= callback?
+    # cb - callback. like an interrupt according to eric    
     def _receive_cmd_cb(self, data):
         reset = self.tactile_stops_enabled
         if reset:
@@ -135,7 +134,7 @@ class ReflexTakktileHand(ReflexHand):
     # Walk the user through the required motions for calibrating the BNO055 IMUs located on the hand
     # is this a service?
     def calibrate_imus(self):
-        
+        self.calibrate_imus_service()
 
         # Gyroscope (Stay still for 10 seconds)
         # TODO(LANCE): rospy.
