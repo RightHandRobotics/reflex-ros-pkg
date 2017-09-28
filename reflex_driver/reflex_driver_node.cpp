@@ -586,6 +586,7 @@ bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &re
 }
 
 ///////////////////////////////////////////////////..........=========================== TODO
+// Calling this service keeps erasing imu.calibrate.yaml
 
 // Loads yaml file to firmware
 // Maybe change this! 
@@ -598,12 +599,22 @@ bool loadIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req,
   ROS_INFO("Opened imu_calibrate.yaml...");
 
   // Make local array to copy vector passed in
-  uint16_t buffer[44]; // Should this be 88?
+  uint16_t buffer[88]; // Should this be 88?
 
-  for (int i = 0; i < 44; i++){
+  // https://stackoverflow.com/questions/6499183/converting-a-uint32-value-into-a-uint8-array4'
+  ///////////////////////// make enum for imus
+  for (int i = 0; i < 22; i++){
     buffer[i] = imu_calibration_data_f1[i] & 0x0000ffff;
-    ROS_INFO_STREAM(buffer[i]);
+    buffer[22 + i] = imu_calibration_data_f2[i] & 0x0000ffff;
+    buffer[44 + i] = imu_calibration_data_f3[i] & 0x0000ffff;
+    buffer[66 + i] = imu_calibration_data_palm[i] & 0x0000ffff;
+    //ROS_INFO_STREAM(buffer[i]);
   }
+  
+  for (int i = 0; i < 88; i++)
+    ROS_INFO_STREAM(buffer[i]);
+  
+  acquire_imus = true;
 
   // Close yaml file
   imu_calibration_file.close();
@@ -617,9 +628,9 @@ Current IMU calibration values to file as the new calibrated "zero"
 */
 void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state) {
   imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
-  imu_calibration_file << "# Captured sensor values from unloaded state fdasfkljdas;lkfjdklsfjd;laskfj REWORD\n";
+  imu_calibration_file << "# Opened file successfully\n";
 
-  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS+1; i++)  // There's an IMU on the palm too
+  for (int i = 0; i < (reflex_hand::ReflexHandState::NUM_FINGERS + 1); i++)  // There's an IMU on the palm too
     log_current_imu_offsets_to_file(state, i);
   
   imu_calibration_file.close();
@@ -632,7 +643,7 @@ void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const s
   if (finger == 3)
     imu_calibration_file << "imu_calibration_data_palm" << ": [";
   else
-    imu_calibration_file << "imu_calibration_data_f" << (finger+1) << ": [";
+    imu_calibration_file << "imu_calibration_data_f" << (finger + 1) << ": [";
 
   for (int i = 0; i < 21; i++)
     imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + i] << ", ";
