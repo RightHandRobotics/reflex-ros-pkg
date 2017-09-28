@@ -34,7 +34,7 @@ PUBLIC EXPOSURE BY THIS DRIVER
         /initIMUCal             Start IMU calibration
         /loadIMUCalData         Load data from yaml to firmware
         /saveIMUCalData         Save data from firmware to yaml
-        /refreshIMUCalData
+        /refreshIMUCalData      ......................==============================================================? Clarify with john
 
 */
 
@@ -95,11 +95,9 @@ vector<double> dynamixel_zero_point;          // Loaded from yaml and reset duri
 vector<double> encoder_zero_point;            // Loaded from yaml and reset during calibration
 
 //////////////////////////////////////////////////////////////// TODO(LANCE): Verify correct data type
-
 vector<int> imu_calibration_data_f1, imu_calibration_data_f2, 
             imu_calibration_data_f3, imu_calibration_data_palm;  
 bool acquire_imus = false;  
-
 //////////////////////////////////////////////////////////.. should I make a flag? //bool set_imus = false;
 
 uint16_t calibration_dyn_increase[] = {6, 6, 6, 0};         // Updated itxn reflex_hand_state_cb() during calibration
@@ -558,7 +556,13 @@ void log_motor_zero_to_file_and_close() {
   finger_file.close();
 }
 
-/////////////////////////////////////////////////// TODO save data 
+
+bool refreshIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res){
+  ROS_INFO("Refreshing IMU calibration data...");
+  rh->refreshIMUCalData();
+  return true;
+}
 
 
 bool initIMUCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
@@ -799,6 +803,10 @@ int main(int argc, char **argv) {
   ros::ServiceServer loadIMUCalData_service = nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
       (ns + "/loadIMUCalData", boost::bind(loadIMUCalData, &rh, _1, _2));
   ROS_INFO("Advertising the /loadIMUCalData service");
+
+  ros::ServiceServer refreshIMUCalData_service = nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
+      (ns + "/refreshIMUCalData", boost::bind(refreshIMUCalData, &rh, _1, _2));
+  ROS_INFO("Advertising the /refreshIMUCalData service");
 
   ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", 
     calibrate_tactile);
