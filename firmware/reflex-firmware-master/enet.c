@@ -657,82 +657,17 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
         handState.imus_calibration_data[i] = 0xff; // Set everything to 1
     }
 
-    /*
-    Accelerometer Offset registers
-    ACCEL_OFFSET_X_LSB_ADDR                                 = 0X55,
-    ACCEL_OFFSET_X_MSB_ADDR                                 = 0X56,
-    ACCEL_OFFSET_Y_LSB_ADDR                                 = 0X57,
-    ACCEL_OFFSET_Y_MSB_ADDR                                 = 0X58,
-    ACCEL_OFFSET_Z_LSB_ADDR                                 = 0X59,
-    ACCEL_OFFSET_Z_MSB_ADDR                                 = 0X5A,
-
-    Magnetometer Offset registers 
-    MAG_OFFSET_X_LSB_ADDR                                   = 0X5B,
-    MAG_OFFSET_X_MSB_ADDR                                   = 0X5C,
-    MAG_OFFSET_Y_LSB_ADDR                                   = 0X5D,
-    MAG_OFFSET_Y_MSB_ADDR                                   = 0X5E,
-    MAG_OFFSET_Z_LSB_ADDR                                   = 0X5F,
-    MAG_OFFSET_Z_MSB_ADDR                                   = 0X60,
-
-    Gyroscope Offset registers
-    GYRO_OFFSET_X_LSB_ADDR                                  = 0X61,
-    GYRO_OFFSET_X_MSB_ADDR                                  = 0X62,
-    GYRO_OFFSET_Y_LSB_ADDR                                  = 0X63,
-    GYRO_OFFSET_Y_MSB_ADDR                                  = 0X64,
-    GYRO_OFFSET_Z_LSB_ADDR                                  = 0X65,
-    GYRO_OFFSET_Z_MSB_ADDR                                  = 0X66,
-
-    Radius registers 
-    ACCEL_RADIUS_LSB_ADDR                                   = 0X67,
-    ACCEL_RADIUS_MSB_ADDR                                   = 0X68,
-    MAG_RADIUS_LSB_ADDR                                     = 0X69,
-    MAG_RADIUS_MSB_ADDR                                     = 0X6A
-    */
-
-
-    // Load Calibration
-    else if (cmd == 4 && payload_len == 88){ // 44
-      
-
-      int i = 0;
-      for(i = 0; i < 88; i++){
-        //enet_write_phy_reg(,);
-
-      }
-
-      enet_write_phy_reg(0X55, data[0]);
-      enet_write_phy_reg(0X56, data[1]);
-      enet_write_phy_reg(0X57, data[2]);
-      enet_write_phy_reg(0X58, data[3]);
-      enet_write_phy_reg(0X59, data[4]);
-      enet_write_phy_reg(0X5A, data[5]);
-
-      enet_write_phy_reg(0X5B, data[7]);
-      enet_write_phy_reg(0X5C, data[8]);
-      enet_write_phy_reg(0X5D, data[9]);
-      enet_write_phy_reg(0X5E, data[10]);
-      enet_write_phy_reg(0X5F, data[11]);
-      enet_write_phy_reg(0X60, data[12]);
-      
-      enet_write_phy_reg(0X60, data[13]);
-      enet_write_phy_reg(0X61, data[14]);
-      enet_write_phy_reg(0X62, data[15]);
-      enet_write_phy_reg(0X63, data[16]);
-      enet_write_phy_reg(0X64, data[17]);
-      enet_write_phy_reg(0X65, data[18]);
-      
-      enet_write_phy_reg(0X66, data[19]);
-      enet_write_phy_reg(0X63, data[20]);
-      enet_write_phy_reg(0X64, data[21]);
-      enet_write_phy_reg(0X65, data[22]);
-
+    // Save calibration data
+    // ............................................................ == this should be in 5
+    else if (cmd == 4 && payload_len >= 88){ // 44
+      setCalibrationData((uint8_t*)payload);
       return true;      
       }
     
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Refresh
+    // Load calibration data
     else if (cmd == 5){
       return true;
     }

@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <dmxl.h>
 
-// declare the pin numbers
+// Declare pin numbers
 #define PORTA_ETH_REFCLK 1
 #define PORTA_ETH_MDIO   2
 #define PORTA_ETH_CRSDV  7
@@ -24,7 +24,7 @@
 #define PORTC_ETH_RXD0   4
 #define PORTC_ETH_RXD1   5
 
-// Address is hard-wired on-board using internal chip pullups
+// Address hard-wired on-board using internal chip pullups
 #define ENET_PHY_ADDR    0x01
 
 #define ETH_NBUF         2048
@@ -44,14 +44,11 @@ typedef struct
 #define ETH_RAM_RXPOOL_LEN  16384
 #define ETH_RAM_RXPOOL_NPTR   128
 
-///////////////////////////////////////////////////////////////////////////
 // Local functions
 void eth_send_raw_packet(uint8_t *pkt, uint16_t pkt_len); // static
 bool eth_dispatch_eth(const uint8_t *data, const uint16_t len); // static
 bool eth_dispatch_ip(const uint8_t *data, const uint16_t len); // static
 bool eth_dispatch_udp(const uint8_t *data, const uint16_t len); // static
-
-///////////////////////////////////////////////////////////////////////////
 
 void enet_init();
 
