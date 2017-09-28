@@ -30,8 +30,6 @@
 #include <netdb.h>
 using namespace reflex_hand;
 
-/////////////////////////////////////////////////////////////////////////
-
 ReflexHandState::ReflexHandState()
 {
   systime_us_ = 0;
@@ -39,7 +37,6 @@ ReflexHandState::ReflexHandState()
     tactile_pressures_[i] = tactile_temperatures_[i] = 0;
 }
 
-/////////////////////////////////////////////////////////////////////////
 
 ReflexHand::ReflexHand(const std::string &interface)
 : happy_(true)
@@ -115,7 +112,6 @@ ReflexHand::ReflexHand(const std::string &interface)
                       &loopback, sizeof(loopback));
   ROS_FATAL_COND(result < 0, "Couldn't turn off outgoing multicast loopback, fails with errno: %d", errno);
 
-  /////////////////////////////////////////////////////////////////////
   // Set up RX side of things
   int reuseaddr = 1;
   result = setsockopt(rx_sock_, SOL_SOCKET, SO_REUSEADDR,
@@ -153,6 +149,7 @@ void ReflexHand::tx(const uint8_t *msg, const uint16_t msg_len,
                     const uint16_t port)
 {
   // ROS_INFO("ReflexHand::tx %d bytes to port %d", msg_len, port);
+  
   mcast_addr_.sin_port = htons(port);
   int nsent = sendto(tx_sock_, msg, msg_len, 0,
                      (sockaddr *)&mcast_addr_, sizeof(mcast_addr_));
@@ -169,6 +166,7 @@ bool ReflexHand::listen(const double max_seconds)
   timeval timeout;
   timeout.tv_sec = (time_t)trunc(max_seconds);
   timeout.tv_usec = (suseconds_t)((max_seconds - timeout.tv_sec) * 1e6);
+  
   int rv = select(rx_sock_ + 1, &rdset, NULL, NULL, &timeout);
 
   if (rv > 0 && FD_ISSET(rx_sock_, &rdset))
@@ -190,12 +188,10 @@ void ReflexHand::initIMUCal(){
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Should rename this to save?
 void ReflexHand::saveIMUCalData(uint16_t data[44]){ // TODO: Change to 22*NUM_IMUS, use #define
   uint8_t msg[89];  // TODO: Change to 22*NUM_IMUS + 1, use #define
-  msg[0] = 4;               // Set first thing in array CommandPacket enum
+  msg[0] = 4;               
 
   // Converts uint16_t to uint8_t
   for(int i = 0; i < 44; i++){
@@ -206,7 +202,7 @@ void ReflexHand::saveIMUCalData(uint16_t data[44]){ // TODO: Change to 22*NUM_IM
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
-////////////////////////////////////////////////////////// WEIRD TX ONLY TAKES UIINT16
+////////////////////////////////////////////////////////// TX ONLY TAKES UIINT16
 void ReflexHand::loadIMUCalData(uint16_t data[88 * 2]){
   uint8_t msg[177];
   msg[0] = 5;
@@ -227,12 +223,7 @@ void ReflexHand::refreshIMUCalData(){
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-    GETS CALLED IN reflex_driver_node.cpp
-
-*/
 void ReflexHand::setServoTargets(const uint16_t *targets)
 {
   // NUM_SERVOS set to 4 in reflex_hand.h, 

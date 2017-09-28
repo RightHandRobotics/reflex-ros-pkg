@@ -64,14 +64,12 @@ void log_motor_zero_to_file_and_close();
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state);
 float load_raw_to_signed(int load, int motor_idx);
 
-//////////////////////// TODO(LANCE): Verify these three functions are correct in reflex_driver_node.c
 bool initIMUCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res);	
 bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
 bool loadIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res);
-/*
 bool refreshIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res);
-*/
+
 #endif

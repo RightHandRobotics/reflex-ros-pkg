@@ -92,7 +92,7 @@ namespace reflex_hand
         void initIMUCal();
         void saveIMUCalData(uint16_t data[44]); ///////////////////////////////////// uint16_t!!!!!!!!!!!!!!!!      
         void loadIMUCalData(uint16_t data[88]); // MUST BE uint16
-        void refreshIMUCalData();
+        void refreshIMUCalData(); 
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         bool happy() { return happy_; }
