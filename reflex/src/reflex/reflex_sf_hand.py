@@ -82,7 +82,7 @@ class ReflexSFHand(ReflexHand):
         for motor in sorted(self.motors):
             rospy.loginfo("Calibrating motor " + motor)
             command = raw_input("Type 't' to tighten motor, 'l' to loosen \
-motor, or 'q' to indicate that the zero point has been reached\n")
+                motor, or 'q' to indicate that the zero point has been reached\n")
             while not command.lower() == 'q':
                 if command.lower() == 't' or command.lower() == 'tt':
                     print "Tightening motor " + motor
