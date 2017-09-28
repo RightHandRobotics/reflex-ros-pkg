@@ -206,11 +206,12 @@ void ReflexHand::saveIMUCalData(uint16_t data[44]){ // TODO: Change to 22*NUM_IM
   tx(msg, sizeof(msg), PORT_BASE);
 }
 
-void ReflexHand::loadIMUCalData(uint32_t data[44]){
-  uint8_t msg[45];
+////////////////////////////////////////////////////////// WEIRD TX ONLY TAKES UIINT16
+void ReflexHand::loadIMUCalData(uint16_t data[88 * 2]){
+  uint8_t msg[177];
   msg[0] = 5;
 
-  for(int i = 0; i < 44; i++)
+  for(int i = 0; i < 88 * 2; i++)
     msg[i + 1] = data[i] & 0x0000ffff;
 
   tx(msg, sizeof(msg), PORT_BASE);
