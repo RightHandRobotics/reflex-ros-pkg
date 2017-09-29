@@ -110,7 +110,7 @@ void enterConfigMode(bool result){
 ////////////////////////////////////////////////////////////////////////////////////////
 
 /*
-  Description: Sets IMU registers
+  Description: Sets (write to) IMU registers
   Returns: result: 1 if SUCCESS, 0 if FAILED to set
 */
 uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
@@ -166,7 +166,7 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
 
 /*
   Description: Sets IMU registers
-  Returns: result: 1 if SUCCESS, 0 if FAILED to set
+  Returns: result: 1 if SUCCESS, 0 if FAILED to set. TODO(LANCE): change return type to bool
 */
 uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
 {
@@ -210,7 +210,6 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
 
   else
     result += resultOp;
-
 
   return result == NUM_IMUS;
 }
@@ -286,20 +285,29 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   return result;
 }
 
-void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]){
-  int i,j;
-  for(i=0;i<NUM_IMUS;i++){ 
-      setRegisterIMU(i,BNO055_OPR_MODE_ADDR,OPERATION_MODE_CONFIG);
-      for (j=0;j<22;j++){
-        //setRegisterIMU(i,j+0x55, buffer[(22*i)+j]);
-        setRegisterIMU(i,j+0x55,2);
-      }
-      setRegisterIMU(i,BNO055_OPR_MODE_ADDR,OPERATION_MODE_NDOF);
-  }
-  // int i;
-   // for (i = 0; i < NUM_IMUS * 11; i++)
-   //      handState.imus_calibration_data[i] = 1; // Set everything to 1
+// Used in loadCalData
+void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]){ 
+  int i, j;
 
+  // Iterate for each IMU
+  for(i = 0; i < NUM_IMUS; i++){ 
+    // Set operation mode to CONFIG_MODE
+      setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);                    
+      // Set each of the 22 calibration data registers
+      for (j = 0; j < 22; j++)     
+        // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register                                                     
+        setRegisterIMU(i, (i * 22 + j) + ACCEL_OFFSET_X_LSB_ADDR, buffer[i * 22 + j]);   
+
+      // After calibration data registers set, set operation mode to NDOF (type of fusion mode)
+      setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
+  }
+  /*
+  For debugging. This for loop sets an entire array to 1.
+
+  // int i;
+  // for (i = 0; i < NUM_IMUS * 11; i++)
+  //      handState.imus_calibration_data[i] = 1; 
+  */
 }
 
 /*
