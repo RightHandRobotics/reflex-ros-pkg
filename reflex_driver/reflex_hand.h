@@ -35,6 +35,8 @@ namespace reflex_hand
       public:
         static const int NUM_FINGERS = 3;
         static const int NUM_TACTILE = NUM_FINGERS * 14 + 11;
+        
+        // Should this be in ReflexHandState class or ReflexHand class????????????
         static const int NUM_IMUS = 4;
 
         uint32_t systime_us_;
@@ -49,8 +51,25 @@ namespace reflex_hand
         uint8_t  dynamixel_temperatures_[4];
 
         int16_t  imus[NUM_IMUS*4];
-        int8_t  imu_calibration_status[NUM_IMUS];     // SIZE OF 4
-        uint16_t imu_calibration_data[NUM_IMUS * 11]; // SIZE OF 44
+        int8_t   imu_calibration_status[NUM_IMUS];     
+        uint16_t imu_calibration_data[NUM_IMUS * 11]; 
+
+        // Copying same format for IMU calibration data
+        uint16_t acc_offset_f1[NUM_IMUS - 1];
+        uint16_t acc_offset_f2[NUM_IMUS - 1];
+        uint16_t acc_offset_f3[NUM_IMUS - 1];
+        uint16_t acc_offset_palm[NUM_IMUS - 1];
+        uint16_t mag_offset_f1[NUM_IMUS - 1];
+        uint16_t mag_offset_f2[NUM_IMUS - 1];
+        uint16_t mag_offset_f3[NUM_IMUS - 1];
+        uint16_t mag_offset_palm[NUM_IMUS - 1];
+        uint16_t gyr_offset_f1[NUM_IMUS - 1];
+        uint16_t gyr_offset_f2[NUM_IMUS - 1];
+        uint16_t gyr_offset_f3[NUM_IMUS - 1];
+        uint16_t gyr_offset_palm[NUM_IMUS - 1];
+        uint16_t gyr_radius[NUM_IMUS];
+        uint16_t acc_radius[NUM_IMUS];
+
         ReflexHandState();
   };
 
@@ -101,6 +120,7 @@ namespace reflex_hand
         StateCallback state_cb_;
         ReflexHandState rx_state_;
         bool happy_;
+
         void tx(const uint8_t *msg, const uint16_t msg_len, const uint16_t port);
         void rx(const uint8_t *msg, const uint16_t msg_len);
   };
