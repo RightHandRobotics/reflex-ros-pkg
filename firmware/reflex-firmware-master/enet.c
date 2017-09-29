@@ -609,6 +609,7 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
     if (cmd == 0) // CORRECT
       printf("Received printStatusCommand...\n");
 
+    // Set dynamixel control mode
     else if (cmd == 1 && payload_len >= 5) /////////////////////////////// Why payload_len >= 5?
     {
       for (int i = 0; i < NUM_DMXL; i++)
@@ -616,11 +617,10 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
       
       delay_ms(1); // Be sure control mode messages get through
       return true;
-
-
       //printf("    modes: %d %d %d %d\r\n", payload[1], payload[2], payload[3], payload[4]); // Old for debug
     }
 
+    // Set dynamixel motor targets
     else if (cmd == 2 && payload_len >= 9) /////////////////////////////// Why payload_len >= 9?
     {
       uint16_t targets[NUM_DMXL];
@@ -650,27 +650,29 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
          2. Set calibrataion Data Msg -- cmd = 4, payload = 22*NUM_IMUS 
     */
 
-    // Initialize IMU Calibration
+    // Initialize IMU Calibration. TODO(LANCE): Rewrite this to actually set the config mode
     else if (cmd == 3){
       int i = 0;
       for (i = 0; i < NUM_IMUS * 11; i++)
         handState.imus_calibration_data[i] = 0xff; // Set everything to 1
     }
 
-    // Save calibration data
-    // ............................................................ == this should be in 5
+    // Load calibration data
     else if (cmd == 4 && payload_len >= 88){ // 44
       setCalibrationData((uint8_t*)payload);
       return true;      
-      }
+    }
     
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Load calibration data
+    // Refresh calibration data
     else if (cmd == 5){
       return true;
     }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
   }
 
   // If we get here, we haven't handled this packet. return false

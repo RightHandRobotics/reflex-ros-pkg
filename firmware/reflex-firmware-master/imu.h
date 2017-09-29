@@ -18,7 +18,7 @@
 #define BNO055_ID                     (0xA0)
 #define NUM_BNO055_OFFSET_REGISTERS   (22)
 
-
+// For state machine
 typedef enum 
 {
   IMU_STATE_SET_REGISTER = 0,
@@ -26,7 +26,7 @@ typedef enum
   IMU_STATE_WAIT = ASYNC_POLL_DONE
 } imu_async_poll_state_t;
 
-
+// For psuedo state machine inside IMU_STATE_READ_VALUES state
 typedef enum 
 {
 	IMU_DATA = 0,
@@ -34,7 +34,7 @@ typedef enum
 	IMU_CAL_OFFSETS
 } imu_poll_type_t;
 
-
+// What is an extern in this context?
 extern imu_async_poll_state_t imu_poll_state[NUM_IMUS];
 
 
@@ -46,8 +46,7 @@ uint8_t checkIMUStatus(uint8_t imuNumber);
 uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress);
 uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values);
 void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]);
-uint8_t setRegisterIMU(uint8_t port, uint8_t registerAddr, uint8_t data);
-
+uint8_t setRegisterIMU(uint8_t port, uint8_t registerAddr, uint8_t data); // uint8t = char = 1 byte
 
 typedef enum
 {

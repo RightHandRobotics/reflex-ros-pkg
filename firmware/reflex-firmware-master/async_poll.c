@@ -20,7 +20,7 @@ static uint32_t asyncStartTime = 0;
 
 static stateMachine stateMachines[NUM_STATE_FUNCTIONS] = 
 {
-  { takktile_poll_nonblocking_tick, 0, (int *)(&takktilePollState[0])    },
+  { takktile_poll_nonblocking_tick, 0, (int *)(&takktilePollState[0])    }, // why do we cast this?
   { takktile_poll_nonblocking_tick, 1, (int *)(&takktilePollState[1])    },
   { takktile_poll_nonblocking_tick, 2, (int *)(&takktilePollState[2])    },
   { dmxl_poll_nonblocking_tick    , 0, (int *)(&dmxl_poll_states[0])     },
