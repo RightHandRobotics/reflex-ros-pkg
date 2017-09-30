@@ -1,16 +1,24 @@
 #ifndef IMU_H
 #define IMU_H
 
+// Re-order these to follow Google style guide:
+	// https://google.github.io/styleguide/cppguide.html#Header_Files
 #include "i2cFunc.h"
+
 #include <reflex.h>
 #include <stdint.h>
+
 #include "async_poll.h"
 #include "./stm32/stm32f4xx.h"
+
 #include <stdio.h>
+
 #include "state.h"
 #include "systime.h"
 #include "error.h"
 #include "ports.h"
+// Re-order these to follow Google style guide:
+
 
 #define I2C_MULTIPLEXER_ADDRESS       (0x70)
 #define BNO055_ADDRESS_A              (0x28)
@@ -18,7 +26,7 @@
 #define BNO055_ID                     (0xA0)
 #define NUM_BNO055_OFFSET_REGISTERS   (22)
 
-// For state machine
+// For main IMU state machine
 typedef enum 
 {
   IMU_STATE_SET_REGISTER = 0,
@@ -37,23 +45,28 @@ typedef enum
 // What is an extern in this context?
 extern imu_async_poll_state_t imu_poll_state[NUM_IMUS];
 
-
 void imuInit(void);
 uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data);
 uint8_t selectMultiplexerPort(uint8_t port);
 void imu_poll_nonblocking_tick(const uint8_t imuNumber);
 uint8_t checkIMUStatus(uint8_t imuNumber);
-uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress);
-uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t* values);
+uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, 
+						 uint8_t registerAddress);
+uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, 
+					 uint8_t* values);
 void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]);
-uint8_t setRegisterIMU(uint8_t port, uint8_t registerAddr, uint8_t data); // uint8t = char = 1 byte
+uint8_t setRegisterIMU(uint8_t port, uint8_t registerAddr, uint8_t data); 
 
+/*
+	IMU manufacturer: 			Bosch
+	Manufacturer part number: 	BNO055
+*/
 typedef enum
 {
-	/* Page ID register definition */
+	// Page ID register definition
 	BNO055_PAGE_ID_ADDR                                     = 0X07,
 
-	/* PAGE0 REGISTER DEFINITION START*/
+	// PAGE0 REGISTER DEFINITION START
 	BNO055_CHIP_ID_ADDR                                     = 0x00,
 	BNO055_ACCEL_REV_ID_ADDR                                = 0x01,
 	BNO055_MAG_REV_ID_ADDR                                  = 0x02,
@@ -62,7 +75,7 @@ typedef enum
 	BNO055_SW_REV_ID_MSB_ADDR                               = 0x05,
 	BNO055_BL_REV_ID_ADDR                                   = 0X06,
 
-	/* Accel data register */
+	// Accelerometer data  
 	BNO055_ACCEL_DATA_X_LSB_ADDR                            = 0X08,
 	BNO055_ACCEL_DATA_X_MSB_ADDR                            = 0X09,
 	BNO055_ACCEL_DATA_Y_LSB_ADDR                            = 0X0A,
@@ -70,7 +83,7 @@ typedef enum
 	BNO055_ACCEL_DATA_Z_LSB_ADDR                            = 0X0C,
 	BNO055_ACCEL_DATA_Z_MSB_ADDR                            = 0X0D,
 
-	/* Mag data register */
+	// Magnetometer data  
 	BNO055_MAG_DATA_X_LSB_ADDR                              = 0X0E,
 	BNO055_MAG_DATA_X_MSB_ADDR                              = 0X0F,
 	BNO055_MAG_DATA_Y_LSB_ADDR                              = 0X10,
@@ -78,7 +91,7 @@ typedef enum
 	BNO055_MAG_DATA_Z_LSB_ADDR                              = 0X12,
 	BNO055_MAG_DATA_Z_MSB_ADDR                              = 0X13,
 
-	/* Gyro data registers */
+	// Gyrometer data  
 	BNO055_GYRO_DATA_X_LSB_ADDR                             = 0X14,
 	BNO055_GYRO_DATA_X_MSB_ADDR                             = 0X15,
 	BNO055_GYRO_DATA_Y_LSB_ADDR                             = 0X16,
@@ -86,7 +99,7 @@ typedef enum
 	BNO055_GYRO_DATA_Z_LSB_ADDR                             = 0X18,
 	BNO055_GYRO_DATA_Z_MSB_ADDR                             = 0X19,
 
-	/* Euler data registers */
+	// Euler data 
 	BNO055_EULER_H_LSB_ADDR                                 = 0X1A,
 	BNO055_EULER_H_MSB_ADDR                                 = 0X1B,
 	BNO055_EULER_R_LSB_ADDR                                 = 0X1C,
@@ -94,7 +107,7 @@ typedef enum
 	BNO055_EULER_P_LSB_ADDR                                 = 0X1E,
 	BNO055_EULER_P_MSB_ADDR                                 = 0X1F,
 
-	/* Quaternion data registers */
+	// Quaternion data 
 	BNO055_QUATERNION_DATA_W_LSB_ADDR                       = 0X20,
 	BNO055_QUATERNION_DATA_W_MSB_ADDR                       = 0X21,
 	BNO055_QUATERNION_DATA_X_LSB_ADDR                       = 0X22,
@@ -104,7 +117,7 @@ typedef enum
 	BNO055_QUATERNION_DATA_Z_LSB_ADDR                       = 0X26,
 	BNO055_QUATERNION_DATA_Z_MSB_ADDR                       = 0X27,
 
-	/* Linear acceleration data registers */
+	// Linear acceleration data 
 	BNO055_LINEAR_ACCEL_DATA_X_LSB_ADDR                     = 0X28,
 	BNO055_LINEAR_ACCEL_DATA_X_MSB_ADDR                     = 0X29,
 	BNO055_LINEAR_ACCEL_DATA_Y_LSB_ADDR                     = 0X2A,
@@ -112,7 +125,7 @@ typedef enum
 	BNO055_LINEAR_ACCEL_DATA_Z_LSB_ADDR                     = 0X2C,
 	BNO055_LINEAR_ACCEL_DATA_Z_MSB_ADDR                     = 0X2D,
 
-	/* Gravity data registers */
+	// Gravity data  
 	BNO055_GRAVITY_DATA_X_LSB_ADDR                          = 0X2E,
 	BNO055_GRAVITY_DATA_X_MSB_ADDR                          = 0X2F,
 	BNO055_GRAVITY_DATA_Y_LSB_ADDR                          = 0X30,
@@ -120,10 +133,10 @@ typedef enum
 	BNO055_GRAVITY_DATA_Z_LSB_ADDR                          = 0X32,
 	BNO055_GRAVITY_DATA_Z_MSB_ADDR                          = 0X33,
 
-	/* Temperature data register */
+	// Temperature data  
 	BNO055_TEMP_ADDR                                        = 0X34,
 
-	/* Status registers */
+	// Status  
 	BNO055_CALIB_STAT_ADDR                                  = 0X35,
 	BNO055_SELFTEST_RESULT_ADDR                             = 0X36,
 	BNO055_INTR_STAT_ADDR                                   = 0X37,
@@ -132,22 +145,22 @@ typedef enum
 	BNO055_SYS_STAT_ADDR                                    = 0X39,
 	BNO055_SYS_ERR_ADDR                                     = 0X3A,
 
-	/* Unit selection register */
+	// Unit selection 
 	BNO055_UNIT_SEL_ADDR                                    = 0X3B,
 	BNO055_DATA_SELECT_ADDR                                 = 0X3C,
 
-	/* Mode registers */
+	// Mode 
 	BNO055_OPR_MODE_ADDR                                    = 0X3D,
 	BNO055_PWR_MODE_ADDR                                    = 0X3E,
 
 	BNO055_SYS_TRIGGER_ADDR                                 = 0X3F,
 	BNO055_TEMP_SOURCE_ADDR                                 = 0X40,
 
-	/* Axis remap registers */
+	// Axis remap  
 	BNO055_AXIS_MAP_CONFIG_ADDR                             = 0X41,
 	BNO055_AXIS_MAP_SIGN_ADDR                               = 0X42,
 
-	/* SIC registers */
+	// SIC  
 	BNO055_SIC_MATRIX_0_LSB_ADDR                            = 0X43,
 	BNO055_SIC_MATRIX_0_MSB_ADDR                            = 0X44,
 	BNO055_SIC_MATRIX_1_LSB_ADDR                            = 0X45,
@@ -167,7 +180,7 @@ typedef enum
 	BNO055_SIC_MATRIX_8_LSB_ADDR                            = 0X53,
 	BNO055_SIC_MATRIX_8_MSB_ADDR                            = 0X54,
 
-	/* Accelerometer Offset registers */
+	// Accelerometer offset  
 	ACCEL_OFFSET_X_LSB_ADDR                                 = 0X55,
 	ACCEL_OFFSET_X_MSB_ADDR                                 = 0X56,
 	ACCEL_OFFSET_Y_LSB_ADDR                                 = 0X57,
@@ -175,7 +188,7 @@ typedef enum
 	ACCEL_OFFSET_Z_LSB_ADDR                                 = 0X59,
 	ACCEL_OFFSET_Z_MSB_ADDR                                 = 0X5A,
 
-	/* Magnetometer Offset registers */
+	// Magnetometer offset  
 	MAG_OFFSET_X_LSB_ADDR                                   = 0X5B,
 	MAG_OFFSET_X_MSB_ADDR                                   = 0X5C,
 	MAG_OFFSET_Y_LSB_ADDR                                   = 0X5D,
@@ -183,7 +196,7 @@ typedef enum
 	MAG_OFFSET_Z_LSB_ADDR                                   = 0X5F,
 	MAG_OFFSET_Z_MSB_ADDR                                   = 0X60,
 
-	/* Gyroscope Offset register s*/
+	// Gyroscope offset 
 	GYRO_OFFSET_X_LSB_ADDR                                  = 0X61,
 	GYRO_OFFSET_X_MSB_ADDR                                  = 0X62,
 	GYRO_OFFSET_Y_LSB_ADDR                                  = 0X63,
@@ -191,7 +204,7 @@ typedef enum
 	GYRO_OFFSET_Z_LSB_ADDR                                  = 0X65,
 	GYRO_OFFSET_Z_MSB_ADDR                                  = 0X66,
 
-	/* Radius registers */
+	// Radius
 	ACCEL_RADIUS_LSB_ADDR                                   = 0X67,
 	ACCEL_RADIUS_MSB_ADDR                                   = 0X68,
 	MAG_RADIUS_LSB_ADDR                                     = 0X69,
@@ -209,7 +222,6 @@ typedef enum
 
 typedef enum
 {
-	/* Operation mode settings*/
 	OPERATION_MODE_CONFIG                                   = 0X00,
 	OPERATION_MODE_ACCONLY                                  = 0X01,
 	OPERATION_MODE_MAGONLY                                  = 0X02,
@@ -223,7 +235,7 @@ typedef enum
 	OPERATION_MODE_M4G                                      = 0X0A,
 	OPERATION_MODE_NDOF_FMC_OFF                             = 0X0B,
 	OPERATION_MODE_NDOF                                     = 0X0C
-} bno055_opmode_t;
+} bno055_opmode_t; // Operation modes
 
 
 typedef enum
