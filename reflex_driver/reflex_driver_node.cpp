@@ -81,7 +81,14 @@ vector<int> tactile_offset_f1;                // Loaded from yaml and reset duri
 vector<int> tactile_offset_f2;                // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f3;                // Loaded from yaml and reset during calibration
 const int TACTILE_BASE_IDX[] = {0, 28, 14}; 
-const int IMU_BASE_IDX[] = {0, 22, 44, 66};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Pointer
+const int IMU_BASE_IDX[] = {0, 11, 22, 33};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 int encoder_last_value[] = {0, 0, 0};         // Updated constantly in reflex_hand_state_cb()
 int encoder_offset[] = {-1, -1, -1};          // Updated constantly in reflex_hand_state_cb()
 float load_last_value[] = {0, 0, 0, 0};       // Updated constantly in reflex_hand_state_cb()
@@ -296,10 +303,9 @@ bool calibrate_fingers(std_srvs::Empty::Request &req, std_srvs::Empty::Response 
 
 // Sets tactile threshold levels to be all one value
 void populate_tactile_threshold(int threshold) {
-  for(int i=0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
-    for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+  for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++)
       contact_thresholds.finger[i].sensor[j] = threshold;
-    }
   }
 }
 
@@ -331,10 +337,10 @@ int update_encoder_offset(int raw_value, int last_value, int current_offset) {
     enc_offset = 0; // This case happens upon startup
   
   else {
-    // If encoder value jumps, that means it has wrapped a revolution
-    if (last_value - raw_value > 5000)
+    // If encoder value jumps, it has wrapped a revolution
+    if ((last_value - raw_value) > 5000)
       enc_offset = enc_offset + 16383;
-    else if (last_value - raw_value < -5000)
+    else if ((last_value - raw_value) < -5000)
       enc_offset = enc_offset - 16383;
   }
 
@@ -383,7 +389,7 @@ int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
 
 
 // Takes in hand state data and publishes to reflex_hand topic
-// Also does calibration when certain booleans are enabled
+// Also performs calibration when certain booleans are enabled
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   reflex_msgs::Hand hand_msg;
 
@@ -409,16 +415,17 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
 
+
+    ///////////////////// TODO(LANCE): FIGURE THIS OUT
     for (int j = 0; j < 4; j++)
       hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i * 4 + j]);
 
     hand_msg.finger[i].imu.calibration_status = state->imu_calibration_status[i];
     
     /*
-    //testing this rn
-    for (int j = 0; j < 11; j++){
+    testing this rn...
+    for (int j = 0; j < 11; j++)
       hand_msg.palmImu.calibration_data[j] = state->imu_calibration_data[11*i + j]; // TODO: change to use numimus
-    }
     */
   }
 
@@ -434,11 +441,16 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 
   hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
 
-  // TODO: WHY ARE THEY ALL ZERO? IS IT BBY DEFAULT?
+  // TODO(LANCE): Understand why ARE THEY ALL ZERO? IS IT BBY DEFAULT?
   for (int i = 0; i < 11; i++)
     hand_msg.palmImu.calibration_data[i] = state->imu_calibration_data[33 + i]; // TODO: change to use numimus
 
   hand_pub.publish(hand_msg);
+
+  for (int i = 0; i < 4; i++)
+    hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
+
+  hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
 
   if (acquire_imus) 
     log_imu_calibration_data(state);
@@ -473,8 +485,11 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
 }
 
 
-// Opens tactile calibration data file, changes local tactile_offset, and saves
-// current tactile values to file as the new calibrated "zero"
+/*
+  Opens tactile calibration data file
+  Changes local tactile_offset
+  Saves current tactile values to file as the new calibrated "zero"
+*/
 void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
                                reflex_msgs::Hand hand_msg) {
   tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
@@ -519,8 +534,10 @@ void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state)
 }
 
 
-// Save current dynamixel location (plus an offset) as "zero" and then
-// write the dynamixels to the spot
+/*
+  Save current dynamixel location (plus an offset) as "zero" and then
+  Write dynamixels to spot
+*/
 void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state) {
   reflex_msgs::RawServoCommands servo_pos;
   int motor_offset;
@@ -557,16 +574,8 @@ void log_motor_zero_to_file_and_close() {
 }
 
 
-bool refreshIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
-                    std_srvs::Empty::Response &res){
-  ROS_INFO("Refreshing IMU calibration data...");
-  rh->refreshIMUCalData();
-  return true;
-}
-
-
 bool initIMUCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
-                    std_srvs::Empty::Response &res){
+                std_srvs::Empty::Response &res) {
   ROS_INFO("Initializing IMU...");
   rh->initIMUCal();
   return true;
@@ -574,7 +583,8 @@ bool initIMUCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req,
 
 
 
-bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res){
+bool saveIMUCalData(std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res) {
   ROS_INFO("Saving IMU calibration data...");
   acquire_imus = true;
   return true;  
@@ -589,64 +599,99 @@ bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &re
   */
 }
 
-///////////////////////////////////////////////////..........=========================== TODO
-// Calling this service keeps erasing imu.calibrate.yaml
 
-// Loads yaml file to firmware
-// Maybe change this! 
-bool loadIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
-                    std_srvs::Empty::Response &res){
+/* 
+  Loads yaml file to firmware
+  Takes in: uint16 array
+  Returns: bool
+    --- Fix comments
+    --- Determine if bool is the correct return type
+  Inspiration from:
+    --- https://stackoverflow.com/questions/6499183/converting-a-uint32-value-into-a-uint8-array4
+*/
+bool loadIMUCalData(reflex_hand::ReflexHand *rh, 
+                    std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res) {
   ROS_INFO("Loading IMU calibration data...");
+  uint8_t buffer[4 * 11 * 2]; // 88
 
-  // Make local array to copy vector passed in
-  uint8_t buffer[88]; 
-
-  // https://stackoverflow.com/questions/6499183/converting-a-uint32-value-into-a-uint8-array4'
-  ///////////////////////// make enum for imus
-  for (int i = 0; i < 22; i++){
-    buffer[i] = imu_calibration_data_f1[i] & 0xff;
-    buffer[22 + i] = imu_calibration_data_f2[i] & 0xff;
-    buffer[44 + i] = imu_calibration_data_f3[i] & 0xff;
-    buffer[66 + i] = imu_calibration_data_palm[i] & 0xff;
-    //ROS_INFO_STREAM(buffer[i]);
-  }
+  // Convert imu_calibration_data uint16_t[11] arrays to uint8_t arrays
+  for (int i = 0; i < 11; i++) { // 44
+    int x = i * 2;
   
-  /*for (int i = 0; i < 88; i++)
-    ROS_INFO_STREAM(buffer[i]);*/
+    buffer[x]           = (imu_calibration_data_f1[i] & 0xff00) >> 8;
+    buffer[x + 1]       = imu_calibration_data_f1[i] & 0x00ff;
+    buffer[22 + x]      = (imu_calibration_data_f2[i] & 0xff00) >> 8;
+    buffer[22 + x + 1]  = imu_calibration_data_f2[i] & 0x00ff;
+    buffer[44 + x]      = (imu_calibration_data_f3[i] & 0xff00) >> 8;
+    buffer[44 + x + 1]  = imu_calibration_data_f3[i] & 0x00ff;
+    buffer[66 + x]      = (imu_calibration_data_palm[i] & 0xff00) >> 8;
+    buffer[66 + x + 1]  = imu_calibration_data_palm[i] & 0x00ff;
+
+  }
 
   rh->loadIMUCalData(buffer);
-
   return true;
+
+  // For debugging
+  // for (int i = 0; i < 11; i++) {
+  //   ROS_INFO("imu_calibration_data_f1[%d]: %d", i, imu_calibration_data_f1[i]);
+  //   ROS_INFO("imu_calibration_data_f2[%d]: %d", i, imu_calibration_data_f2[i]);
+  //   ROS_INFO("imu_calibration_data_f3[%d]: %d", i, imu_calibration_data_f3[i]);
+  //   ROS_INFO("imu_calibration_data_palm[%d]: %d", i, imu_calibration_data_palm[i]);
+  // }
+
+  // For debugging
+  // for (int i = 66; i < 88; i++)
+  //     ROS_INFO("buffer[%d]: %d", i, buffer[i]);
 }
 
 
 /*
-Opens IMU calibration data file, and saves
-Current IMU calibration values to file as the new calibrated "zero"
+  Opens IMU calibration data file
+  Saves current IMU calibration values to file as new calibrated "zero"
 */
 void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state) {
-  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc);
-  imu_calibration_file << "# Opened file successfully\n";
-
-  for (int i = 0; i < (reflex_hand::ReflexHandState::NUM_FINGERS + 1); i++)  // There's an IMU on the palm too
-    log_current_imu_offsets_to_file(state, i);
+  imu_calibration_file.open(imu_file_address.c_str(), ios::out|ios::trunc); // What is the second argument?
+  imu_calibration_file << "# Opened file successfully\n"; // This line clears the file
   
+  ///ROS_INFO("Entered log_imu_calibration_data()");
+  
+  for (int finger = 0; finger < (reflex_hand::ReflexHandState::NUM_FINGERS + 1); finger++)  // There's an IMU on the palm too
+    log_current_imu_offsets_to_file(state, finger);
+
   imu_calibration_file.close();
   acquire_imus = false;
 }
 
+/* 
+  TODO(LANCE): 
+    --- Ask John for code review
+    --- Make plan for testing
+*/
 void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const state, int finger) {
   string label;
-
+  //ROS_INFO("Entered log_current_imu_offsets_to_file()");
   if (finger == 3)
     imu_calibration_file << "imu_calibration_data_palm" << ": [";
   else
     imu_calibration_file << "imu_calibration_data_f" << (finger + 1) << ": [";
 
-  for (int i = 0; i < 21; i++)
-    imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + i] << ", ";
+  for (int i = 0; i < 10; i++) { 
+      // imu_calibration_file is? ofstream and accesses the imu calibration file
+    imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + i] << ", ";  
+  }
 
-  imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + 21] << "]\n";
+  //imu_calibration_file << "10" << "]\n"; 
+  imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + 10] << "]\n";
+}
+
+bool refreshIMUCalData(reflex_hand::ReflexHand *rh, 
+                       std_srvs::Empty::Request &req, 
+                       std_srvs::Empty::Response &res) {
+  ROS_INFO("Refreshing IMU calibration data...");
+  rh->refreshIMUCalData();
+  return true;
 }
 
 // Checks whether all fingers have moved more than CALIBRATION_ERROR, halts
@@ -656,9 +701,10 @@ bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) 
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     float enc_pos = encoder_zero_point[i] -
                     state->encoders_[i] * reflex_hand::ReflexHand::ENC_SCALE;
-    if (abs(enc_pos) > CALIBRATION_ERROR) {
+    
+    if (abs(enc_pos) > CALIBRATION_ERROR) 
       calibration_dyn_increase[i] = 0;
-    } else {
+    else {
       calibration_dyn_increase[i] = 6;
       all_fingers_moved = false;
     }
@@ -676,10 +722,12 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
            state->dynamixel_angles_[1], calibration_dyn_increase[1],
            state->dynamixel_angles_[2], calibration_dyn_increase[2],
            state->dynamixel_angles_[3], calibration_dyn_increase[3]);
+  
   for (int i=0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
     motor_step = MOTOR_TO_JOINT_INVERTED[i] * calibration_dyn_increase[i];
     servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_step;
   }
+  
   raw_pub.publish(servo_pos);
 }
 
@@ -700,9 +748,12 @@ void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::Reflex
 }
 
 
-// Takes load, converts to a float, then does a rolling filter 
-////////////////////// What is a rolling filter?
-float load_raw_to_signed(int load, int motor_idx) {
+  /*
+    Takes load
+    Converts to float 
+    Applies rolling filter  // TODO(LANCE): Understand what this is
+  */
+  float load_raw_to_signed(int load, int motor_idx) {
   if (load > 1023)
     load = (load - 1023);
   else
@@ -716,9 +767,8 @@ float load_raw_to_signed(int load, int motor_idx) {
   return filter_load;
 }
 
-
+// Take in command line arguments specifying ethernet name, eth0 or eth1
 int main(int argc, char **argv) { 
-  // Take in command line arguments specifying ethernet name, eth0 or eth1
   std::vector<string> args;
   ros::removeROSArgs(argc, argv, args);
   string ethernet_name = args[1].data();
