@@ -582,21 +582,11 @@ bool initIMUCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req,
 }
 
 
-
 bool saveIMUCalData(std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res) {
   ROS_INFO("Saving IMU calibration data...");
   acquire_imus = true;
-  return true;  
-
-  /*
-  imu_calibration_file >> "motor_zero_reference: ["
-              << dynamixel_zero_point[0] << ", "
-              << dynamixel_zero_point[1] << ", "
-              << dynamixel_zero_point[2] << ", "
-              << dynamixel_zero_point[3] << "]\n";
-  imu_calibration_file.close();
-  */
+  return true;
 }
 
 
@@ -686,6 +676,11 @@ void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const s
   imu_calibration_file << state->imu_calibration_data[IMU_BASE_IDX[finger] + 10] << "]\n";
 }
 
+/*
+  TODO(LANCE)
+    --- Ask John for requirements
+    --- Understand if return type and arguments are correct
+*/
 bool refreshIMUCalData(reflex_hand::ReflexHand *rh, 
                        std_srvs::Empty::Request &req, 
                        std_srvs::Empty::Response &res) {
