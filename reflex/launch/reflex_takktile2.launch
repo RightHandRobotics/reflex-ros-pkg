@@ -1,10 +1,15 @@
 <launch>
+  <!--
+  	test this. copied from reflex_plus.launch
+  	<param name="usb_hand_type" type="string" value="reflex_takktile2" />
+  -->
+
   <rosparam file="$(find reflex)/yaml/tf_geometry.yaml" command="load"/>
   <rosparam file="$(find reflex)/yaml/reflex_takktile.yaml" command="load"/>
 
   <arg name="eth" default="eth0"/>
 
-  <include file="$(find reflex_driver)/launch/reflex_driver.launch">
+  <include file="$(find reflex_driver)/launch/reflex_takktile2_driver.launch">
   	<arg name="eth" value="$(arg eth)"/>
   </include>
 
