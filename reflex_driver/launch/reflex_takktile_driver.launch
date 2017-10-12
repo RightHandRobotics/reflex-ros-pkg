@@ -1,0 +1,14 @@
+<launch>
+    <node pkg="rosbag" type="record" name="recorder" args="--all -O $(find reflex)/bagfiles/latest_takktile_run"/>
+
+	<param name="default_contact_threshold" value="20" />
+	<param name="yaml_dir" value="$(find reflex_driver)/yaml" />
+
+	<rosparam file="$(find reflex_driver)/yaml/motor_constants.yaml" command="load"/>
+	<rosparam file="$(find reflex_driver)/yaml/finger_calibrate.yaml" command="load"/>
+	<rosparam file="$(find reflex_driver)/yaml/tactile_calibrate.yaml" command="load"/>
+	
+	<arg name="eth" />
+	<node name="driver_node_0" pkg="reflex_driver" type="reflex_driver_node" output="screen" required="true" args="$(arg eth)"/>
+	<!-- <node name="driver_node_1" pkg="reflex_driver" type="reflex_driver_node" output="screen" required="true" args="$(arg eth)"/> -->
+</launch>

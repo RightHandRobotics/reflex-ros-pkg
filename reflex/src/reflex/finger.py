@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright 2015 Right Hand Robotics
+# Copyright 2017 Right Hand Robotics
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,6 +32,9 @@ class Finger(object):
 
     def get_proximal_angle(self):
         return self.finger_msg.proximal
+
+    def get_imu(self):
+        return self.finger_msg.imu
 
     def get_distal_angle_approximation(self):
         return self.finger_msg.distal_approx

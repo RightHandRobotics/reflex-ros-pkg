@@ -1,7 +1,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //
-//   Copyright 2014 Open Source Robotics Foundation, Inc.
-//   Copyright 2014-2015 Right Hand Robotics
+//   Copyright 2017 Open Source Robotics Foundation, Inc.
+//   Copyright 2017-2018 Right Hand Robotics
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 
 void signal_handler(int signum);
 void load_params(ros::NodeHandle nh);
-
 void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
                         const reflex_msgs::RawServoCommands::ConstPtr &msg);
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
@@ -53,6 +52,7 @@ void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state, 
 void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state);
 void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state, int finger);
 void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state);
+
 bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state);
 void move_fingers_in(const reflex_hand::ReflexHandState* const state);
 void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state);

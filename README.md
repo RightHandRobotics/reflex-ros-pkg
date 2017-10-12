@@ -18,7 +18,7 @@ First, you need to get the cross-compiler (gcc-arm) and build OpenOCD, the JTAG 
 
 Now you can build the firmware image:
 
-    cd firmware/reflex-takktile
+    cd firmware/reflex-firmware-master
     make clean
     make
 

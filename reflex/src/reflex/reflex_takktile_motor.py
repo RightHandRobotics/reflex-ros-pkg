@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright 2015 Right Hand Robotics
+# Copyright 2017 Right Hand Robotics
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ __email__ = 'reflex-support@righthandrobotics.com'
 
 
 import rospy
-
 from motor import Motor
 
 
@@ -45,7 +44,8 @@ class ReflexTakktileMotor(Motor):
 
     def set_motor_angle(self, goal_pos):
         '''
-        Bounds the given position command and sets it to the motor
+        Bounds given position command
+        Sets it to motor
         '''
         if not nearly_equal(self.motor_cmd, self._check_motor_angle_command(goal_pos), 3) or\
            not nearly_equal(self.motor_cmd, self._motor_msg.joint_angle, 1):
@@ -62,7 +62,8 @@ class ReflexTakktileMotor(Motor):
 
     def set_motor_speed(self, goal_speed):
         '''
-        Bounds the given position command and sets it to the motor
+        Bounds given position command 
+        Sets it to motor
         '''
         if not nearly_equal(self.speed, self._check_motor_speed_command(goal_speed), 2):
             self.speed_update_occurred = True
@@ -88,13 +89,15 @@ class ReflexTakktileMotor(Motor):
 
     def tighten(self, tighten_angle=0.05):
         '''
-        Takes the given angle offset in radians and tightens the motor
+        Takes given angle offset [radians] 
+        Tightens motor
         '''
         self.set_motor_angle(self._motor_msg.joint_angle + tighten_angle)
 
     def loosen(self, loosen_angle=0.05):
         '''
-        Takes the given angle offset in radians and loosens the motor
+        Takes given angle offset [radians]
+        Loosens motor
         '''
         self.set_motor_angle(self._motor_msg.joint_angle - loosen_angle)
 
@@ -111,10 +114,11 @@ class ReflexTakktileMotor(Motor):
 
     def _loosen_if_in_contact(self):
         '''
-        Takes the finger tactile data, loosens motor if in contact
+        Takes finger tactile data
+        Loosens motor if in contact
         '''
         tolerance = 0.001
-        if self.finger.is_finger_in_contact() and (self.motor_cmd > self._motor_msg.joint_angle + tolerance):
+        if self.finger.is_finger_in_contact() and ((self.motor_cmd > self._motor_msg.joint_angle) + tolerance):
             rospy.logdebug("Motor %s in contact", self.name)
             self.loosen(0)
 
@@ -126,4 +130,4 @@ class ReflexTakktileMotor(Motor):
 
 
 def nearly_equal(a, b, sig_fig=3):
-    return (a == b or int(a*10**sig_fig) == int(b*10**sig_fig))
+    return (a == b or int(a * 10 ** sig_fig) == int(b * 10 ** sig_fig))

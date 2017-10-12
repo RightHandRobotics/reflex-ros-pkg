@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright 2015 Right Hand Robotics
+# Copyright 2017 Right Hand Robotics
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 #############################################################################
 
 __author__ = 'Eric Schneider'
-__copyright__ = 'Copyright (c) 2015 RightHand Robotics'
+__copyright__ = 'Copyright (c) 2017 RightHand Robotics'
 __license__ = 'Apache License 2.0'
 __maintainer__ = 'RightHand Robotics'
 __email__ = 'reflex-support@righthandrobotics.com'

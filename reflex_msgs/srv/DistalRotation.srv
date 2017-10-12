@@ -1,0 +1,7 @@
+# message for reading IMU rotations
+float32[4] palm_imu_quat
+float32 joint_angle
+float32 proximal
+float32[4] finger_imu_quat
+---
+float32[3] rotation

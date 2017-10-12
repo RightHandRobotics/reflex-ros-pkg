@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #############################################################################
-# Copyright 2015 Right Hand Robotics
+# Copyright 2017 Right Hand Robotics
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # limitations under the License.
 #############################################################################
 
-__author__ = 'Eric Schneider'
-__copyright__ = 'Copyright (c) 2015 RightHand Robotics'
+__author__ = 'Eric Schneider, Lance Bantoto'
+__copyright__ = 'Copyright (c) 2017 RightHand Robotics'
 __license__ = 'Apache License 2.0'
 __maintainer__ = 'RightHand Robotics'
 __email__ = 'reflex-support@righthandrobotics.com'
@@ -29,7 +29,7 @@ from std_srvs.srv import Empty
 import reflex_msgs.msg
 import reflex_msgs.srv
 import finger
-from reflex_hand import ReflexHand
+from reflex_hand import ReflexHand # ..............................============= ReflexHand is a class within reflex_hand.h 
 from reflex_takktile_motor import ReflexTakktileMotor
 
 
@@ -45,6 +45,10 @@ class ReflexTakktileHand(ReflexHand):
         self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs.srv.SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
+        
+        # ............................................TODO(LANCE): Figure this out! Use this for prompts similar to the two lines above
+        self.calibrate_imus = rospy.ServiceProxy(self.namespace + '/imu_calibrate', Empty)
+
         rospy.Service(self.namespace + '/enable_tactile_stops', Empty, self.enable_tactile_stops)
         rospy.Service(self.namespace + '/disable_tactile_stops', Empty, self.disable_tactile_stops)
         self.tactile_stops_enabled = False
@@ -53,6 +57,7 @@ class ReflexTakktileHand(ReflexHand):
         rospy.Subscriber(self.namespace + '/hand_state',
                          reflex_msgs.msg.Hand, self._receive_hand_state_cb)
 
+    # cb - callback. like an interrupt according to eric    
     def _receive_cmd_cb(self, data):
         reset = self.tactile_stops_enabled
         if reset:
@@ -124,10 +129,28 @@ class ReflexTakktileHand(ReflexHand):
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
 
+    #############################################################################################################
+    
+    # TODO(LANCE): Add calibration code here
+    # Walk the user through the required motions for calibrating the BNO055 IMUs located on the hand
+    # is this a service?
+    def calibrate_imus(self):
+        self.calibrate_imus_service()
+
+        # Gyroscope (Stay still for 10 seconds)
+        
+        # TODO(LANCE): PROMPT!!!
+        self.calibrate_imu_gyro_service()
+        # Accelerometer (Move in 45 degree increments over 1 axis for 30 seconds)
+        self.calibrate_imu_acc_service()
+        # Magnetometer (Move in simple random motions for 30 seconds)
+        self.calibrate_imu_mag_service()
+
+
     def _publish_motor_commands(self):
         '''
-        Checks whether motors have updated their states and, if so, publishes
-        their commands
+        Checks whether motors have updated their states 
+        If yes, publishes their commands
         '''
         speed_update_occurred = False
         for ID, motor in self.motors.items():
