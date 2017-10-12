@@ -53,6 +53,9 @@ void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state
 void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state, int finger);
 void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state);
 
+void log_imu_calibration_data(const reflex_hand::ReflexHandState* const state);
+void log_current_imu_offsets_to_file(const reflex_hand::ReflexHandState* const state, int finger);
+
 bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state);
 void move_fingers_in(const reflex_hand::ReflexHandState* const state);
 void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state);
@@ -60,5 +63,13 @@ void log_encoder_zero_to_file();
 void log_motor_zero_to_file_and_close();
 void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state);
 float load_raw_to_signed(int load, int motor_idx);
+
+bool initIMUCal(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res);	
+bool saveIMUCalData(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);
+bool loadIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res);
+bool refreshIMUCalData(reflex_hand::ReflexHand *rh, std_srvs::Empty::Request &req, 
+                    std_srvs::Empty::Response &res);
 
 #endif

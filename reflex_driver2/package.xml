@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <name>reflex_driver</name>
+  <version>2.0.0</version>
+  <description>A ROS interface for the Reflex Hand</description>
+  <maintainer email="reflex-support@righthandrobotics.com">Right Hand Robotics</maintainer>
+  <license>Apache License 2.0</license>
+  <url type="website">http://www.righthandrobotics.com</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>message_generation</buildtool_depend>
+  <build_depend>reflex_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>reflex_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <export />
+</package>

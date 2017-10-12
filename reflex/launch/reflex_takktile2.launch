@@ -9,7 +9,7 @@
 
   <arg name="eth" default="eth0"/>
 
-  <include file="$(find reflex_driver)/launch/reflex_takktile2_driver.launch">
+  <include file="$(find reflex_driver2)/launch/reflex_takktile_driver.launch">
   	<arg name="eth" value="$(arg eth)"/>
   </include>
 
