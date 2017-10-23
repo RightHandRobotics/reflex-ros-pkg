@@ -1,3 +1,3 @@
 # Calbration constants for [f1, f2, f3, preshape]
-encoder_zero_reference: [5.3079, 2.58223, 5.78308]
-motor_zero_reference: [57.5708, 59.7319, 55.0035, 55.2982]
+encoder_zero_reference: [0.50241, 6.03966, 2.95463]
+motor_zero_reference: [63.8768, 60.0776, 57.5233, 54.3981]

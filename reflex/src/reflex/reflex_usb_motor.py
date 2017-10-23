@@ -30,9 +30,9 @@ from std_msgs.msg import Float64
 from motor import Motor
 
 
-class ReflexSFMotor(Motor):
+class ReflexUSBMotor(Motor):
     def __init__(self, name):
-        super(ReflexSFMotor, self).__init__(name)
+        super(ReflexUSBMotor, self).__init__(name)
         self.zero_point = rospy.get_param(self.name + '/zero_point')
         self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.name + '/motor_to_joint_gear_ratio')
         self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.name + '/motor_to_joint_inverted')
@@ -43,8 +43,20 @@ class ReflexSFMotor(Motor):
         self.state_subscriber = rospy.Subscriber(name + '/state', JointState, self._receive_state_cb)
         self.reset_motor_speed()
 
+    def get_inversion(self):
+        return self.MOTOR_TO_JOINT_INVERTED
+
+    def get_gear_ratio(self):
+        return self.MOTOR_TO_JOINT_GEAR_RATIO
+
+    def get_motor_zero(self):
+        return self.zero_point
+
     def get_current_raw_motor_angle(self):
         return self._motor_msg.raw_angle
+
+    def get_current_joint_angle(self):
+        return self._motor_msg.joint_angle
 
     def set_motor_angle(self, goal_pos):
         '''
@@ -104,7 +116,6 @@ class ReflexSFMotor(Motor):
         if self.MOTOR_TO_JOINT_INVERTED:
             loosen_angle *= -1
         self._set_raw_motor_angle(self._motor_msg.raw_angle - loosen_angle)
-
 
     def _receive_state_cb(self, data):
         # Calculate joint angle from motor angle
