@@ -149,7 +149,7 @@ void load_params(ros::NodeHandle nh) {
     topic = "tactile_offset_f2";
   if (!nh.getParam("tactile_offset_f3", tactile_offset_f3))
     topic = "tactile_offset_f3";
-  /*if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
+  if (!nh.getParam("imu_calibration_data_f1", imu_calibration_data_f1))
     topic = "imu_calibration_data_f1";
   if (!nh.getParam("imu_calibration_data_f2", imu_calibration_data_f2))
     topic = "imu_calibration_data_f2";
@@ -157,7 +157,7 @@ void load_params(ros::NodeHandle nh) {
     topic = "imu_calibration_data_f3";
   if (!nh.getParam("imu_calibration_data_palm", imu_calibration_data_palm))
     topic = "imu_calibration_data_palm";
-  */
+
   if (topic != "No error") {
     ROS_FATAL("Failed to load %s parameter", topic.c_str());
     ROS_FATAL("This is likely because the corresponding yaml file in");
@@ -829,7 +829,6 @@ int main(int argc, char **argv) {
   latest_calibration_time = ros::Time::now();
   ROS_INFO("Advertising the /calibrate_fingers service");
   
-  /*
   // Initialize IMU services
   ros::ServiceServer initIMUCal_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
@@ -847,7 +846,6 @@ int main(int argc, char **argv) {
   ros::ServiceServer refreshIMUCalData_service = nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>
       (ns + "/refreshIMUCalData", boost::bind(refreshIMUCalData, &rh, _1, _2));
   ROS_INFO("Advertising the /refreshIMUCalData service");
-  */
 
   ros::ServiceServer calibrate_tactile_service = nh.advertiseService(ns + "/calibrate_tactile", 
     calibrate_tactile);

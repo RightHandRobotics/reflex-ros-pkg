@@ -9,5 +9,4 @@
 
 	<arg name="eth" />
 	<node name="driver_node_0" pkg="reflex_driver" type="reflex_driver_node" output="screen" required="true" args="$(arg eth)"/>
-	<!-- <node name="driver_node_1" pkg="reflex_driver2" type="reflex_driver_node" output="screen" required="true" args="$(arg eth)"/> -->
 </launch>
