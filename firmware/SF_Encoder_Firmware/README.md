@@ -8,10 +8,8 @@ A script was created for you. To make the script executable, navigate to the SF_
 
 ## Running the script
 
-	```
     bash flash_SF_Encoder_Firmware.sh
-    ```
 
-## Authors
+## Author
 
-* **Lance Bantoto** - *Initial work* - [GitHub](https://github.com/lwbantoto)
+* **Lance Bantoto** - [lwbantoto](https://github.com/lwbantoto)
