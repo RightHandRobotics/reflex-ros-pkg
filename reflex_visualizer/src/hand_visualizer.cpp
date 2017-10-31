@@ -131,9 +131,9 @@ void publish_finger_to_rviz_sf(const reflex_msgs::HandConstPtr& hand) {
   joint_state.position[3] = hand->motor[3].joint_angle;
   joint_state.position[4] = -hand->motor[3].joint_angle;
   int index = NUM_FIXED_STEPS;
-  for (int finger = 0; finger<3; finger++)
+  for (int finger = 0; finger < 3; finger++)
   {
-    for (int i=0; i<(NUM_FLEX_STEPS+1); i++)
+    for (int i = 0; i < (NUM_FLEX_STEPS + 1); i++)
     {
       joint_state.position[index] = hand->finger[finger].distal_approx/((float) (NUM_FLEX_STEPS+1));
       joint_state.position[index + 1] = 0;
@@ -171,7 +171,7 @@ void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, ros::ServiceC
     srv.request.finger_imu_quat = hand->finger[finger].imu.quat;
     if (client->call(srv))
     {
-      for (int i=0; i<(NUM_FLEX_STEPS+1); i++)
+      for (int i = 0; i < (NUM_FLEX_STEPS+1); i++)
       {
         joint_state.position[index] = srv.response.rotation[0]/((float) (NUM_FLEX_STEPS+1)); //roll
         joint_state.position[index + 1] = srv.response.rotation[1]/((float) (NUM_FLEX_STEPS+1)); //pitch
@@ -200,7 +200,7 @@ void publish_sensors_to_rviz(const reflex_msgs::HandConstPtr& hand) {
     char dist_fid[20];
     sprintf(dist_fid, "/distal_%d_tactile", (finger+1));
 
-    for (int i=0; i<SENSORS_PER_FINGER; i++)    // Loop through tactile sensors in the fingers
+    for (int i = 0; i < SENSORS_PER_FINGER; i++)    // Loop through tactile sensors in the fingers
     {
       contact_val = hand->finger[finger].contact[i];
       pressure_val = hand->finger[finger].pressure[i];
@@ -209,7 +209,8 @@ void publish_sensors_to_rviz(const reflex_msgs::HandConstPtr& hand) {
       if (i < 5) {    // Proximal link
         contact_marker.header.frame_id = prox_fid;
         pressure_marker.header.frame_id = prox_fid;
-      } else {      // Distal link
+      } 
+      else {      // Distal link
         contact_marker.header.frame_id = dist_fid;
         pressure_marker.header.frame_id = dist_fid;
       }
@@ -280,10 +281,10 @@ visualization_msgs::Marker makeFingerMarker(int id)
   marker.type = visualization_msgs::Marker::SPHERE;
 
   finger_tactile_positions(id, &marker.pose.position.x, &marker.pose.position.z, &marker.pose.position.y, &marker.pose.orientation.w);
-  if (id==8){
+  if (id == 8){
     marker.pose.orientation.y = 2.3;
   }
-  else if (id==9){
+  else if (id == 9){
     marker.pose.orientation.y = -2.5;
   }
   else if (id > 9){
