@@ -25,10 +25,10 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include <reflex_msgs/Hand.h>
+#include <reflex_msgs2/Hand.h>
 #include "./hand_visualizer.h"
 
-#include <reflex_msgs/DistalRotation.h>
+#include <reflex_msgs2/DistalRotation.h>
 
 using namespace std;
 
@@ -86,23 +86,23 @@ int main(int argc, char **argv)
     }
   }
 
-  ros::Publisher pub = n.advertise<reflex_msgs::Hand>("/reflex_sf/hand_state", 10);
+  ros::Publisher pub = n.advertise<reflex_msgs2::Hand>("/reflex_sf/hand_state", 10);
   ros::Duration(.5).sleep();
-  ros::ServiceClient distal_rotation_client = n.serviceClient<reflex_msgs::DistalRotation>("distal_rotation", true);
+  ros::ServiceClient distal_rotation_client = n.serviceClient<reflex_msgs2::DistalRotation>("distal_rotation", true);
   while(!distal_rotation_client) {
     ROS_INFO("Failed to connect to client 'distal_rotation_client'");
     ros::Duration(.5).sleep();
-    distal_rotation_client = n.serviceClient<reflex_msgs::DistalRotation>("distal_rotation", true);
+    distal_rotation_client = n.serviceClient<reflex_msgs2::DistalRotation>("distal_rotation", true);
   }
   ros::Subscriber takktile_sub =
-    n.subscribe<reflex_msgs::Hand>(
+    n.subscribe<reflex_msgs2::Hand>(
       "/reflex_takktile/hand_state", 10, boost::bind(publish_takktile_to_rviz, _1, &distal_rotation_client)
     );
   ros::Subscriber sf_sub = n.subscribe("/reflex_sf/hand_state", 10, publish_sf_to_rviz);
   
   // Zero the hand and make it appear open. The sleeps are to let RVIZ start
   ros::Duration(2.0).sleep();
-  reflex_msgs::Hand base_hand_state;
+  reflex_msgs2::Hand base_hand_state;
   for (int i=0; i<10; i++) {
     pub.publish(base_hand_state);
     ros::Duration(0.5).sleep();
@@ -113,17 +113,17 @@ int main(int argc, char **argv)
 }
 
 
-void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand, ros::ServiceClient* client) {
+void publish_takktile_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::ServiceClient* client) {
   publish_finger_to_rviz(hand, client);
   publish_sensors_to_rviz(hand);
 }
 
 
-void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_sf_to_rviz(const reflex_msgs2::HandConstPtr& hand) {
   publish_finger_to_rviz_sf(hand);
 }
 
-void publish_finger_to_rviz_sf(const reflex_msgs::HandConstPtr& hand) {
+void publish_finger_to_rviz_sf(const reflex_msgs2::HandConstPtr& hand) {
   joint_state.header.stamp = ros::Time::now();
   joint_state.position[0] = hand->motor[0].joint_angle;
   joint_state.position[1] = hand->motor[1].joint_angle;
@@ -144,7 +144,7 @@ void publish_finger_to_rviz_sf(const reflex_msgs::HandConstPtr& hand) {
   joint_pub.publish(joint_state);
 }
 
-void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, ros::ServiceClient* client) {
+void publish_finger_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::ServiceClient* client) {
   joint_state.header.stamp = ros::Time::now();
   joint_state.position[0] = hand->finger[0].proximal;
   joint_state.position[1] = hand->finger[1].proximal;
@@ -152,7 +152,7 @@ void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, ros::ServiceC
   joint_state.position[3] = hand->motor[3].joint_angle;
   joint_state.position[4] = -hand->motor[3].joint_angle;
 
-  reflex_msgs::DistalRotation srv;
+  reflex_msgs2::DistalRotation srv;
 
   int index = NUM_FIXED_STEPS;
   for (int finger = 0; finger<3; finger++)
@@ -188,7 +188,7 @@ void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, ros::ServiceC
 }
 
 
-void publish_sensors_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_sensors_to_rviz(const reflex_msgs2::HandConstPtr& hand) {
   bool contact_val;
   float pressure_val;
   visualization_msgs::MarkerArray marker_array;

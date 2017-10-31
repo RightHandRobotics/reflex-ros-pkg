@@ -3,7 +3,7 @@ project(reflex_visualizer)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
-  reflex_msgs
+  reflex_msgs2
   roscpp
   sensor_msgs
   urdf
@@ -21,4 +21,4 @@ add_executable(hand_visualizer src/hand_visualizer.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(hand_visualizer ${catkin_LIBRARIES})
-add_dependencies(hand_visualizer reflex_msgs_gencpp)
+add_dependencies(hand_visualizer reflex_msgs2_gencpp)
