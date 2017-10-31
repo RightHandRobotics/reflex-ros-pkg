@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(reflex_msgs)
+project(reflex_msgs2)
 
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Hand.msg
+  Imu.msg
   Finger.msg
   FingerPressure.msg
   Motor.msg
@@ -21,6 +22,7 @@ add_message_files(
   ForceCommand.msg
   RawServoCommands.msg
   RadianServoCommands.msg
+  ImuCalibrationData.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -28,6 +30,7 @@ add_service_files(
   FILES
   SetSpeed.srv
   SetTactileThreshold.srv
+  DistalRotation.srv
 )
 
 ## Generate added messages and services with any dependencies listed here

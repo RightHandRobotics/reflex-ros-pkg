@@ -21,7 +21,7 @@ import math
 import argparse
 from reflex_msgs.msg import Hand
 from reflex_msgs.srv import DistalRotation
-import reflex_msgs
+import reflex_msgs2
 
 # quaternion_to_matrix: converts an array of 4 floats representing a quaternion to a rotation matrix
 # float[4] q: the quaternion to convert

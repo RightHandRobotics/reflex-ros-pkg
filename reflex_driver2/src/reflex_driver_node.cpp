@@ -38,12 +38,12 @@ PUBLIC EXPOSURE BY THIS DRIVER
 
 */
 
-#include <reflex_msgs/Hand.h>
-#include <reflex_msgs/RawServoCommands.h>
-#include <reflex_msgs/RadianServoCommands.h>
-#include <reflex_msgs/SetSpeed.h>
-#include <reflex_msgs/SetTactileThreshold.h>
-#include <reflex_msgs/ImuCalibrationData.h>
+#include <reflex_msgs2/Hand.h>
+#include <reflex_msgs2/RawServoCommands.h>
+#include <reflex_msgs2/RadianServoCommands.h>
+#include <reflex_msgs2/SetSpeed.h>
+#include <reflex_msgs2/SetTactileThreshold.h>
+#include <reflex_msgs2/ImuCalibrationData.h>
 #include <ros/ros.h>
 #include <signal.h>
 
@@ -52,13 +52,15 @@ PUBLIC EXPOSURE BY THIS DRIVER
 #include <stdlib.h>
 #include <std_srvs/Empty.h>
 
+
 #include <algorithm>
 #include <fstream>
 #include <string>
 #include <vector>
 
-#include "./reflex_hand.h"
-#include "./reflex_driver_node.h"
+
+#include "reflex_hand.h"
+#include "reflex_driver_node.h"
 using namespace std;
 
 ros::Publisher hand_pub;
@@ -76,7 +78,7 @@ vector<double> MOTOR_TO_JOINT_GEAR_RATIO;     // Loaded from yaml
 int default_contact_threshold;                // Loaded from yaml 
 
 // Set by /set_tactile_threshold ROS service
-reflex_msgs::SetTactileThreshold::Request contact_thresholds;   
+reflex_msgs2::SetTactileThreshold::Request contact_thresholds;   
 vector<int> tactile_offset_f1;                // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f2;                // Loaded from yaml and reset during calibration
 vector<int> tactile_offset_f3;                // Loaded from yaml and reset during calibration
@@ -177,7 +179,7 @@ Note: The Dynamixels have a resolution divider of 4.
     http://support.robotis.com/en/product/dynamixel/mx_series/mx-28.htm#Actuator_Address_0B1
 */
 void receive_raw_cmd_cb(reflex_hand::ReflexHand *rh,
-                          const reflex_msgs::RawServoCommands::ConstPtr &msg) {
+                          const reflex_msgs2::RawServoCommands::ConstPtr &msg) {
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
 
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
@@ -196,7 +198,7 @@ Using zero references in "yaml/finger_calibrate.yaml" to translate into
 the raw Dynamixel values
 */
 void receive_angle_cmd_cb(reflex_hand::ReflexHand *rh,
-                          const reflex_msgs::RadianServoCommands::ConstPtr &msg) {
+                          const reflex_msgs2::RadianServoCommands::ConstPtr &msg) {
   uint16_t targets[reflex_hand::ReflexHand::NUM_SERVOS];
 
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
@@ -229,7 +231,7 @@ uint16_t pos_rad_to_raw(float rad_command, int motor_idx) {
 
 // Changes travel speed of motor
 bool set_motor_speed(reflex_hand::ReflexHand *rh,
-                     reflex_msgs::SetSpeed::Request &req, reflex_msgs::SetSpeed::Response &res) {
+                     reflex_msgs2::SetSpeed::Request &req, reflex_msgs2::SetSpeed::Response &res) {
   rh->setServoControlModes(reflex_hand::ReflexHand::CM_VELOCITY);
   ros::Duration(0.02).sleep();
 
@@ -311,8 +313,8 @@ void populate_tactile_threshold(int threshold) {
 
 
 // Sets threshold levels on tactile sensors for reporting contact
-bool set_tactile_threshold(reflex_msgs::SetTactileThreshold::Request &req,
-                           reflex_msgs::SetTactileThreshold::Response &res) {
+bool set_tactile_threshold(reflex_msgs2::SetTactileThreshold::Request &req,
+                           reflex_msgs2::SetTactileThreshold::Response &res) {
   contact_thresholds = req;
   return true;
 }
@@ -382,7 +384,7 @@ int calc_pressure(const reflex_hand::ReflexHandState* const state, int finger, i
 
 
 // Checks given finger/sensor for contact threshold
-int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
+int calc_contact(reflex_msgs2::Hand hand_msg, int finger, int sensor) {
   int pressure_value = hand_msg.finger[finger].pressure[sensor];
   return pressure_value > contact_thresholds.finger[finger].sensor[sensor];
 }
@@ -391,7 +393,7 @@ int calc_contact(reflex_msgs::Hand hand_msg, int finger, int sensor) {
 // Takes in hand state data and publishes to reflex_hand topic
 // Also performs calibration when certain booleans are enabled
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
-  reflex_msgs::Hand hand_msg;
+  reflex_msgs2::Hand hand_msg;
 
   const float scale = (1.0 / (1<<14));
 
@@ -491,7 +493,7 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   Saves current tactile values to file as the new calibrated "zero"
 */
 void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
-                               reflex_msgs::Hand hand_msg) {
+                               reflex_msgs2::Hand hand_msg) {
   tactile_file.open(tactile_file_address.c_str(), ios::out|ios::trunc);
   tactile_file << "# Captured sensor values from unloaded state\n";
   log_current_tactile_locally(state);
@@ -539,7 +541,7 @@ void calibrate_encoders_locally(const reflex_hand::ReflexHandState* const state)
   Write dynamixels to spot
 */
 void calibrate_motors_locally(const reflex_hand::ReflexHandState* const state) {
-  reflex_msgs::RawServoCommands servo_pos;
+  reflex_msgs2::RawServoCommands servo_pos;
   int motor_offset;
   float motor_scalar;
 
@@ -710,7 +712,7 @@ bool check_for_finger_movement(const reflex_hand::ReflexHandState* const state) 
 
 // Steps the fingers in by a calibration amount
 void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
-  reflex_msgs::RawServoCommands servo_pos;
+  reflex_msgs2::RawServoCommands servo_pos;
   int motor_step;
   ROS_INFO("Step fingers inwards:\t%d+%d\t%d+%d\t%d+%d\t%d+%d",
            state->dynamixel_angles_[0], calibration_dyn_increase[0],
@@ -728,7 +730,7 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
 
 
 // Captures current hand state and publishes to a debug message 
-void populate_motor_state(reflex_msgs::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
+void populate_motor_state(reflex_msgs2::Hand* hand_msg, const reflex_hand::ReflexHandState* const state) {
   char buffer[10];
 
   for (int i = 0; i < reflex_hand::ReflexHand::NUM_SERVOS; i++) {
@@ -780,9 +782,9 @@ int main(int argc, char **argv) {
   string ns = "/reflex_takktile";
 
   // Advertise necessary topics
-  hand_pub = nh.advertise<reflex_msgs::Hand>(ns + "/hand_state", 10);
+  hand_pub = nh.advertise<reflex_msgs2::Hand>(ns + "/hand_state", 10);
   ROS_INFO("Publishing the /hand_state topic");
-  raw_pub = nh.advertise<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 1);
+  raw_pub = nh.advertise<reflex_msgs2::RawServoCommands>(ns + "/raw_hand_command", 1);
 
   // Intialize reflex_hand object
   string network_interface;
@@ -803,15 +805,15 @@ int main(int argc, char **argv) {
 
   // Subscribe to hand command topics
   ros::Subscriber raw_positions_sub =
-    nh.subscribe<reflex_msgs::RawServoCommands>(ns + "/raw_hand_command", 10,
+    nh.subscribe<reflex_msgs2::RawServoCommands>(ns + "/raw_hand_command", 10,
                                                 boost::bind(receive_raw_cmd_cb, &rh, _1));
   ros::Subscriber radian_positions_sub =
-    nh.subscribe<reflex_msgs::RadianServoCommands>(ns + "/radian_hand_command", 10,
+    nh.subscribe<reflex_msgs2::RadianServoCommands>(ns + "/radian_hand_command", 10,
                                                    boost::bind(receive_angle_cmd_cb, &rh, _1));
 
   // Initialize hand command services
   ros::ServiceServer set_speed_service =
-    nh.advertiseService<reflex_msgs::SetSpeed::Request, reflex_msgs::SetSpeed::Response>
+    nh.advertiseService<reflex_msgs2::SetSpeed::Request, reflex_msgs2::SetSpeed::Response>
       (ns + "/set_speed", boost::bind(set_motor_speed, &rh, _1, _2));
   ros::ServiceServer disable_service =
     nh.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>

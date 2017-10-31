@@ -20,7 +20,7 @@
 #include <ros/ros.h>
 #include <signal.h>
 #include <string>
-#include "reflex_hand.h"
+#include "src/reflex_hand.h"
 using std::string;
 using reflex_hand::ReflexHandState;
 

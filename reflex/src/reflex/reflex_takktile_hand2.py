@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #############################################################################
-# Copyright 2015 Right Hand Robotics
+# Copyright 2017 Right Hand Robotics
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 # limitations under the License.
 #############################################################################
 
-__author__ = 'Eric Schneider'
-__copyright__ = 'Copyright (c) 2015 RightHand Robotics'
+__author__ = 'Eric Schneider, Lance Bantoto'
+__copyright__ = 'Copyright (c) 2017 RightHand Robotics'
 __license__ = 'Apache License 2.0'
 __maintainer__ = 'RightHand Robotics'
 __email__ = 'reflex-support@righthandrobotics.com'
@@ -26,10 +26,10 @@ __email__ = 'reflex-support@righthandrobotics.com'
 import rospy
 from std_srvs.srv import Empty
 
-import reflex_msgs.msg
-import reflex_msgs.srv
+import reflex_msgs2.msg
+import reflex_msgs2.srv
 import finger
-from reflex_hand import ReflexHand
+from reflex_hand import ReflexHand # ..............................============= ReflexHand is a class within reflex_hand.h 
 from reflex_takktile_motor import ReflexTakktileMotor
 
 
@@ -37,25 +37,27 @@ class ReflexTakktileHand(ReflexHand):
     def __init__(self):
         super(ReflexTakktileHand, self).__init__('/reflex_takktile', ReflexTakktileMotor)
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
-                                             reflex_msgs.msg.RadianServoCommands, queue_size=10)
+                                             reflex_msgs2.msg.RadianServoCommands, queue_size=10)
         self.fingers = {self.namespace + '_f1': finger.Finger(),
                         self.namespace + '_f2': finger.Finger(),
                         self.namespace + '_f3': finger.Finger()}
         self._connect_motors_to_fingers()
-        self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs.srv.SetSpeed)
+        self.set_speed_service = rospy.ServiceProxy(self.namespace + '/set_speed', reflex_msgs2.srv.SetSpeed)
         self.calibrate_fingers_service = rospy.ServiceProxy(self.namespace + '/calibrate_fingers', Empty)
-        self.zero_pose_service = rospy.ServiceProxy(self.namespace + '/zero_pose', Empty)
         self.calibrate_tactile_service = rospy.ServiceProxy(self.namespace + '/calibrate_tactile', Empty)
+        
+        # ............................................TODO(LANCE): Figure this out! Use this for prompts similar to the two lines above
+        self.calibrate_imus = rospy.ServiceProxy(self.namespace + '/imu_calibrate', Empty)
+
         rospy.Service(self.namespace + '/enable_tactile_stops', Empty, self.enable_tactile_stops)
         rospy.Service(self.namespace + '/disable_tactile_stops', Empty, self.disable_tactile_stops)
-        rospy.Service(self.namespace + '/calibrate_fingers_manual', Empty, self.calibrate_fingers_manual)
-        
         self.tactile_stops_enabled = False
         self.comms_timeout = 5.0  # Seconds with no communications until hand stops
         self.latest_update = rospy.get_rostime()
         rospy.Subscriber(self.namespace + '/hand_state',
-                         reflex_msgs.msg.Hand, self._receive_hand_state_cb)
+                         reflex_msgs2.msg.Hand, self._receive_hand_state_cb)
 
+    # cb - callback. like an interrupt according to eric    
     def _receive_cmd_cb(self, data):
         reset = self.tactile_stops_enabled
         if reset:
@@ -127,33 +129,28 @@ class ReflexTakktileHand(ReflexHand):
     def calibrate_tactile(self):
         self.calibrate_tactile_service()
 
-    def calibrate_fingers_manual(self, data = None):
-        # Calibrate the fingers manually through the command line prompts
-        # Saving the calibration data is implemented using the zero_pose_service
-        self.zero_pose_service()
-        for motor in sorted(self.motors):
-            rospy.loginfo("Calibrating motor " + motor)
-            command = raw_input("Type 't' to tighten motor, 'l' to loosen \
-motor, or 'q' to indicate that the zero point has been reached\n")
-            while not command.lower() == 'q':
-                if command.lower() == 't' or command.lower() == 'tt':
-                    print "Tightening motor " + motor
-                    self.motors[motor].tighten(0.35 * len(command) - 0.3)
-                elif command.lower() == 'l' or command.lower() == 'll':
-                    print "Loosening motor " + motor
-                    self.motors[motor].loosen(0.35 * len(command) - 0.3)
-                else:
-                    print "Didn't recognize that command, use 't', 'l', or 'q'"
-                command = raw_input("Tighten: 't'\tLoosen: 'l'\tDone: 'q'\n")
-            rospy.loginfo("Saving current position for %s as the zero point", motor)
-        print "Calibration complete, writing data to file"
-        self.zero_pose_service()
-        return []
+    #############################################################################################################
+    
+    # TODO(LANCE): Add calibration code here
+    # Walk the user through the required motions for calibrating the BNO055 IMUs located on the hand
+    # is this a service?
+    # def calibrate_imus(self):
+    #     self.calibrate_imus_service()
+
+    #     # Gyroscope (Stay still for 10 seconds)
+        
+    #     # TODO(LANCE): PROMPT!!!
+    #     self.calibrate_imu_gyro_service()
+    #     # Accelerometer (Move in 45 degree increments over 1 axis for 30 seconds)
+    #     self.calibrate_imu_acc_service()
+    #     # Magnetometer (Move in simple random motions for 30 seconds)
+    #     self.calibrate_imu_mag_service()
+
 
     def _publish_motor_commands(self):
         '''
-        Checks whether motors have updated their states and, if so, publishes
-        their commands
+        Checks whether motors have updated their states 
+        If yes, publishes their commands
         '''
         speed_update_occurred = False
         for ID, motor in self.motors.items():
@@ -173,7 +170,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         '''
         for ID, motor in self.motors.items():
             motor.speed_update_occurred = False
-        motor_speed_cmd = reflex_msgs.srv.SetSpeedRequest(
+        motor_speed_cmd = reflex_msgs2.srv.SetSpeedRequest(
             [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
              self.motors['/reflex_takktile_f2'].get_commanded_speed(),
              self.motors['/reflex_takktile_f3'].get_commanded_speed(),
@@ -187,7 +184,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         '''
         for ID, motor in self.motors.items():
             motor.position_update_occurred = False
-        motor_pos_cmd = reflex_msgs.msg.RadianServoCommands(
+        motor_pos_cmd = reflex_msgs2.msg.RadianServoCommands(
             [self.motors['/reflex_takktile_f1'].get_commanded_position(),
              self.motors['/reflex_takktile_f2'].get_commanded_position(),
              self.motors['/reflex_takktile_f3'].get_commanded_position(),
