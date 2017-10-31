@@ -32,6 +32,7 @@ void publish_finger_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::Service
 void publish_finger_to_rviz_sf(const reflex_msgs2::HandConstPtr& hand);
 void publish_sensors_to_rviz(const reflex_msgs2::HandConstPtr& hand);
 void finger_tactile_positions(int index, double* x, double* z, double* y, double* w);
+
 visualization_msgs::Marker makeContactMarker(bool val, int id);
 visualization_msgs::Marker makePressureMarker(float val, int id);
 visualization_msgs::Marker makeFingerMarker(int id);
