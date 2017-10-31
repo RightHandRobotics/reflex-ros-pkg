@@ -4,7 +4,6 @@ project(reflex_driver2)
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS roscpp)
 
-
 ## Specify additional locations of header files
 include_directories(include ${catkin_INCLUDE_DIRS})
 
