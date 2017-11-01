@@ -1,3 +1,15 @@
+#default_motor_speed: 
+    # Default speed the motors travel at when given a position command.
+#max_motor_speed: 
+    # When commanded to a higher speed than this, the code will clamp the command 
+    # down to this max speed. The motors can't physically travel much faster than this.
+#max_motor_travel: 
+    # Maximum position in radians that the motors can be commanded to.
+#overload_threshold: 
+    # Motor load at which the hand interrupts a command and loosens. 
+    # If you need the hand to grip harder this can be adjusted, but be careful not 
+    # to overheat the motor or physically damage the fingers when the motors grip with more force.
+
 reflex_takktile_f1:
     default_motor_speed: 3.0
     max_motor_speed: 3.5
