@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #############################################################################
 # Copyright 2017 Right Hand Robotics
 #
@@ -14,13 +16,13 @@
 # limitations under the License.
 #############################################################################
 
-#!/usr/bin/env python
+
 import rospy
 import numpy as np
 import math
-import argparse
-from reflex_msgs.msg import Hand
-from reflex_msgs.srv import DistalRotation
+import argparse # THIS MODULE IS NOT USED
+from reflex_msgs2.msg import Hand
+from reflex_msgs2.srv import DistalRotation
 import reflex_msgs2
 
 # quaternion_to_matrix: converts an array of 4 floats representing a quaternion to a rotation matrix
@@ -151,7 +153,7 @@ def handle_distal_rotation_srv(data):
                                     data.proximal,
                                     data.finger_imu_quat)
     # rospy.loginfo("rotation: %s", str(distal_rot))
-    return reflex_msgs.srv.DistalRotationResponse(distal_rot)
+    return reflex_msgs2.srv.DistalRotationResponse(distal_rot)
 
 def distal_rotation_server():
     rospy.init_node('imu', anonymous=True)
