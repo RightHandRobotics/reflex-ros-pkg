@@ -76,8 +76,8 @@
     name="proximal_1">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.011 0.007 0.011"
+        rpy="3.1459 0 0"/>
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_1.STL" />
@@ -93,7 +93,7 @@
     type="continuous">
     <origin
       xyz="0.01 0 0.0186"
-      rpy="-6.20039667432211E-16 2.40507565059625E-17 2.22044604925031E-16" />
+      rpy="-6.20039667432211E-16 0.28 2.22044604925031E-16" />
     <parent
       link="swivel_1" />
     <child
@@ -105,8 +105,8 @@
     name="proximal_pad_1">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.008 0.014 -0.002"
+        rpy="1.5708 1.5708 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
@@ -134,8 +134,8 @@
     name="distal_1">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.077 0.007 0.007"
+        rpy="3.1459 0 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_1.STL" />
@@ -150,7 +150,7 @@
     name="distal_joint_1"
     type="continuous">
     <origin
-      xyz="0.0760000000000001 0 0.00250000000000002"
+      xyz="0.07600000000000001 0 0.00250000000000002"
       rpy="0 0 0" />
     <parent
       link="proximal_1" />
@@ -163,8 +163,8 @@
     name="distal_pad_1">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.00825 0.009 0.057"
+        rpy="1.5708 1.5708 0" />
       <geometry>
         <mesh
           filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
@@ -179,7 +179,7 @@
     name="dist1_pad_joint"
     type="fixed">
     <origin
-      xyz="-0.0760000000000001 0 -0.0025"
+      xyz="-0.01 0 0.001"
       rpy="1.5707963267949 0 -1.5707963267949" />
     <parent
       link="distal_1" />
@@ -221,11 +221,11 @@
     name="proximal_2">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.011 0.007 0.011"
+        rpy="3.1459 0 0"/>
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_2.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
       </geometry>
       <material
         name="">
@@ -238,7 +238,7 @@
     type="continuous">
     <origin
       xyz="0.01 0 0.0186"
-      rpy="-1.16908225836102E-15 9.55493012556849E-16 1.11022302462515E-16" />
+      rpy="-1.16908225836102E-15 0.28 1.11022302462515E-16" />
     <parent
       link="swivel_2" />
     <child
@@ -250,11 +250,11 @@
     name="proximal_pad_2">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.008 0.014 -0.002"
+        rpy="1.5708 1.5708 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_pad_2.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -279,11 +279,11 @@
     name="distal_2">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.077 0.007 0.006"
+        rpy="3.1459 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_2.STL" />
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
       </geometry>
       <material
         name="">
@@ -308,11 +308,11 @@
     name="distal_pad_2">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.00825 0.009 0.057"
+        rpy="1.5708 1.5708 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_pad_2.STL" />
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -324,7 +324,7 @@
     name="dist2_pad_joint"
     type="fixed">
     <origin
-      xyz="-0.0760000000000001 0 -0.0025"
+      xyz="-0.01 0 0.001"
       rpy="1.5707963267949 0 -1.5707963267949" />
     <parent
       link="distal_2" />
@@ -337,11 +337,11 @@
     name="proximal_3">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.011 0.007 0.011"
+        rpy="3.1459 0 0"/>
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_3.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_1.STL" />
       </geometry>
       <material
         name="">
@@ -354,7 +354,7 @@
     type="continuous">
     <origin
       xyz="-0.0299999999999996 0 0.0816000000000002"
-      rpy="-5.55111512312578E-17 -2.22044604925031E-16 3.14159265358979" />
+      rpy="-5.55111512312578E-17 0.28 3.14159265358979" />
     <parent
       link="base_link" />
     <child
@@ -366,11 +366,11 @@
     name="proximal_pad_3">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.008 0.014 -0.002"
+        rpy="1.5708 1.5708 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/proximal_pad_3.STL" />
+          filename="package://reflex_visualizer/meshes/proximal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -395,11 +395,11 @@
     name="distal_3">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.077 0.007 0.006"
+        rpy="3.1459 0 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_3.STL" />
+          filename="package://reflex_visualizer/meshes/distal_1.STL" />
       </geometry>
       <material
         name="">
@@ -424,11 +424,11 @@
     name="distal_pad_3">
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="-0.00825 0.009 0.057"
+        rpy="1.5708 1.5708 0" />
       <geometry>
         <mesh
-          filename="package://reflex_visualizer/meshes/distal_pad_3.STL" />
+          filename="package://reflex_visualizer/meshes/distal_pad_1.STL" />
       </geometry>
       <material
         name="">
@@ -440,8 +440,8 @@
     name="dist3_pad_joint"
     type="fixed">
     <origin
-      xyz="-0.0760000000000001 0 -0.0025"
-      rpy="1.5707963267949 -1.22460635382238E-16 -1.5707963267949" />
+      xyz="-0.01 0 0.001"
+      rpy="1.5707963267949 0 -1.5707963267949" />
     <parent
       link="distal_3" />
     <child
