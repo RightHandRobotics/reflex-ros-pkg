@@ -25,10 +25,8 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include <reflex_msgs2/Hand.h>
+#include <reflex_msgs/Hand.h>
 #include "./hand_visualizer.h"
-
-#include <reflex_msgs2/DistalRotation.h>
 
 using namespace std;
 
@@ -45,64 +43,40 @@ int main(int argc, char **argv)
   joint_pub = n.advertise<sensor_msgs::JointState>("joint_states", 1);
   sensor_pub = n.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 1);
 
-  int total_joints = NUM_FIXED_STEPS + NUM_FINGERS * NUM_DOF * (NUM_FLEX_STEPS + 1);
-  ROS_INFO("Number to resize: %d", total_joints);
-  joint_state.name.resize(total_joints);
-  joint_state.position.resize(total_joints);
+  ROS_INFO("Number to resize: %d", NUM_FIXED_STEPS + 3 * (NUM_FLEX_STEPS + 1));
+  joint_state.name.resize(NUM_FIXED_STEPS + 3 * (NUM_FLEX_STEPS + 1));
+  joint_state.position.resize(NUM_FIXED_STEPS + 3 * (NUM_FLEX_STEPS + 1));
   joint_state.name[0] ="proximal_joint_1";
   joint_state.name[1] ="proximal_joint_2";
   joint_state.name[2] ="proximal_joint_3";
   joint_state.name[3] ="preshape_1";
   joint_state.name[4] ="preshape_2";
 
-  char buffer1[75], buffer2[75], buffer3[75];
+  char buffer[50];
   int index = NUM_FIXED_STEPS;
   for (int finger = 1; finger<4; finger++)
   {
     for (int i=1; i<(NUM_FLEX_STEPS+2); i++)
     {
       if (i == 1)
-      {
-        sprintf(buffer1, "finger[%d]/prox/flex_joint_from_prox_to_virtual_link[1]", finger);
-        sprintf(buffer2, "finger[%d]/prox/flex_joint_from_virtual_link[1]_to_virtual_link[2]", finger);
-        sprintf(buffer3, "finger[%d]/prox/flex_joint_from_virtual_link[2]_to_flex_link[1]", finger);
-      }
+        sprintf(buffer, "finger[%d]/flex_joint_from_prox_to_1", finger);
       else if (i == (NUM_FLEX_STEPS+1))
-      {
-        sprintf(buffer1, "finger[%d]/flex_link[%d]/flex_joint_from_flex_link[%d]_to_virtual_link[1]", finger, NUM_FLEX_STEPS, NUM_FLEX_STEPS);
-        sprintf(buffer2, "finger[%d]/flex_link[%d]/flex_joint_from_virtual_link[1]_to_virtual_link[2]", finger, NUM_FLEX_STEPS);
-        sprintf(buffer3, "finger[%d]/flex_link[%d]/flex_joint_from_virtual_link[2]_to_dist", finger, NUM_FLEX_STEPS);
-      }
+        sprintf(buffer, "finger[%d]/flex_joint_from_%d_to_dist", finger, NUM_FLEX_STEPS);
       else
-      {
-        sprintf(buffer1, "finger[%d]/flex_link[%d]/flex_joint_from_flex_link[%d]_to_virtual_link[1]", finger, i-1, i-1);
-        sprintf(buffer2, "finger[%d]/flex_link[%d]/flex_joint_from_virtual_link[1]_to_virtual_link[2]", finger, i-1);
-        sprintf(buffer3, "finger[%d]/flex_link[%d]/flex_joint_from_virtual_link[2]_to_flex_link[%d]", finger, i-1, i);
-      }
-      joint_state.name[index] = buffer1;
-      joint_state.name[index + 1] = buffer2;
-      joint_state.name[index + 2] = buffer3;
-      index += 3;
+        sprintf(buffer, "finger[%d]/flex_joint_from_%d_to_%d", finger, i-1, i);
+      joint_state.name[index] = buffer;
+      index++;
     }
   }
 
-  ros::Publisher pub = n.advertise<reflex_msgs2::Hand>("/reflex_sf/hand_state", 10);
-  ros::Duration(.5).sleep();
-  ros::ServiceClient distal_rotation_client = n.serviceClient<reflex_msgs2::DistalRotation>("distal_rotation", true);
-  while(!distal_rotation_client) {
-    ROS_INFO("Failed to connect to client 'distal_rotation_client'");
-    ros::Duration(.5).sleep();
-    distal_rotation_client = n.serviceClient<reflex_msgs2::DistalRotation>("distal_rotation", true);
-  }
-  ros::Subscriber takktile_sub =
-    n.subscribe<reflex_msgs2::Hand>(
-      "/reflex_takktile/hand_state", 10, boost::bind(publish_takktile_to_rviz, _1, &distal_rotation_client)
-    );
+  ros::Publisher pub = n.advertise<reflex_msgs::Hand>("/reflex_sf/hand_state", 10);
+  ros::Subscriber takktile_sub = n.subscribe("/reflex_takktile/hand_state", 10, publish_takktile_to_rviz);
   ros::Subscriber sf_sub = n.subscribe("/reflex_sf/hand_state", 10, publish_sf_to_rviz);
-  
+  ros::Subscriber plus_sub = n.subscribe("/reflex_plus/hand_state", 10, publish_plus_to_rviz);
+
   // Zero the hand and make it appear open. The sleeps are to let RVIZ start
   ros::Duration(2.0).sleep();
-  reflex_msgs2::Hand base_hand_state;
+  reflex_msgs::Hand base_hand_state;
   for (int i=0; i<10; i++) {
     pub.publish(base_hand_state);
     ros::Duration(0.5).sleep();
@@ -113,82 +87,48 @@ int main(int argc, char **argv)
 }
 
 
-void publish_takktile_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::ServiceClient* client) {
-  publish_finger_to_rviz(hand, client);
+void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+  publish_finger_to_rviz(hand, true);
   publish_sensors_to_rviz(hand);
 }
 
 
-void publish_sf_to_rviz(const reflex_msgs2::HandConstPtr& hand) {
-  publish_finger_to_rviz_sf(hand);
+void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+    publish_finger_to_rviz(hand, false);
 }
 
-void publish_finger_to_rviz_sf(const reflex_msgs2::HandConstPtr& hand) {
+void publish_plus_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+    publish_finger_to_rviz(hand, true);
+}
+
+void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, bool takktile) {
   joint_state.header.stamp = ros::Time::now();
-  joint_state.position[0] = hand->motor[0].joint_angle;
-  joint_state.position[1] = hand->motor[1].joint_angle;
-  joint_state.position[2] = hand->motor[2].joint_angle;
-  joint_state.position[3] = hand->motor[3].joint_angle;
-  joint_state.position[4] = -hand->motor[3].joint_angle;
-  int index = NUM_FIXED_STEPS;
-  for (int finger = 0; finger < 3; finger++)
-  {
-    for (int i = 0; i < (NUM_FLEX_STEPS + 1); i++)
-    {
-      joint_state.position[index] = hand->finger[finger].distal_approx/((float) (NUM_FLEX_STEPS+1));
-      joint_state.position[index + 1] = 0;
-      joint_state.position[index + 2] = 0;
-      index += 3;
-    }
+  if (takktile) {
+    joint_state.position[0] = hand->finger[0].proximal;
+    joint_state.position[1] = hand->finger[1].proximal;
+    joint_state.position[2] = hand->finger[2].proximal;
+  } else {
+    joint_state.position[0] = hand->motor[0].joint_angle;
+    joint_state.position[1] = hand->motor[1].joint_angle;
+    joint_state.position[2] = hand->motor[2].joint_angle;
   }
-  joint_pub.publish(joint_state);
-}
-
-void publish_finger_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::ServiceClient* client) {
-  joint_state.header.stamp = ros::Time::now();
-  joint_state.position[0] = hand->finger[0].proximal;
-  joint_state.position[1] = hand->finger[1].proximal;
-  joint_state.position[2] = hand->finger[2].proximal;
   joint_state.position[3] = hand->motor[3].joint_angle;
   joint_state.position[4] = -hand->motor[3].joint_angle;
-
-  reflex_msgs2::DistalRotation srv;
 
   int index = NUM_FIXED_STEPS;
   for (int finger = 0; finger<3; finger++)
   {
-    float joint_angle = 0;
-    if (finger == 0)
-      joint_angle = hand->motor[3].joint_angle;
-    else if (finger == 1)
-      joint_angle = -hand->motor[3].joint_angle;
-    else
-      joint_angle = 3.14159265359;
-
-    srv.request.palm_imu_quat = hand->palmImu.quat;
-    srv.request.joint_angle = joint_angle;
-    srv.request.proximal = hand->finger[finger].proximal;
-    srv.request.finger_imu_quat = hand->finger[finger].imu.quat;
-    if (client->call(srv))
+    for (int i=0; i<(NUM_FLEX_STEPS+1); i++)
     {
-      for (int i = 0; i < (NUM_FLEX_STEPS+1); i++)
-      {
-        joint_state.position[index] = srv.response.rotation[0]/((float) (NUM_FLEX_STEPS+1)); //roll
-        joint_state.position[index + 1] = srv.response.rotation[1]/((float) (NUM_FLEX_STEPS+1)); //pitch
-        joint_state.position[index + 2] = srv.response.rotation[2]/((float) (NUM_FLEX_STEPS+1)); //yaw
-        index += 3;
-      }
-    }
-    else
-    {
-      ROS_ERROR("Failed to call service distal_rotation");
+      joint_state.position[index] = hand->finger[finger].distal_approx/((float) (NUM_FLEX_STEPS+1));
+      index++;
     }
   }
   joint_pub.publish(joint_state);
 }
 
 
-void publish_sensors_to_rviz(const reflex_msgs2::HandConstPtr& hand) {
+void publish_sensors_to_rviz(const reflex_msgs::HandConstPtr& hand) {
   bool contact_val;
   float pressure_val;
   visualization_msgs::MarkerArray marker_array;
@@ -200,7 +140,7 @@ void publish_sensors_to_rviz(const reflex_msgs2::HandConstPtr& hand) {
     char dist_fid[20];
     sprintf(dist_fid, "/distal_%d_tactile", (finger+1));
 
-    for (int i = 0; i < SENSORS_PER_FINGER; i++)    // Loop through tactile sensors in the fingers
+    for (int i=0; i<SENSORS_PER_FINGER; i++)    // Loop through tactile sensors in the fingers
     {
       contact_val = hand->finger[finger].contact[i];
       pressure_val = hand->finger[finger].pressure[i];
@@ -209,8 +149,7 @@ void publish_sensors_to_rviz(const reflex_msgs2::HandConstPtr& hand) {
       if (i < 5) {    // Proximal link
         contact_marker.header.frame_id = prox_fid;
         pressure_marker.header.frame_id = prox_fid;
-      } 
-      else {      // Distal link
+      } else {      // Distal link
         contact_marker.header.frame_id = dist_fid;
         pressure_marker.header.frame_id = dist_fid;
       }
@@ -280,70 +219,22 @@ visualization_msgs::Marker makeFingerMarker(int id)
   marker.header.stamp = ros::Time();
   marker.type = visualization_msgs::Marker::SPHERE;
 
-  finger_tactile_positions(id, &marker.pose.position.x, &marker.pose.position.z, &marker.pose.position.y, &marker.pose.orientation.w);
-  if (id == 8){
-    marker.pose.orientation.y = 2.3;
-  }
-  else if (id == 9){
-    marker.pose.orientation.y = -2.5;
-  }
-  else if (id > 9){
-    marker.pose.orientation.x = 4.55;
-  }
+  finger_tactile_positions(id, &marker.pose.position.x, &marker.pose.position.z);
+  marker.pose.position.y = 0;
+  marker.pose.orientation.w = 1.0;
   marker.color.a = 1.0;
   return marker;
 }
 
 
-void finger_tactile_positions(int index, double* x, double* z, double* y, double* w) {
-  //TODO: Make more dynamic/ easy to change position locations (sensors 0-8 are ok)
+void finger_tactile_positions(int index, double* x, double* z) {
   double x_gap = 0.008;
   if (index < 5) {  // Proximal link
     *x = x_gap*index + 0.019;
-    *z = 0.014;
-    *y = 0;
-    *w = 1.0;
+    *z = 0.015;
   }
-  else if ((index > 4) & (index < 8)) {        // Distal link
-    *x = x_gap*(index-5) + 0.0245;
-    *z = 0.010;
-    *y = 0;
-    *w = 1.0;
-  }
-  else if (index == 8){
-    *x = x_gap*(index+1-5) + 0.019;
-    *z = 0.007;
-    *y = 0;
-    *w = 5.0;
-  }
-  else if (index == 9){
-    *x = x_gap*(index-5-1+1) + 0.0205;
-    *z = -0.0025;
-    *y = 0;
-    *w = 5.0;
-  }
-  else if (index == 10){
-    *x = x_gap*(6-5) + 0.0215;
-    *z = 0.001;
-    *y = 0.0075;
-    *w = 5.0;
-  }
-  else if (index == 11){
-    *x = x_gap*(7-5) + 0.0215;
-    *z = 0.001;
-    *y = 0.0075;
-    *w = 5.0;
-  }
-  else if (index == 12){
-    *x = x_gap*(6-5) + 0.0215;
-    *z = 0.001;
-    *y = -0.0075;
-    *w = 5.0;
-  }
-  else if (index == 13){
-    *x = x_gap*(7-5) + 0.0215;
-    *z = 0.001;
-    *y = -0.0075;
-    *w = 5.0;
+  else {        // Distal link
+    *x = x_gap*(index-5) + 0.0215;
+    *z = 0.009;
   }
 }
