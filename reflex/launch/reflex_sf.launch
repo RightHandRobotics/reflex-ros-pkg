@@ -18,7 +18,7 @@
         </rosparam>
     </node>
     <rosparam file="$(find reflex)/yaml/reflex_sf.yaml" command="load"/>
-    <rosparam file="$(find reflex)/yaml/reflex_sf_motor_zero_points.yaml" command="load"/>
+    <rosparam file="$(find reflex)/yaml/reflex_sf_zero_points.yaml" command="load"/>
 
     <node name="reflex_sf_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
           args="--manager=dxl_manager
