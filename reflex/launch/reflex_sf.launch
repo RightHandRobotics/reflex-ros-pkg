@@ -25,5 +25,5 @@
                 --port reflex_sf_port 
                 reflex_sf_f1 reflex_sf_f2 reflex_sf_f3 reflex_sf_preshape"
           output="screen"/>
-    <node name="reflex_sf_hand" pkg="reflex" type="reflex_usb_hand.py" required="true" output="screen"/>
+    <node name="reflex_sf_hand" pkg="reflex" type="reflex_sf_hand.py" required="true" output="screen"/>
 </launch>
