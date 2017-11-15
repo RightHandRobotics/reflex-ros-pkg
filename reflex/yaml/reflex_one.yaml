@@ -1,0 +1,89 @@
+reflex_one_f1:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_f1
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1.42     #Might need to change this... same with other 2 fingers
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+    motor:
+        id: 1
+        init: 0
+        min: 0
+        max: 28672                  # Might need to change this ...same with other 2 fingers
+
+reflex_one_f2:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_f2
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+    motor:
+        id: 2
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_f3:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_f3
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1.42
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.25
+    motor:
+        id: 3
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_preshape1:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_preshape1
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1.5                                  # Might need to change this
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 1.75                                            # Might need to change this
+    overload_threshold: 0.55  # preshape threshold is higher due to different gearing
+    motor:
+        id: 4
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_preshape2:                            # Added preshape 2
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_preshape2
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1.5
+    default_motor_speed: 4.5
+    max_motor_speed: 6.0
+    max_motor_travel: 1.75
+    overload_threshold: 0.55  # preshape threshold is higher due to different gearing
+    motor:
+        id: 5
+        init: 0
+        min: 0
+        max: 28672
