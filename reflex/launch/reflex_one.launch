@@ -8,9 +8,9 @@
             serial_ports:
                 reflex_one_port:
                     port_name: "/dev/ttyUSB0"
-                    baud_rate: 1000000    <!-- Was 57600-->     <!-- XL320 and AX12 baud rate: 1000000 --> 
+                    baud_rate: 57600    <!-- Was 57600-->     <!-- XL320 and AX12 baud rate: 1000000 ...note that one is changed to 57600--> 
                     min_motor_id: 1
-                    max_motor_id: 3  <!-- CHANGED 4 to 5 -->
+                    max_motor_id: 5  <!-- CHANGED 4 to 5 -->
                     update_rate: 20
                 
         </rosparam>

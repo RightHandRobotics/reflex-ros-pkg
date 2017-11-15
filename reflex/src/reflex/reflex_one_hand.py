@@ -40,8 +40,9 @@ from dynamixel_driver import dynamixel_io     ### Added this to set IDs
 class ReflexOneHand(ReflexHand):
     def __init__(self):
         # Gets dynamixel model and ID from dynamixel_io.py
-        #self.dxl_io = dynamixel_io.DynamixelIO("/dev/ttyUSB0", 1000000)
+        self.dxl_io = dynamixel_io.DynamixelIO("/dev/ttyUSB0", 1000000)
         #self.dxl_io.set_id(1,3)                       ### changes ID from 1 to 2
+        #self.dxl_io.set_baud_rate(3,34)
         #print("model id:",self.dxl_io.get_model_number(1))
         super(ReflexOneHand, self).__init__('/reflex_one', ReflexOneMotor)
         #print("done calling SUPAAAaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
