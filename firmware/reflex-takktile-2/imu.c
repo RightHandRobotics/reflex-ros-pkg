@@ -272,7 +272,7 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 
     printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length 8. ", 
       (int)port,address);
-    result = readBytesSPI(port, address, 8, values);
+    result = readBytesSPI(port, address, numBytes, values);
   }
   else
   {
@@ -280,7 +280,7 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 
     printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length 8. ", 
       (int)port, address);
-    result = readBytesI2C(port, address, 8, values);
+    result = readBytesI2C(port, address, numBytes, values);
   }
   return result;
 }
