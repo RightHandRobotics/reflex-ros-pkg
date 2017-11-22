@@ -21,17 +21,14 @@ void imuInit()
 {
   uint8_t id[1] = {0}; // This initializes the variable in one line. {} is for a pointer. No need to make memory and stuff
   
-  // result is a ___________________________________????????????
   uint8_t result;
 
-  // Initialize IMU state
   printf("Initializing IMU state: \n");
 
   // For each IMU
   for (int i = 0; i < NUM_IMUS; i++) 
   {
-    // Multiplexer shit
-    if (handPorts.multiplexer) 
+    if (handPorts.multiplexer) // multiplexer is an attribute of ports_t struct
     {
       if (selectMultiplexerPort(i))
           printf("\tI2C Multiplexer port %d, 0x%x: ", i, 1 << i);
@@ -70,7 +67,7 @@ void imuInit()
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000);
 
-  // Reset trigger to
+  // Reset system. Set RST_SYS bit in SYS_TRIGGER register
   printf("\tResetting...\n");
   result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x20);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
@@ -82,7 +79,7 @@ void imuInit()
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000);
   
-  // Set page ID
+  // Set page ID. Change page to 0x00. TODO(LANCE): understand what a page id is?
   printf("\tSetting page ID...\n");
   result = setRegisterIMUs(BNO055_PAGE_ID_ADDR, 0);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
@@ -94,7 +91,7 @@ void imuInit()
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
   udelay(1000000); //500000); // Takes a while to set this configuration
     
-  // Set IMU mode to FUSION
+  // Set operating mode to NDOF (nine degree of freedom) FUSION
   printf("\tSetting operation mode 0x%02x... \n", OPERATION_MODE_NDOF);
   result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
@@ -291,23 +288,16 @@ void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]){
 
   // Iterate for each IMU
   for(i = 0; i < NUM_IMUS; i++){ 
-    // Set operation mode to CONFIG_MODE
+      // Set operation mode to CONFIG_MODE
       setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);                    
       // Set each of the 22 calibration data registers
-      for (j = 0; j < 22; j++)     
+      for (j = 0; j < 22; j++){     
         // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register                                                     
-        setRegisterIMU(i, (i * 22 + j) + ACCEL_OFFSET_X_LSB_ADDR, buffer[i * 22 + j]);   
-
+        setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[22 * i + j]);   
+      }
       // After calibration data registers set, set operation mode to NDOF (type of fusion mode)
       setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
   }
-  /*
-  For debugging. This for loop sets an entire array to 1.
-
-  // int i;
-  // for (i = 0; i < NUM_IMUS * 11; i++)
-  //      handState.imus_calibration_data[i] = 1; 
-  */
 }
 
 /*
@@ -373,7 +363,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           break;
       }
 
-      // Write to register
+      // Write to register. WHY?
       result = writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddress);
 
       // Check if register write worked
@@ -404,10 +394,10 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
           // If register read succeeds, load data
           if (result){
-            handState.imus[imuNumber*4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-            handState.imus[imuNumber*4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-            handState.imus[imuNumber*4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-            handState.imus[imuNumber*4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+            handState.imus[imuNumber * 4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
+            handState.imus[imuNumber * 4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
+            handState.imus[imuNumber * 4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
+            handState.imus[imuNumber * 4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
           }
 
           // else, switch state
@@ -449,7 +439,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
             int i = 0;
             for (i = 0; i < 11; i++)
               handState.imus_calibration_data[imuNumber * 11 + i] = 
-                              ((values[1 + i * 2] << 8) & 0xFF) | (values[i * 2] & 0xFF);
+                  ((uint16_t)(values[i * 2 + 1] << 8)) | ((uint16_t)(values[i * 2]));
             imu_cal_values_read = 1;
           }
           
