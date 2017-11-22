@@ -51,7 +51,7 @@ PUBLIC EXPOSURE BY THIS DRIVER
 #include <stdio.h>
 #include <stdlib.h>
 #include <std_srvs/Empty.h>
-
+#include <unistd.h>
 
 #include <algorithm>
 #include <fstream>
@@ -100,12 +100,14 @@ bool acquire_tactile = false;                 // Updated by /calibrate_tactile R
 bool acquire_fingers = false;                 // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
 bool first_capture = false;                   // Updated by /calibrate_fingers ROS service and in reflex_hand_state_cb()
 bool all_fingers_moved = false;               // Updated in reflex_hand_state_cb()
+
 vector<double> dynamixel_zero_point;          // Loaded from yaml and reset during calibration
 vector<double> encoder_zero_point;            // Loaded from yaml and reset during calibration
 
-//////////////////////////////////////////////////////////////// TODO(LANCE): Verify correct data type
-vector<int> imu_calibration_data_f1, imu_calibration_data_f2, 
-            imu_calibration_data_f3, imu_calibration_data_palm;  
+vector<int> imu_calibration_data_f1;
+vector<int> imu_calibration_data_f2; 
+vector<int> imu_calibration_data_f3;
+vector<int> imu_calibration_data_palm;  
 bool acquire_imus = false;  
 //////////////////////////////////////////////////////////.. should I make a flag? //bool set_imus = false;
 
@@ -390,13 +392,17 @@ int calc_contact(reflex_msgs2::Hand hand_msg, int finger, int sensor) {
 }
 
 
-// Takes in hand state data and publishes to reflex_hand topic
-// Also performs calibration when certain booleans are enabled
+/* 
+  Takes in hand state data and publishes to reflex_hand topic
+  Also performs calibration when certain booleans are enabled
+*/
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
   reflex_msgs2::Hand hand_msg;
 
-  const float scale = (1.0 / (1<<14));
+  // 1 Quaternion (unit less) = 2^14 LSB
+  const float scale = (1.0 / (1 << 14)); // TODO(LANCE): verify if correct
 
+  // FINGER
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
     encoder_offset[i] = update_encoder_offset(state->encoders_[i],
                                               encoder_last_value[i],
@@ -417,40 +423,40 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
 
-
-    ///////////////////// TODO(LANCE): FIGURE THIS OUT
-    for (int j = 0; j < 4; j++)
+    // IMU
+    for (int j = 0; j < 4; j++){
       hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i * 4 + j]);
+    }
 
     hand_msg.finger[i].imu.calibration_status = state->imu_calibration_status[i];
     
-    /*
-    testing this rn...
     for (int j = 0; j < 11; j++)
-      hand_msg.palmImu.calibration_data[j] = state->imu_calibration_data[11*i + j]; // TODO: change to use numimus
-    */
+      hand_msg.finger[i].imu.calibration_data[j] = state->imu_calibration_data[i * 11 + j];
+    
   }
 
+  // MOTOR
   hand_msg.motor[3].joint_angle = calc_motor_angle(MOTOR_TO_JOINT_INVERTED[3],
                                                    state->dynamixel_angles_[3],
                                                    MOTOR_TO_JOINT_GEAR_RATIO[3],
                                                    dynamixel_zero_point[3]);
   populate_motor_state(&hand_msg, state);
 
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// Palm IMU
+  // PALM
   for (int i = 0; i < 4; i++)
     hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
 
   hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
 
-  // TODO(LANCE): Understand why ARE THEY ALL ZERO? IS IT BBY DEFAULT?
   for (int i = 0; i < 11; i++)
-    hand_msg.palmImu.calibration_data[i] = state->imu_calibration_data[33 + i]; // TODO: change to use numimus
+    hand_msg.palmImu.calibration_data[i] 
+      = state->imu_calibration_data[reflex_hand::ReflexHandState::NUM_FINGERS * 11 + i]; 
 
   hand_pub.publish(hand_msg);
 
-  for (int i = 0; i < 4; i++)
-    hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
+  // REPEATED
+  // for (int i = 0; i < 4; i++)
+  //   hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
 
   hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
 
@@ -605,12 +611,12 @@ bool loadIMUCalData(reflex_hand::ReflexHand *rh,
                     std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res) {
   ROS_INFO("Loading IMU calibration data...");
-  uint8_t buffer[4 * 11 * 2]; // 88
+  uint8_t buffer[reflex_hand::ReflexHandState::NUM_IMUS * 22]; // 88
 
-  // Convert imu_calibration_data uint16_t[11] arrays to uint8_t arrays
   for (int i = 0; i < 11; i++) { // 44
     int x = i * 2;
-  
+    
+    // Convert uint16_t to uint8_t  
     buffer[x]           = (imu_calibration_data_f1[i] & 0xff00) >> 8;
     buffer[x + 1]       = imu_calibration_data_f1[i] & 0x00ff;
     buffer[22 + x]      = (imu_calibration_data_f2[i] & 0xff00) >> 8;
@@ -619,7 +625,6 @@ bool loadIMUCalData(reflex_hand::ReflexHand *rh,
     buffer[44 + x + 1]  = imu_calibration_data_f3[i] & 0x00ff;
     buffer[66 + x]      = (imu_calibration_data_palm[i] & 0xff00) >> 8;
     buffer[66 + x + 1]  = imu_calibration_data_palm[i] & 0x00ff;
-
   }
 
   rh->loadIMUCalData(buffer);
