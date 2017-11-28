@@ -358,7 +358,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           break;
         case IMU_CAL_OFFSETS:
           registerAddress = ACCEL_OFFSET_X_LSB_ADDR;
-        
+          break;
         /////// TODO create new state? 9/22/2017 Lance
         default:
           registerAddress = BNO055_QUATERNION_DATA_W_LSB_ADDR;
