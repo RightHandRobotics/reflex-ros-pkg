@@ -133,14 +133,14 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
     // Send data to IMU register using I2C or SPI-to-I2C bridge (depends on finger)
     if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
-      setRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
-      resultOp = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
+      resultOp = setRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
+      //resultOp = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
 
     else
     {
-      setRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
-      resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
+      resultOp = setRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
+      //resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
     
     // Check to make sure data is sent correctly
@@ -158,7 +158,8 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
     
   }
 
-  return result == NUM_IMUS;
+  return result;
+  //return result == NUM_IMUS;
 }
 
 /*
@@ -185,14 +186,14 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
   // Send data to IMU register using I2C or SPI-to-I2C bridge (depends on finger)
   if ((uint32_t) handPorts.imu[num] == SPI1_BASE)
   {
-    setRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
-    resultOp = writeRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
+    resultOp = setRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
+    //resultOp = writeRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
   }
 
   else
   {
-    setRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
-    resultOp = writeRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
+    resultOp = setRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
+    //resultOp = writeRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
   }
   
   // Check to make sure data is sent correctly
@@ -208,7 +209,8 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
   else
     result += resultOp;
 
-  return result == NUM_IMUS;
+  return result;
+  //return result == NUM_IMUS;
 }
 /*
   Description: Selects the IMU multiplexer port between I2C and SPI
