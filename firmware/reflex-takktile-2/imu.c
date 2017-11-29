@@ -2,7 +2,7 @@
 
 // Global variables
 // Set default states to STATE_WAIT for each IMU upon power-on
-imu_async_poll_state_t imu_poll_state[NUM_IMUS] = {STATE_WAIT, STATE_WAIT, STATE_WAIT, STATE_WAIT};
+imu_async_poll_state_t imu_poll_state[NUM_IMUS] = {IMU_STATE_WAIT, IMU_STATE_WAIT, IMU_STATE_WAIT, IMU_STATE_WAIT};
 
 // Set default poll type to IMU_DATA for each IMU upon power-on
 imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DATA};
@@ -326,7 +326,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
   printf("\nIMU NUMBER: %d\nSTATE: ", imuNumber);
 
   if (checkIMUStatus(imuNumber) == 0)
-    *state = STATE_WAIT;
+    *state = IMU_STATE_WAIT;
   
   /*
   States:
