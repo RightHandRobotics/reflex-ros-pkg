@@ -452,7 +452,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
           else
             *state = IMU_STATE_WAIT;
-          break;
+          //break;
           
         default:  // Do nothing as this should never occur
           *state = IMU_STATE_WAIT;
