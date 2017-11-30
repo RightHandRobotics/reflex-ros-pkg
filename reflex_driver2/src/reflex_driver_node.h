@@ -20,6 +20,30 @@
 #ifndef REFLEX_DRIVER_NODE_H
 #define REFLEX_DRIVER_NODE_H
 
+#include <reflex_msgs2/Hand.h>
+#include <reflex_msgs2/RawServoCommands.h>
+#include <reflex_msgs2/RadianServoCommands.h>
+#include <reflex_msgs2/SetSpeed.h>
+#include <reflex_msgs2/SetTactileThreshold.h>
+#include <reflex_msgs2/ImuCalibrationData.h>
+#include <ros/ros.h>
+#include <signal.h>
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <std_srvs/Empty.h>
+#include <unistd.h>
+#include <math.h>
+
+#include <algorithm>
+#include <fstream>
+#include <string>
+#include <vector>
+
+
+#include "reflex_hand.h"
+
 #define CALIBRATION_ERROR 0.05  // Encoder delta signifying movement in calibration
 
 void signal_handler(int signum);

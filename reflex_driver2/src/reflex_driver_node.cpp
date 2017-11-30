@@ -38,28 +38,6 @@ PUBLIC EXPOSURE BY THIS DRIVER
 
 */
 
-#include <reflex_msgs2/Hand.h>
-#include <reflex_msgs2/RawServoCommands.h>
-#include <reflex_msgs2/RadianServoCommands.h>
-#include <reflex_msgs2/SetSpeed.h>
-#include <reflex_msgs2/SetTactileThreshold.h>
-#include <reflex_msgs2/ImuCalibrationData.h>
-#include <ros/ros.h>
-#include <signal.h>
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <std_srvs/Empty.h>
-#include <unistd.h>
-
-#include <algorithm>
-#include <fstream>
-#include <string>
-#include <vector>
-
-
-#include "reflex_hand.h"
 #include "reflex_driver_node.h"
 using namespace std;
 
@@ -116,6 +94,80 @@ const uint16_t CALIBRATION_DYN_OFFSET[] = {50, 50, 50, 0};
 ros::Time latest_calibration_time;                          // Updated in reflex_hand_state_cb() during calibration
 
 bool g_done = false;    // Updated by signum handler below
+
+typedef struct 
+{
+  float w;
+  float x;
+  float y;
+  float z;
+} __attribute__((packed)) Quaternion;
+
+Quaternion getQuaternion(float w, float x, float y, float z)
+{
+  Quaternion quat;
+  quat.w = w;
+  quat.x = x;
+  quat.y = y;
+  quat.z = z;
+  return quat; 
+}
+
+Quaternion invertQuaternion(Quaternion quat)
+{
+  Quaternion inversedQuat;
+  float dividend = quat.w * quat.w + quat.x * quat.x + 
+    quat.y * quat.y + quat.z * quat.z;
+  inversedQuat.w =  quat.w / dividend;
+  inversedQuat.x = (-1) * (quat.x / dividend);
+  inversedQuat.y = (-1) * (quat.y / dividend);
+  inversedQuat.z = (-1) * (quat.z / dividend);
+  return inversedQuat;           
+}
+
+// source https://www.youtube.com/watch?v=jlskQDR8-bY
+// quaternion multiplication is not commutative q1*q2 != q2*q1
+Quaternion multiplyQuaternion(Quaternion q1, Quaternion q2)
+{
+  Quaternion product;
+  product.w = q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z;
+  product.x = q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y;
+  product.y = q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x;
+  product.z = q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w;
+  return product;
+}
+/*
+// Calculate Euler angles (roll, pitch, and yaw) from the unit quaternion.
+
+source: https://developer.thalmic.com/docs/api_reference/platform/hello-myo_8cpp-example.html
+        float roll = atan2(2.0f * (quat.w() * quat.x() + quat.y() * quat.z()),
+                           1.0f - 2.0f * (quat.x() * quat.x() + quat.y() * quat.y()));
+        float pitch = asin(max(-1.0f, min(1.0f, 2.0f * (quat.w() * quat.y() - quat.z() * quat.x()))));
+        float yaw = atan2(2.0f * (quat.w() * quat.z() + quat.x() * quat.y()),
+                        1.0f - 2.0f * (quat.y() * quat.y() + quat.z() * quat.z()));
+
+*/
+
+// Outputs are in radians
+static void toEulerAngle(const Quaternion q, double& roll, double& pitch, double& yaw)
+{
+  // roll (x-axis rotation)
+  double sinr = +2.0 * (q.w * q.x + q.y * q.z);
+  double cosr = +1.0 - 2.0 * (q.x * q.x + q.y * q.y);
+  roll = atan2(sinr, cosr);
+
+  // pitch (y-axis rotation)
+  double sinp = +2.0 * (q.w * q.y - q.z * q.x);
+  if (fabs(sinp) >= 1)
+    pitch = copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+  else
+    pitch = asin(sinp);
+
+  // yaw (z-axis rotation)
+  double siny = +2.0 * (q.w * q.z + q.x * q.y);
+  double cosy = +1.0 - 2.0 * (q.y * q.y + q.z * q.z);  
+  yaw = atan2(siny, cosy);
+}
 
 
 void signal_handler(int signum) {
@@ -397,13 +449,33 @@ int calc_contact(reflex_msgs2::Hand hand_msg, int finger, int sensor) {
   Also performs calibration when certain booleans are enabled
 */
 void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
-  reflex_msgs2::Hand hand_msg;
+  reflex_msgs2::Hand hand_msg; 
+  Quaternion p;
 
   // 1 Quaternion (unit less) = 2^14 LSB
   const float scale = (1.0 / (1 << 14)); // TODO(LANCE): verify if correct
 
+  // PALM
+  for (int i = 0; i < 4; i++)
+    hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
+
+  for (int i = 0; i < 3; i++)
+    hand_msg.palmImu.euler_angles[i] = 0;
+
+  p = getQuaternion(hand_msg.palmImu.quat[0], hand_msg.palmImu.quat[1], 
+    hand_msg.palmImu.quat[2], hand_msg.palmImu.quat[3]);
+
+  hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
+
+  for (int i = 0; i < 11; i++)
+    hand_msg.palmImu.calibration_data[i] 
+      = state->imu_calibration_data[reflex_hand::ReflexHandState::NUM_FINGERS * 11 + i]; 
+
   // FINGER
   for (int i = 0; i < reflex_hand::ReflexHandState::NUM_FINGERS; i++) {
+    double roll, pitch, yaw;
+    Quaternion f, inv, prod;
+
     encoder_offset[i] = update_encoder_offset(state->encoders_[i],
                                               encoder_last_value[i],
                                               encoder_offset[i]);
@@ -428,6 +500,18 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
       hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i * 4 + j]);
     }
 
+    f = getQuaternion(hand_msg.finger[i].imu.quat[0], hand_msg.finger[i].imu.quat[1],
+                      hand_msg.finger[i].imu.quat[2], hand_msg.finger[i].imu.quat[3]);
+    inv = invertQuaternion(f);
+    prod = multiplyQuaternion(p,f);
+    toEulerAngle(prod, roll, pitch, yaw);
+
+    // Convert radians to degrees
+    hand_msg.finger[i].imu.euler_angles[0] = roll * 180 / 3.14159;
+    hand_msg.finger[i].imu.euler_angles[1] = pitch * 180 / 3.14159;
+    hand_msg.finger[i].imu.euler_angles[2] = yaw * 180 / 3.14159;
+
+
     hand_msg.finger[i].imu.calibration_status = state->imu_calibration_status[i];
     
     for (int j = 0; j < 11; j++)
@@ -441,16 +525,6 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
                                                    MOTOR_TO_JOINT_GEAR_RATIO[3],
                                                    dynamixel_zero_point[3]);
   populate_motor_state(&hand_msg, state);
-
-  // PALM
-  for (int i = 0; i < 4; i++)
-    hand_msg.palmImu.quat[i] = float (scale * state->imus[12 + i]);
-
-  hand_msg.palmImu.calibration_status = state->imu_calibration_status[3];
-
-  for (int i = 0; i < 11; i++)
-    hand_msg.palmImu.calibration_data[i] 
-      = state->imu_calibration_data[reflex_hand::ReflexHandState::NUM_FINGERS * 11 + i]; 
 
   hand_pub.publish(hand_msg);
 
