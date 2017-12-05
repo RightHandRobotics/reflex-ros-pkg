@@ -249,7 +249,7 @@ uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddres
 {
   uint8_t result;
 
-  if ((uint32_t)*port == SPI1_BASE)
+  if ((uint32_t) port == SPI1_BASE)
     result = writeRegisterSPI(port, address, registerAddress);
   else
     result = writeRegisterI2C(port, address, registerAddress);
@@ -265,7 +265,7 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 {
   uint8_t result;
 
-  if ((uint32_t) *port == SPI1_BASE)
+  if ((uint32_t) port == SPI1_BASE)
   {
     //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
 
