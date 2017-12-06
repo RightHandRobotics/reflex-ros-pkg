@@ -606,6 +606,7 @@ void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state
                << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 5] << ", "
                << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 6] << ", "
                << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 7] << ", "
+               << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 8] << ", "
                << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 9] << ", "
                << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 10] << ", "
                << state->tactile_pressures_[TACTILE_BASE_IDX[finger] + 11] << ", "
