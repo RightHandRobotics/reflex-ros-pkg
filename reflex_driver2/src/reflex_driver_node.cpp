@@ -584,13 +584,16 @@ void calibrate_tactile_sensors(const reflex_hand::ReflexHandState* const state,
   tactile_file.close();
 }
 
+
 // Save local variables tactile_offset_f* with current tactile position
 void log_current_tactile_locally(const reflex_hand::ReflexHandState* const state) {
   for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
     tactile_offset_f1[j] = state->tactile_pressures_[TACTILE_BASE_IDX[0] + j];
     tactile_offset_f2[j] = state->tactile_pressures_[TACTILE_BASE_IDX[1] + j];
+    tactile_offset_f3[j] = state->tactile_pressures_[TACTILE_BASE_IDX[2] + j];
   }
 }
+
 
 void log_current_tactile_to_file(const reflex_hand::ReflexHandState* const state,
                                  int finger) {
