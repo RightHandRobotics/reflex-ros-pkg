@@ -269,16 +269,16 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   {
     //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
 
-    printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length 8. ", 
-      (int)port,address);
+    printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
+      (int)port, address, numBytes);
     result = readBytesSPI(port, address, numBytes, values);
   }
   else
   {
     //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
 
-    printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length 8. ", 
-      (int)port, address);
+    printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
+      (int)port, address, numBytes);
     result = readBytesI2C(port, address, numBytes, values);
   }
   return result;

@@ -176,7 +176,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
 uint8_t enableAllSensors(uint8_t takktileNumber)
 {
   uint8_t result = 0;
-  printf("ENABLING ALL SENSORS by I2C/SPI WRITE: takktileNumber %d, ADDR 0x0C, data NULL, length 0", takktileNumber);
+  printf("ENABLING ALL SENSORS by I2C/SPI WRITE: takktileNumber %d, ADDR 0x0C, data NULL, length 0\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -196,7 +196,7 @@ uint8_t startConversionSequence(uint8_t takktileNumber)
 {
   uint8_t result = 0;
   uint8_t data[2] = {0x12, 0x01};
-  printf("STARTING CONVERSION SEQUENCE by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x12, 0x01}, length 2", takktileNumber);
+  printf("STARTING CONVERSION SEQUENCE by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x12, 0x01}, length 2\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -215,7 +215,7 @@ uint8_t startConversionSequence(uint8_t takktileNumber)
 uint8_t disableAllSensors(uint8_t takktileNumber)
 {
   uint8_t result = 0;
-  printf("DISABLING ALL SENSORS by I2C/SPI READ: takktileNumber %d, ADDR 0x0D>>1, length 1", takktileNumber);
+  printf("DISABLING ALL SENSORS by I2C/SPI READ: takktileNumber %d, ADDR 0x0D>>1, length 1\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     uint8_t aux[1] = {0};
@@ -236,7 +236,7 @@ uint8_t enableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
 {
   uint8_t result = 0;
   uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};
-  printf("ENABLING SENSOR by I2C/SPI WRITE: takktileNumber %d, ADDR %x, data NULL, length 0", takktileNumber, addresses[sensorIndex]);
+  printf("ENABLING SENSOR by I2C/SPI WRITE: takktileNumber %d, ADDR %x, data NULL, length 0\n", takktileNumber, addresses[sensorIndex]);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -256,7 +256,7 @@ uint8_t setRegister(uint8_t takktileNumber)
 {
   uint8_t result = 0;
   uint8_t msg[1] = {0x00};
-  printf("SETTING REGISTER by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x00}, length 1", takktileNumber);
+  printf("SETTING REGISTER by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x00}, length 1\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -278,7 +278,7 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
   uint8_t tp;
   uint8_t index;
   uint8_t values[4] = {0, 0, 0, 0};
-  printf("READING VALUES by I2C/SPI READ: takktileNumber %d, ADDR 0xC0>>1, length 4", takktileNumber);
+  printf("READING VALUES by I2C/SPI READ: takktileNumber %d, ADDR 0xC0>>1, length 4\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -311,7 +311,7 @@ uint8_t disableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
   uint8_t result = 0;
   uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};
   uint8_t aux[1] = {0};
-  printf("DISABLING SENSOR by I2C/SPI READ: takktileNumber %d, ADDR %x, length 1", takktileNumber, addresses[sensorIndex] >> 1);
+  printf("DISABLING SENSOR by I2C/SPI READ: takktileNumber %d, ADDR %x, length 1\n", takktileNumber, addresses[sensorIndex] >> 1);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
