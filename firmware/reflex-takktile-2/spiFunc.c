@@ -89,7 +89,7 @@ uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
   udelay(5);
 
   if (SYSTIME - startTime > SPI_TIMEOUT)
-    return 1;
+    return 0;
   return 1;
 }
 
@@ -173,7 +173,7 @@ uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, i
   udelay(wait);
 
   if (SYSTIME - startTime > SPI_TIMEOUT)
-    return 1;
+    return 0;
 
   return 1;
 }
@@ -233,7 +233,7 @@ uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   udelay(15);
   values[0] =  spiPort->DR;
   udelay(15);                                 // delay 15us
-  for (int i=0; i<numBytes;i++)
+  for (int i = 0; i < numBytes;i++)
   {
     // if (i != numBytes-1)
     spiPort->DR = 0x0;
@@ -251,7 +251,7 @@ uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   // while(1);
 
   if (SYSTIME - startTime > SPI_TIMEOUT)
-    return 1;
+    return 0;
 
   return 1;
 }
