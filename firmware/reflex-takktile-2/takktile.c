@@ -91,7 +91,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
       case STATE_START_CONVERSION:
           startConversionSequence(takktileNumber); //DAVID
           *state = STATE_DISABLE_ALL_SENSORS; //DAVID
-          //initialTime[takktileNumber] = SYSTIME; //DAVID
+          //initialTime = SYSTIME; //DAVID
         break;
       case STATE_DISABLE_ALL_SENSORS:
           if (!disableAllSensors(takktileNumber))
@@ -101,6 +101,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
           *state = STATE_ENABLE_SENSOR;
         break;
       case STATE_ENABLE_SENSOR:
+        //if (SYSTIME - initialTime > 3000){
           if((checkTakktileStatus(takktileNumber, sensorNumberAux)==1))// || (SYSTIME - initialTime[takktileNumber] > 3000))
           {
             if (enableSensor(takktileNumber, sensorNumberAux))
@@ -116,33 +117,42 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
           else{
             *state = STATE_DISABLE_SENSOR;
           }
+        //}
         break;
       case STATE_SET_REGISTER:
-          result = setRegister(takktileNumber);
-          if (result)
-          {
-            *state = STATE_READ_VALUES;
-          }
-          else
-          {
-            *state = STATE_DISABLE_SENSOR; //DAVID
-            updateTakktileStatus(takktileNumber, sensorNumberAux, 0);//handStatus.takktileSensor[sensorInMemory] = 0; 
-          }
+          //if (SYSTIME - initialTime > 3000){
+            result = setRegister(takktileNumber);
+            if (result)
+            {
+              *state = STATE_READ_VALUES;
+            }
+            else
+            {
+              *state = STATE_DISABLE_SENSOR; //DAVID
+              updateTakktileStatus(takktileNumber, sensorNumberAux, 0);//handStatus.takktileSensor[sensorInMemory] = 0; 
+            }
+          //}
+          printf("Setting reg");
         break;
       case STATE_READ_VALUES:
-          readValues(takktileNumber, sensorNumberAux);
+          if (sensorNumberAux == 0)
+            readValues(takktileNumber, sensorNumberAux);// This is such a huge hack
+          else
+            readValues(takktileNumber, sensorNumberAux - 1); // This is such a huge hack
           sumStatus[takktileNumber]++;
           *state = STATE_DISABLE_SENSOR;
+           printf("f: %d, s: %d\n", takktileNumber, sensorNumberAux);
         break;
       case STATE_DISABLE_SENSOR:
           if (checkTakktileStatus(takktileNumber, sensorNumberAux) == 1)
             result = disableSensor(takktileNumber, sensorNumberAux);
-          sensorNumber[takktileNumber]++;
-          if (sensorNumberAux + 2 > SENSORS_PER_FINGER)
+          sensorNumber[takktileNumber]+=1;
+          printf("s[]: %d\n", sensorNumber[takktileNumber]);
+          if (sensorNumberAux + 2 > (SENSORS_PER_FINGER+1)) // 14 // (?)// This is such a huge hack
           {
             *state = STATE_WAIT;
             sensorNumber[takktileNumber] = 0;
-            if (sumStatus[takktileNumber]<2)
+            if (sumStatus[takktileNumber] < 2)
               updateFingerStatus(takktileNumber, 0);
             else
               sumStatus[takktileNumber] = 0;
@@ -176,7 +186,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
 uint8_t enableAllSensors(uint8_t takktileNumber)
 {
   uint8_t result = 0;
-  printf("ENABLING ALL SENSORS by I2C/SPI WRITE: takktileNumber %d, ADDR 0x0C, data NULL, length 0\n", takktileNumber);
+  //printf("ENABLING ALL SENSORS by I2C/SPI WRITE: takktileNumber %d, ADDR 0x0C, data NULL, length 0\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -196,7 +206,7 @@ uint8_t startConversionSequence(uint8_t takktileNumber)
 {
   uint8_t result = 0;
   uint8_t data[2] = {0x12, 0x01};
-  printf("STARTING CONVERSION SEQUENCE by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x12, 0x01}, length 2\n", takktileNumber);
+  //printf("STARTING CONVERSION SEQUENCE by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x12, 0x01}, length 2\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -215,7 +225,7 @@ uint8_t startConversionSequence(uint8_t takktileNumber)
 uint8_t disableAllSensors(uint8_t takktileNumber)
 {
   uint8_t result = 0;
-  printf("DISABLING ALL SENSORS by I2C/SPI READ: takktileNumber %d, ADDR 0x0D>>1, length 1\n", takktileNumber);
+  //printf("DISABLING ALL SENSORS by I2C/SPI READ: takktileNumber %d, ADDR 0x0D>>1, length 1\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     uint8_t aux[1] = {0};
@@ -235,8 +245,9 @@ uint8_t disableAllSensors(uint8_t takktileNumber)
 uint8_t enableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
 {
   uint8_t result = 0;
-  uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};
-  printf("ENABLING SENSOR by I2C/SPI WRITE: takktileNumber %d, ADDR %x, data NULL, length 0\n", takktileNumber, addresses[sensorIndex]);
+  //uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};
+  uint8_t addresses[15] = {0x28, 0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};// This is such a huge hack
+  //printf("ENABLING SENSOR by I2C/SPI WRITE: takktileNumber %d, ADDR %x, data NULL, length 0\n", takktileNumber, addresses[sensorIndex]);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -256,7 +267,7 @@ uint8_t setRegister(uint8_t takktileNumber)
 {
   uint8_t result = 0;
   uint8_t msg[1] = {0x00};
-  printf("SETTING REGISTER by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x00}, length 1\n", takktileNumber);
+  //printf("SETTING REGISTER by I2C/SPI WRITE: takktileNumber %d, ADDR 0xC0, data {0x00}, length 1\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -278,7 +289,7 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
   uint8_t tp;
   uint8_t index;
   uint8_t values[4] = {0, 0, 0, 0};
-  printf("READING VALUES by I2C/SPI READ: takktileNumber %d, ADDR 0xC0>>1, length 4\n", takktileNumber);
+  //printf("READING VALUES by I2C/SPI READ: takktileNumber %d, ADDR 0xC0>>1, length 4\n", takktileNumber);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
@@ -292,14 +303,18 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
     break;
   }
   if (takktileNumber == 2)
-    tp = 1;
+    tp = 1; // shouldn't this be 2?
   else if (takktileNumber == 0)
     tp = 0;
   else if (takktileNumber == 1)
-    tp = 2;
-  else
+    tp = 2; // shouldn't this be 1?
+  else {
+    printf("got to the weird place\n"); //should never get here
     tp = 3;
-  index = tp * SENSORS_PER_FINGER + sensorIndex;
+  }
+
+  index = tp * SENSORS_PER_FINGER + sensorIndex; // - 1
+  if (index==14) printf("sensor0=%i\n",values[0]);
   handState.takktile_pressures[index] = 510 - (values[0]<200 ? ((uint16_t)values[0] + 255) : ((uint16_t)values[0]));
   handState.takktile_temperatures[index] = ((uint16_t)values[2] << 2) | (values[3] >> 6);
   //udelay(SLEEP_TIME);
@@ -309,9 +324,10 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
 uint8_t disableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
 {
   uint8_t result = 0;
-  uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};
+  //uint8_t addresses[14] = {0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};
+  uint8_t addresses[15] = {0x28, 0x00, 0x02, 0x04, 0x06, 0x08, 0x10, 0x12, 0x14, 0x16, 0x18, 0x20, 0x22, 0x24, 0x26};// This is such a huge hack
   uint8_t aux[1] = {0};
-  printf("DISABLING SENSOR by I2C/SPI READ: takktileNumber %d, ADDR %x, length 1\n", takktileNumber, addresses[sensorIndex] >> 1);
+  //printf("DISABLING SENSOR by I2C/SPI READ: takktileNumber %d, ADDR %x, length 1\n", takktileNumber, addresses[sensorIndex] >> 1);
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:

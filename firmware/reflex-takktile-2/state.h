@@ -11,8 +11,8 @@ typedef struct
   uint32_t systime;                             // 6-9
 
   // Takktile 
-  uint16_t takktile_pressures[NUM_SENSORS];     // 10-115
-  uint16_t takktile_temperatures[NUM_SENSORS];  // 116-221
+  uint16_t takktile_pressures[NUM_SENSORS];     // 10-115  // TODO: Correct this size here and in driver code
+  uint16_t takktile_temperatures[NUM_SENSORS];  // 116-221 // TODO: Correct this size here and in driver code
 
   // Motor encoder?
   uint16_t encoders[NUM_ENC];                   // 222-227

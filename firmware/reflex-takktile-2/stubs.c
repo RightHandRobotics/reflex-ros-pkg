@@ -8,7 +8,7 @@
 *     false, if you want a faster normal functioning
 */
 
-#define DEBUG_VIA_UART true
+#define DEBUG_VIA_UART false
 
 extern int _end;
 
