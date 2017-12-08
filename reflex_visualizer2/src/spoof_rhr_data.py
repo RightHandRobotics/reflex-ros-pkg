@@ -8,7 +8,7 @@ from reflex_msgs.msg import Hand
 
 
 def spoof_rhr_data():
-    pub = rospy.Publisher('/reflex_takktile/hand_state', Hand, queue_size=10)
+    pub = rospy.Publisher('/reflex_takktile2/hand_state', Hand, queue_size=10)
     rospy.init_node('spoof_reflex_hand', anonymous=True)
     r = rospy.Rate(50)
 
