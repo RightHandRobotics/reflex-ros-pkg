@@ -859,14 +859,14 @@ int main(int argc, char **argv) {
 
   // Initialize ROS node
   char nodeName[27];
-  strcpy(nodeName, "reflex_takktile2_driver_");
+  strcpy(nodeName, "reflex_takktile_driver_");
   strcat(nodeName, ethernet_name.c_str());
   ros::init(argc, argv, nodeName);
   ros::NodeHandle nh, nh_private("~");
   load_params(nh);
   populate_tactile_threshold(default_contact_threshold);
   ROS_INFO("Populate_tactile_threshold");
-  string ns = "/reflex_takktile2";
+  string ns = "/reflex_takktile";
 
   // Advertise necessary topics
   hand_pub = nh.advertise<reflex_msgs2::Hand>(ns + "/hand_state", 10);
