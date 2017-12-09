@@ -7,5 +7,5 @@
   	<arg name="eth" value="$(arg eth)"/>
   </include>
 
-  <node name="reflex_takktile2_hand" pkg="reflex" type="reflex_takktile2_hand.py" output="screen" required="true" />
+  <node name="reflex_takktile_hand2" pkg="reflex" type="reflex_takktile_hand2.py" output="screen" required="true" />
 </launch>

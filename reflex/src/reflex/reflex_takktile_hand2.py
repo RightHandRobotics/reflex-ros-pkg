@@ -29,13 +29,13 @@ from std_srvs.srv import Empty
 import reflex_msgs2.msg
 import reflex_msgs2.srv
 import finger
-from reflex_hand2 import ReflexHand # ..............................============= ReflexHand is a class within reflex_hand.h 
-from reflex_takktile2_motor import ReflexTakktileMotor
+from reflex_hand import ReflexHand # ..............................============= ReflexHand is a class within reflex_hand.h 
+from reflex_takktile_motor import ReflexTakktileMotor
 
 
 class ReflexTakktileHand(ReflexHand):
     def __init__(self):
-        super(ReflexTakktileHand, self).__init__('/reflex_takktile2', ReflexTakktileMotor)
+        super(ReflexTakktileHand, self).__init__('/reflex_takktile', ReflexTakktileMotor)
         self.motor_cmd_pub = rospy.Publisher(self.namespace + '/radian_hand_command',
                                              reflex_msgs2.msg.RadianServoCommands, queue_size=10)
         self.fingers = {self.namespace + '_f1': finger.Finger(),
@@ -171,10 +171,10 @@ class ReflexTakktileHand(ReflexHand):
         for ID, motor in self.motors.items():
             motor.speed_update_occurred = False
         motor_speed_cmd = reflex_msgs2.srv.SetSpeedRequest(
-            [self.motors['/reflex_takktile2_f1'].get_commanded_speed(),
-             self.motors['/reflex_takktile2_f2'].get_commanded_speed(),
-             self.motors['/reflex_takktile2_f3'].get_commanded_speed(),
-             self.motors['/reflex_takktile2_preshape'].get_commanded_speed()])
+            [self.motors['/reflex_takktile_f1'].get_commanded_speed(),
+             self.motors['/reflex_takktile_f2'].get_commanded_speed(),
+             self.motors['/reflex_takktile_f3'].get_commanded_speed(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_speed()])
         self.set_speed_service(motor_speed_cmd)
 
     def _publish_position_commands(self):
@@ -185,10 +185,10 @@ class ReflexTakktileHand(ReflexHand):
         for ID, motor in self.motors.items():
             motor.position_update_occurred = False
         motor_pos_cmd = reflex_msgs2.msg.RadianServoCommands(
-            [self.motors['/reflex_takktile2_f1'].get_commanded_position(),
-             self.motors['/reflex_takktile2_f2'].get_commanded_position(),
-             self.motors['/reflex_takktile2_f3'].get_commanded_position(),
-             self.motors['/reflex_takktile2_preshape'].get_commanded_position()])
+            [self.motors['/reflex_takktile_f1'].get_commanded_position(),
+             self.motors['/reflex_takktile_f2'].get_commanded_position(),
+             self.motors['/reflex_takktile_f3'].get_commanded_position(),
+             self.motors['/reflex_takktile_preshape'].get_commanded_position()])
         self.motor_cmd_pub.publish(motor_pos_cmd)
         rospy.sleep(0.01)
 
