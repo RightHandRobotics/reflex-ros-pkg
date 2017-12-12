@@ -98,7 +98,7 @@ int main(int argc, char **argv)
   
   ros::Subscriber takktile_sub =
     n.subscribe<reflex_msgs2::Hand>(
-      "/reflex_takktile/hand_state", 10, boost::bind(publish_takktile_to_rviz, _1, &distal_rotation_client)
+      "/reflex_takktile2/hand_state", 10, boost::bind(publish_takktile_to_rviz, _1, &distal_rotation_client)
     );
   ros::Subscriber sf_sub = n.subscribe("/reflex_sf/hand_state", 10, publish_sf_to_rviz);
   
