@@ -1,6 +1,6 @@
 <launch>
   <rosparam command="load" file="$(find reflex)/yaml/tf_geometry.yaml"/>
-  <rosparam command="load" file="$(find reflex)/yaml/reflex_takktile2.yaml"/>
+  <rosparam command="load" file="$(find reflex)/yaml/reflex_takktile.yaml"/>
 
   <arg name="eth" default="eth0"/>
   <include file="$(find reflex_driver2)/launch/reflex_takktile2_driver.launch">
