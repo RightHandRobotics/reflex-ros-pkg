@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright 2015 Right Hand Robotics
+# Copyright 2017 Right Hand Robotics
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,6 +51,8 @@ class ReflexHand(object):
                          reflex_msgs.msg.ForceCommand, self._receive_force_cmd_cb)
         rospy.loginfo('ReFlex hand has started, waiting for commands...')
 
+#----------------------------------------------------------------------------
+
     def _receive_cmd_cb(self, data):
         raise NotImplementedError
 
@@ -62,6 +64,8 @@ class ReflexHand(object):
 
     def _receive_force_cmd_cb(self, data):
         raise NotImplementedError
+
+#----------------------------------------------------------------------------
 
     def set_angles(self, pose):
         self.motors[self.namespace + '_f1'].set_motor_angle(pose.f1)
@@ -86,6 +90,8 @@ class ReflexHand(object):
         self.motors[self.namespace + '_f2'].set_force_cmd(torque.f2)
         self.motors[self.namespace + '_f3'].set_force_cmd(torque.f3)
         self.motors[self.namespace + '_preshape'].set_force_cmd(torque.preshape)
+
+#----------------------------------------------------------------------------
 
     def reset_speeds(self):
         for ID, motor in self.motors.items():

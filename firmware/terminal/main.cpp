@@ -15,6 +15,7 @@ void perish_if(bool b, const char *msg)
 }
 
 static bool g_done = false;
+
 void signal_handler(int signum)
 {
   if (signum == SIGINT)
@@ -23,7 +24,7 @@ void signal_handler(int signum)
 
 void usage()
 {
-  printf("usage:  reflex_terminal SERIAL_DEVICE\n");
+  printf("Usage:  reflex_terminal SERIAL_DEVICE\n");
   exit(1);
 }
 
@@ -34,7 +35,7 @@ int main(int argc, char **argv)
     usage();
   const char *serial_device = argv[1];
   LightweightSerial *port = new LightweightSerial(serial_device, 1000000);
-  perish_if(!port, "could't open the specified serial port");
+  perish_if(!port, "Could't open the specified serial port");
   uint8_t b = 0;
   while (port->is_ok() && !g_done)
   {

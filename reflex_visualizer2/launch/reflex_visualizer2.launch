@@ -1,0 +1,9 @@
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro.py '$(find reflex_visualizer2)/urdf/full_reflex_model.urdf.xacro'" />
+
+  <node name="imu" pkg="reflex" type="imu.py" output="screen" required="true" /> 
+
+  <node name="hand_visualizer2" pkg="reflex_visualizer2" type="hand_visualizer2" output="screen"/>
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find reflex_visualizer)/urdf.rviz" required="true" />
+</launch>

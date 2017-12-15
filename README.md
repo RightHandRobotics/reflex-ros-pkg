@@ -4,21 +4,29 @@ reflex-ros-pkg
 Electronics, Firmware, and Software for the Reflex Hand controller. The software is organized into the following ROS packages
 
 1. reflex -- Contains the command and control code for the hands (Reflex SF and Reflex Takktile)
-1. reflex_driver -- Contains drivers that take ethernet traffic from the Reflex Takktile hand and translates it into sensible values and services
-1. reflex_msgs -- Contains messages for data passage by Reflex code
-1. reflex_visualizer -- Contains RVIZ visualizer for the Reflex hands
+2. reflex_driver -- Contains drivers that take ethernet traffic from the Reflex Takktile hand and translates it into sensible values and services
+3. reflex_driver2 -- For the Takktile 2
+4. reflex_msgs -- Contains messages for data passage by Reflex code
+5. reflex_msgs2 -- For the Takktile 2
+6. reflex_visualizer -- Contains RVIZ visualizer for the Reflex hands
 
 Flashing firmware
 ------
 First, you need to get the cross-compiler (gcc-arm) and build OpenOCD, the JTAG transport, and the DFU (Device Firmware Updater) utility. On Ubuntu 12.04 and 14.04 (and potentially others), this is all scripted for you:
 
-    cd firmware/tools
-    make
+    cd firmware/tools 
+    make ............................I THINK THIS IS BROKEN!!
     make dfu
 
-Now you can build the firmware image:
+Now you can build the firmware image. If you are using the ReFlex Takktile, 
 
     cd firmware/reflex-takktile
+    make clean
+    make
+
+If you are using the ReFlex Takktile 2,
+
+    cd firmware/reflex-takktile-2
     make clean
     make
 

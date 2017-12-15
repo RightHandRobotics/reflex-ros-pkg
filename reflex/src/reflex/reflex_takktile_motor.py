@@ -22,7 +22,6 @@ __email__ = 'reflex-support@righthandrobotics.com'
 
 
 import rospy
-
 from motor import Motor
 
 
