@@ -490,11 +490,28 @@ void reflex_hand_state_cb(const reflex_hand::ReflexHandState * const state) {
     hand_msg.finger[i].distal_approx = calc_distal_angle(hand_msg.motor[i].joint_angle,
                                                          hand_msg.finger[i].proximal);
 
-    for (int j = 0; j < reflex_hand::ReflexHand::NUM_SENSORS_PER_FINGER; j++) {
+    for (int j = 0; j < 5; j++) {
       hand_msg.finger[i].pressure[j] = calc_pressure(state, i, j);
       hand_msg.finger[i].contact[j] = calc_contact(hand_msg, i, j);
     }
-
+    hand_msg.finger[i].pressure[5] = calc_pressure(state, i, 10);
+    hand_msg.finger[i].contact[5] = calc_contact(hand_msg, i, 5);
+    hand_msg.finger[i].pressure[6] = calc_pressure(state, i, 11);
+    hand_msg.finger[i].contact[6] = calc_contact(hand_msg, i, 6);
+    hand_msg.finger[i].pressure[7] = calc_pressure(state, i, 7);
+    hand_msg.finger[i].contact[7] = calc_contact(hand_msg, i, 7);
+    hand_msg.finger[i].pressure[8] = calc_pressure(state, i, 8);
+    hand_msg.finger[i].contact[8] = calc_contact(hand_msg, i, 8);
+    hand_msg.finger[i].pressure[9] = calc_pressure(state, i, 9);
+    hand_msg.finger[i].contact[9] = calc_contact(hand_msg, i, 9);
+    hand_msg.finger[i].pressure[10] = calc_pressure(state, i, 13);
+    hand_msg.finger[i].contact[10] = calc_contact(hand_msg, i, 10);
+    hand_msg.finger[i].pressure[11] = calc_pressure(state, i, 12);
+    hand_msg.finger[i].contact[11] = calc_contact(hand_msg, i, 11);
+    hand_msg.finger[i].pressure[12] = calc_pressure(state, i, 5);
+    hand_msg.finger[i].contact[12] = calc_contact(hand_msg, i, 12);
+    hand_msg.finger[i].pressure[13] = calc_pressure(state, i, 6);
+    hand_msg.finger[i].contact[13] = calc_contact(hand_msg, i, 13);
     // IMU
     for (int j = 0; j < 4; j++){
       hand_msg.finger[i].imu.quat[j] = float (scale * state->imus[i * 4 + j]);
