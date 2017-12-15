@@ -3,6 +3,7 @@
 # Example code for a script using the ReFlex Takktile hand
 # Note: you must connect a hand by running "roslaunch reflex reflex.launch" before you can run this script
 
+
 from math import pi, cos
 
 import rospy
@@ -23,21 +24,20 @@ def main():
     rospy.init_node('ExampleHandNode')
 
     # Services can automatically call hand calibration
-    calibrate_fingers = rospy.ServiceProxy('/reflex_sf/calibrate_fingers', Empty)
+    calibrate_fingers = rospy.ServiceProxy('/reflex_plus/calibrate_fingers', Empty)
 
     # This collection of publishers can be used to command the hand
-    command_pub = rospy.Publisher('/reflex_sf/command', Command, queue_size=1)
-    pos_pub = rospy.Publisher('/reflex_sf/command_position', PoseCommand, queue_size=1)
-    vel_pub = rospy.Publisher('/reflex_sf/command_velocity', VelocityCommand, queue_size=1)
-    # force_pub = rospy.Publisher('/reflex_sf/command_motor_force', ForceCommand, queue_size=1)
+    command_pub = rospy.Publisher('/reflex_plus/command', Command, queue_size=1)
+    pos_pub = rospy.Publisher('/reflex_plus/command_position', PoseCommand, queue_size=1)
+    vel_pub = rospy.Publisher('/reflex_plus/command_velocity', VelocityCommand, queue_size=1)
+    # force_pub = rospy.Publisher('/reflex_plus/command_motor_force', ForceCommand, queue_size=1)
 
     # Constantly capture the current hand state
-    rospy.Subscriber('/reflex_sf/hand_state', Hand, hand_state_cb)
+    rospy.Subscriber('/reflex_plus/hand_state', Hand, hand_state_cb)
 
     ##################################################################################################################
     # Calibrate the fingers (make sure hand is opened in zero position)
     raw_input("== When ready to calibrate the hand, press [Enter]\n")
-    print('Go to the window where reflex_sf was run, you will see the calibration prompts')
     calibrate_fingers()
     raw_input("...\n")
 
@@ -83,6 +83,9 @@ def main():
         command_pub.publish(Command(pose, velocity))
         rospy.sleep(0.75)
     raw_input("...\n")
+
+    # Return to 0 Position
+    pos_pub.publish(PoseCommand(f1=0.0, f2=0.0, f3=0.0, preshape=0.0))
 
     ##################################################################################################################
     # # Demonstration of force control - square wave
