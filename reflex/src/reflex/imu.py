@@ -81,6 +81,10 @@ def axis_angle_to_matrix(angle, axis):
 # matrix_to_euler_angle: converts a rotation matrix to its equivalent set of euler angles
 # float[3][3] m: the rotation matrix to convert
 # return float[3]: [roll, pitch, yaw]
+# source 1: http://danceswithcode.net/engineeringnotes/rotations_in_3d/rotations_in_3d_part1.html
+    # equations 10a, 10b, 10c
+# source 2: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.371.6578&rep=rep1&type=pdf
+    # this justifies need to divide by /math.cos(theta)
 def matrix_to_euler_angle(m):
     theta = -math.asin(m[2][0])
     psi = math.atan2(m[2][1]/math.cos(theta), m[2][2]/math.cos(theta))
