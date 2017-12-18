@@ -85,7 +85,7 @@ def matrix_to_euler_angle(m):
     theta = -math.asin(m[2][0])
     psi = math.atan2(m[2][1]/math.cos(theta), m[2][2]/math.cos(theta))
     phi = math.atan2(m[1][0]/math.cos(theta), m[0][0]/math.cos(theta))
-    return [-psi, theta, -phi]
+    return [-psi, -theta, phi]
 
 # get_distal_rotation: determines the rotation of the distal link in 3 spatial dimensions
 # float[4] palmQuat: the quaternion values from the palm IMU
