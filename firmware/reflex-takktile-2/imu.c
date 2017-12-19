@@ -460,7 +460,8 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
       }
 
       if (!result)
-        handState.imus[imuNumber] = 0;
+        printf("ERROR. IMU %d\n", imuNumber);
+        //handState.imus[imuNumber] = 0; // TODO: Change from handState.imus to handStatus.imus[]
       break;
 
     case IMU_STATE_WAIT:
