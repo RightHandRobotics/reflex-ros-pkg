@@ -11,7 +11,7 @@ imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DAT
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 
 // Flag that is set in IMU_CAL_OFFSETS. Indicates if the calibration values are read. Never set back to zero.
-uint8_t imu_cal_values_read = 0;
+uint8_t imu_cal_values_read [4] = {0, 0, 0, 0};
 
 /*
   Description: Initializes and sets important stuff. called in main.c
@@ -376,20 +376,18 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
         case IMU_CAL_OFFSETS:
           registerAddress = ACCEL_OFFSET_X_LSB_ADDR;
           break;
-        /////// TODO create new state? 9/22/2017 Lance
         default:
           registerAddress = BNO055_QUATERNION_DATA_W_LSB_ADDR;
           break;
       }
 
-      // Write to register. WHY?
+      // Writes register address
       result = writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddress);
 
-      // Check if register write worked
+      // Check if register write worked. Redundant
       if (result) 
         *state = IMU_STATE_READ_VALUES;
 
-      // Set state to this. Doesn't this make the if statement above redundant?
       *state = IMU_STATE_READ_VALUES;
       break;
 
@@ -399,67 +397,60 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
       if (handPorts.multiplexer)
         selectMultiplexerPort(imuNumber);
 
-      //result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
-      
-      /*  Switch case to read n number of bytes from IMU dependent on type of information being read
-          Different types of info: make enum?
-            Calibration data ->
-            Regular data ->
-      */
       switch(imu_poll_type[imuNumber]){
-       
         case IMU_DATA:
+          printf("DATA\n");
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
 
           // If register read succeeds, load data
           if (result){
-            handState.imus[imuNumber * 4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
+            handState.imus[imuNumber * 4] =     (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
             handState.imus[imuNumber * 4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
             handState.imus[imuNumber * 4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
             handState.imus[imuNumber * 4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
           }
 
-          // else, switch state
-
-          //if (handState.imus_calibration_status[imuNumber]!=0xFF){
+          // Check if calibration offsets have been read
+          if (!imu_cal_values_read[imuNumber]){
             imu_poll_type[imuNumber] = IMU_CAL_STATUS;
             *state = IMU_STATE_SET_REGISTER;
-          //}
-
-          //else
-           // *state = IMU_STATE_WAIT;
+          }
+          else { // Exit state machine
+            imu_poll_type[imuNumber] = IMU_DATA;
+           *state = IMU_STATE_WAIT;
+          }
           break;
 
-        // There is a single calibration status register
-        case IMU_CAL_STATUS:  
+        // Read single calibration status register
+        case IMU_CAL_STATUS:
+          printf("CAL_STAT\n");
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, values);
-          
+          printf("stat: %d\n", values[0]);
           if (result)
             handState.imus_calibration_status[imuNumber] = values[0];
     
-          //if ((handState.imus_calibration_status[imuNumber] == 0xFF) && (imu_cal_values_read == 0)){
+          if (handState.imus_calibration_status[imuNumber] == 0xFF){
             imu_poll_type[imuNumber] = IMU_CAL_OFFSETS;
             *state = IMU_STATE_SET_REGISTER;
-          //}
-
-          //else
-          //  *state = IMU_STATE_WAIT;
-
-          break;
-
-
-/////////// MAKE NEW COMMAND THING THAT REFRESHES/COMBINES IMU_CAL_STATUS AND IMU_CALL OFSEETS CASES
-        
+          }
+          else { // Exit state machine
+            imu_poll_type[imuNumber] = IMU_DATA;
+           *state = IMU_STATE_WAIT;
+          }
+          break;        
 
         case IMU_CAL_OFFSETS:  // There are 22 offset AND radius registers
+          printf("CAL_OFF\n");
+          setRegisterIMU(imuNumber, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 22, values);
+          setRegisterIMU(imuNumber, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);  
           
           if (result){ 
             int i = 0;
             for (i = 0; i < 11; i++)
               handState.imus_calibration_data[imuNumber * 11 + i] = 
                   ((uint16_t)(values[i * 2 + 1] << 8)) | ((uint16_t)(values[i * 2]));
-            imu_cal_values_read = 1;
+            imu_cal_values_read[imuNumber] = 1;
           }
           
           // if (handState.imus_calibration_status[imuNumber] != 0xFF){
@@ -485,8 +476,6 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
       imu_state_count[imuNumber] = 0;
       imu_poll_type[imuNumber] = IMU_DATA;
       break;
-
-    // Switch back to IMU_STATE_WAIT. Isn't this REDUNDANT?
     default:
       *state = IMU_STATE_WAIT;
       break;
