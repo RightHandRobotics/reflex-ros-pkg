@@ -86,9 +86,9 @@ def axis_angle_to_matrix(angle, axis):
 # source 2: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.371.6578&rep=rep1&type=pdf
     # this justifies need to divide by /math.cos(theta)
 def matrix_to_euler_angle(m):
-    roll = math.atan2(m[2][1]/math.cos(theta), m[2][2]/math.cos(theta))
     pitch = -math.asin(m[2][0])
-    yaw = math.atan2(m[1][0]/math.cos(theta), m[0][0]/math.cos(theta))
+    roll = math.atan2(m[2][1]/math.cos(pitch), m[2][2]/math.cos(pitch))
+    yaw = math.atan2(m[1][0]/math.cos(pitch), m[0][0]/math.cos(pitch))
     return [-roll, -pitch, yaw]
 
 # get_distal_rotation: determines the rotation of the distal link in 3 spatial dimensions
