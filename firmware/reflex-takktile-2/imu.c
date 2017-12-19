@@ -51,8 +51,25 @@ void imuInit()
     }
 
     // Check if ID is correct
-    if (*id != BNO055_ID)
-      printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+    if (*id != BNO055_ID){
+      udelay(1000); // Hold on for boot
+      if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
+      {
+        result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+        result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+      }
+
+      // I2C
+      else
+      {
+        result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+        result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+      }
+      if (*id != BNO055_ID)
+        printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+      else 
+        printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+    }
     else
       printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
   }
