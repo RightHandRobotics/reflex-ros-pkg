@@ -404,10 +404,10 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
           // If register read succeeds, load data
           if (result){
-            handState.imus[imuNumber * 4] =     (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-            handState.imus[imuNumber * 4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-            handState.imus[imuNumber * 4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-            handState.imus[imuNumber * 4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+            handState.imus[imuNumber * 4] =       (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
+            handState.imus[(imuNumber * 4) + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
+            handState.imus[(imuNumber * 4) + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
+            handState.imus[(imuNumber * 4) + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
           }
 
           // Check if calibration offsets have been read
