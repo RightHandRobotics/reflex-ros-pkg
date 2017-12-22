@@ -4,11 +4,11 @@
 
 A script was created for you. To make the script executable, navigate to the SF_Encoder_firmware folder. Enter the following in the command line:
 
-    chmod +x flash_SF_Encoder_Firmware.sh
+    chmod +x flash_reflex_plus_firmware.sh
 
 ## Running the script
 
-    bash flash_SF_Encoder_Firmware.sh
+    bash flash_reflex_plus_firmware.sh
 
 ## Author
 
