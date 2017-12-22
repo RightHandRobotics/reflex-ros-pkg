@@ -327,25 +327,25 @@ void finger_tactile_positions(int index, double* x, double* z, double* y, double
   else if (index == 10){
     *x = x_gap*(6-5) + 0.0215;
     *z = 0.001;
-    *y = 0.0075;
+    *y = -0.0075;
     *w = 5.0;
   }
   else if (index == 11){
     *x = x_gap*(7-5) + 0.0215;
     *z = 0.001;
-    *y = 0.0075;
+    *y = -0.0075;
     *w = 5.0;
   }
   else if (index == 12){
     *x = x_gap*(6-5) + 0.0215;
     *z = 0.001;
-    *y = -0.0075;
+    *y = 0.0075;
     *w = 5.0;
   }
   else if (index == 13){
     *x = x_gap*(7-5) + 0.0215;
     *z = 0.001;
-    *y = -0.0075;
+    *y = 0.0075;
     *w = 5.0;
   }
 }
