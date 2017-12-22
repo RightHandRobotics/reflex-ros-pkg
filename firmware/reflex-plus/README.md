@@ -8,7 +8,7 @@ A script was created for you. To make the script executable, navigate to the ref
 
 ## Running the script
 
-    sduo bash flash_reflex_plus_firmware.sh
+    sudo bash flash_reflex_plus_firmware.sh
 
 ## Author
 
