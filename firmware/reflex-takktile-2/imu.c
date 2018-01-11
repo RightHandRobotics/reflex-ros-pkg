@@ -11,7 +11,7 @@ imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DAT
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 
 // Flag that is set in IMU_CAL_OFFSETS. Indicates if the calibration values are read. Never set back to zero.
-uint8_t imu_cal_values_read [4] = {0, 0, 0, 0};
+uint8_t imu_cal_values_read[NUM_QUATERNIONS] = {0, 0, 0, 0};
 
 /*
   Description: Initializes and sets important stuff. called in main.c
@@ -402,12 +402,12 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           printf("DATA\n");
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
 
-          // If register read succeeds, load data
+          // If register read succeeds, load quaternion data
           if (result){
-            handState.imus[imuNumber * 4] =       (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-            handState.imus[(imuNumber * 4) + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-            handState.imus[(imuNumber * 4) + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-            handState.imus[(imuNumber * 4) + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+            int imuDataBlock = imuNumber * NUM_QUATERNIONS;
+            int i;
+            for (i = 0; i < NUM_QUATERNIONS; i++)
+              handState.imus[imuDataBlock + i] = (((uint16_t)values[(i * 2) + 1]) << 8) | ((uint16_t)values[i*2]);
           }
 
           // Check if calibration offsets have been read

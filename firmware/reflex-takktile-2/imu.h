@@ -25,13 +25,14 @@
 #define BNO055_ADDRESS_B              (0x29)
 #define BNO055_ID                     (0xA0)
 #define NUM_BNO055_OFFSET_REGISTERS   (22)
+#define NUM_QUATERNIONS								(4)
 
 // For main IMU state machine
 typedef enum 
 {
-  IMU_STATE_SET_REGISTER = 0,
-  IMU_STATE_READ_VALUES,
-  IMU_STATE_WAIT = ASYNC_POLL_DONE
+	IMU_STATE_SET_REGISTER = 0,
+	IMU_STATE_READ_VALUES,
+	IMU_STATE_WAIT = ASYNC_POLL_DONE
 } imu_async_poll_state_t;
 
 // For psuedo state machine inside IMU_STATE_READ_VALUES state
