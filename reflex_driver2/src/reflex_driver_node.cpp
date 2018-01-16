@@ -701,45 +701,36 @@ bool saveIMUCalData(std_srvs::Empty::Request &req,
   Loads yaml file to firmware
   Takes in: uint16 array
   Returns: bool
-    --- Fix comments
-    --- Determine if bool is the correct return type
-  Inspiration from:
-    --- https://stackoverflow.com/questions/6499183/converting-a-uint32-value-into-a-uint8-array4
 */
 bool loadIMUCalData(reflex_hand::ReflexHand *rh, 
                     std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res) {
   ROS_INFO("Loading IMU calibration data...");
-  uint8_t buffer[reflex_hand::ReflexHandState::NUM_IMUS * 22]; // 88
+  
+  uint16_t buffer[reflex_hand::ReflexHandState::NUM_IMUS * 11];
 
-  for (int i = 0; i < 11; i++) { // 44
-    int x = i * 2;
-    
-    // Convert uint16_t to uint8_t  
-    buffer[x]           = (imu_calibration_data_f1[i] & 0xff00) >> 8;
-    buffer[x + 1]       = imu_calibration_data_f1[i] & 0x00ff;
-    buffer[22 + x]      = (imu_calibration_data_f2[i] & 0xff00) >> 8;
-    buffer[22 + x + 1]  = imu_calibration_data_f2[i] & 0x00ff;
-    buffer[44 + x]      = (imu_calibration_data_f3[i] & 0xff00) >> 8;
-    buffer[44 + x + 1]  = imu_calibration_data_f3[i] & 0x00ff;
-    buffer[66 + x]      = (imu_calibration_data_palm[i] & 0xff00) >> 8;
-    buffer[66 + x + 1]  = imu_calibration_data_palm[i] & 0x00ff;
+  //Collect calibration data into single array
+  for (int i = 0; i < 11; i++){
+
+    buffer[i] = imu_calibration_data_f1[i];
+    buffer[i + 11] = imu_calibration_data_f2[i];
+    buffer[i + 22] = imu_calibration_data_f3[i];
+    buffer[i + 33] = imu_calibration_data_palm[i];
+
   }
 
-  rh->loadIMUCalData(buffer);
-  return true;
+  // // For Debugging
+  // uint16_t *buffer_display = (uint16_t *)buffer;
 
-  // For debugging
-  // for (int i = 0; i < 11; i++) {
-  //   ROS_INFO("imu_calibration_data_f1[%d]: %d", i, imu_calibration_data_f1[i]);
-  //   ROS_INFO("imu_calibration_data_f2[%d]: %d", i, imu_calibration_data_f2[i]);
-  //   ROS_INFO("imu_calibration_data_f3[%d]: %d", i, imu_calibration_data_f3[i]);
-  //   ROS_INFO("imu_calibration_data_palm[%d]: %d", i, imu_calibration_data_palm[i]);
+  // ROS_INFO("Buffer_Display: ");
+  // for (int i = 0; i < 44; i++){
+  //   ROS_INFO("[%d],", buffer_display[i]);
   // }
 
-  // For debugging
-  // for (int i = 66; i < 88; i++)
-  //     ROS_INFO("buffer[%d]: %d", i, buffer[i]);
+  //Cast 16-bit int array to 8-bit int array to send over ethernet
+  rh->loadIMUCalData((uint8_t *)buffer);
+
+  return true;
 }
 
 

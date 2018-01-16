@@ -659,8 +659,8 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
 
     // Load calibration data
     else if (cmd == 4 && payload_len >= 88){ // 44
-      setCalibrationData((uint8_t*)payload);
-      return true;      
+      setCalibrationData((uint8_t*)(payload + 1));
+      return true;
     }
     
 
