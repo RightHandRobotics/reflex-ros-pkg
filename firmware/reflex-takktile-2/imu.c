@@ -304,17 +304,19 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 // Used in loadCalData
 void setCalibrationData(uint8_t* buffer){ 
   int i, j;
-  printf("Setting Calibration Data...\n");
+  printf("\nSetting Calibration Data...\n\n");
   // Iterate for each IMU
 
+  // Debugging Buffer Data, For Loops Need Due to UART Buffer Capacity
   uint16_t *buffer_display = (uint16_t *)buffer;
 
-  printf("Buffer_Display: ");
-  for (i = 0; i < 44; i++){
+  printf("Buffer_Display:");
+  for (i = 0; i < (NUM_BNO055_OFFSET_REGISTERS / 2) * NUM_IMUS; i++){
+    if (i % (NUM_BNO055_OFFSET_REGISTERS / 2) == 0){
+      printf("\n");
+    }
     printf("[%d],", buffer_display[i]);
-    delay_ms(10);
   }
-  printf("\n");
 
   for(i = 0; i < NUM_IMUS; i++){ 
 
@@ -324,7 +326,8 @@ void setCalibrationData(uint8_t* buffer){
       delay_ms(19);
       // Set each of the 22 calibration data registers
       for (j = 0; j < NUM_BNO055_OFFSET_REGISTERS; j++){     
-        // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register                                                     
+        // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register
+        printf("IMU %d: 0x%x - [%d]\n", i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
         setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);   
       }
       // After calibration data registers set, set operation mode to NDOF (type of fusion mode)
@@ -332,7 +335,7 @@ void setCalibrationData(uint8_t* buffer){
       // Switching time from CONFIG Mode to Other Modes
       delay_ms(7);
   }
-  printf("\nLoaded Calibration Data\n");
+  printf("\n\nLoaded Calibration Data\n");
 
 }
 
@@ -468,9 +471,9 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
         // Read single calibration status register
         case IMU_CAL_STATUS:
-          // printf("CAL_STAT for IMU: %d\n", imuNumber);
+          
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, values);
-          // printf("stat: %d\n", values[0]);
+          // printf("CAL_STAT for IMU %d: %d\n", imuNumber, values[0]);
           if (result)
             handState.imus_calibration_status[imuNumber] = values[0];
     
@@ -490,14 +493,14 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           // Switching time from Other Modes to CONFIG Mode
           delay_ms(19);
 
-          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 22, values);
+          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], NUM_BNO055_OFFSET_REGISTERS, values);
           // result = readCalibrationData(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], values);
 
           setRegisterIMU(imuNumber, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);  
           // Switching time from CONFIG Mode to Other Modes
           delay_ms(7);
 
-          if (result){ 
+          if (result){
             int i = 0;
             for (i = 0; i < 11; i++){
               handState.imus_calibration_data[imuNumber * 11 + i] = 
@@ -507,7 +510,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
             printf("Calibration Data for IMU: %d\n", imuNumber);
             for (i = 0; i <11; i++){
-              printf("[%d],", handState.imus_calibration_data[imuNumber * 11 + i]);
+              printf("[%d],", handState.imus_calibration_data[imuNumber * NUM_BNO055_OFFSET_REGISTERS + i]);
             }
             printf("\n");
           }
