@@ -33,7 +33,7 @@ from motor import Motor
 class ReflexUSBMotor(Motor):
     def __init__(self, name):
         super(ReflexUSBMotor, self).__init__(name)
-        self.zero_point = rospy.get_param(self.name + '/zero_point')
+        self.zero_point = rospy.get_param(self.name + "/zero_point")
         self.MOTOR_TO_JOINT_GEAR_RATIO = rospy.get_param(self.name + '/motor_to_joint_gear_ratio')
         self.MOTOR_TO_JOINT_INVERTED = rospy.get_param(self.name + '/motor_to_joint_inverted')
         self.motor_cmd_pub = rospy.Publisher(name + '/command', Float64, queue_size=10)

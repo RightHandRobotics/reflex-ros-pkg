@@ -40,10 +40,12 @@ import reflex_msgs.msg
 motor_names = ['_f1', '_f2', '_f3', '_preshape']
 
 class ReflexUSBHand(ReflexHand):
-    def __init__(self):
+    def __init__(self,name):
         self.usb_hand_type = rospy.get_param('usb_hand_type')  
-        self.init_namespace = '/' + self.usb_hand_type
+        self.init_namespace =  name
+       
         super(ReflexUSBHand, self).__init__(self.init_namespace, ReflexUSBMotor)
+        #print("after super:" + self.namespace)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
@@ -57,7 +59,7 @@ class ReflexUSBHand(ReflexHand):
         if (self.usb_hand_type == "reflex_plus"):
             self.enc_subscriber = rospy.Subscriber('/encoder_states', Encoder, self._receive_enc_state_cb)
             rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_auto)
-            self.encoder_zero_point = rospy.get_param('/enc_zero_points')
+            self.encoder_zero_point = rospy.get_param('/enc_zero_points') #remove slash?
         else:
             rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_manual)
     
@@ -230,9 +232,9 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         else:
             return diff
 
-def main():
+def main(name):
     rospy.sleep(4.0)  # To allow services and parameters to load
-    hand = ReflexUSBHand()
+    hand = ReflexUSBHand(name)
     rospy.on_shutdown(hand.disable_torque)
     r = rospy.Rate(20)
     while not rospy.is_shutdown():
@@ -241,4 +243,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    #this needs to be slightly revised as and empty 'args' parameter in roslaunch causes problems
+    nm='reflex_sf' if len(sys.argv)<=1 else sys.argv[1]
+    main(nm)

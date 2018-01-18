@@ -33,7 +33,15 @@ class Motor(object):
         Assumes that "name" is the name of the controller with a preceding
         slash, e.g. /reflex_takktile_f1 or /reflex_sf_f1
         '''
-        self.name = name[1:]
+        # self.name = name[1:] # prone-tofail
+        # this is better if RHR wants to keep it:
+        # self.name=name[1:] if name[0] ='/' else name
+        
+        '''
+        But why do that, and then manually add slash? Instead:
+        '''
+        self.name=name     
+          
         self._DEFAULT_MOTOR_SPEED = rospy.get_param(name + '/default_motor_speed')
         self._MAX_MOTOR_SPEED = rospy.get_param(name + '/max_motor_speed')
         self._MAX_MOTOR_TRAVEL = rospy.get_param(name + '/max_motor_travel')
