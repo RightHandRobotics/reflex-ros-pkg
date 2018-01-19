@@ -82,7 +82,7 @@ void imuInit()
   printf("\tSetting operation mode...\n");
   result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG); 
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(1000);
+  udelay(19000);
 
   // Reset system. Set RST_SYS bit in SYS_TRIGGER register
   printf("\tResetting...\n");
@@ -94,13 +94,13 @@ void imuInit()
   printf("\tSetting power modes...\n");
   result = setRegisterIMUs(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(1000);
+  udelay(19000);
   
   // Set page ID. Change page to 0x00. Most registers needed are on page 0x00.
   printf("\tSetting page ID...\n");
   result = setRegisterIMUs(BNO055_PAGE_ID_ADDR, 0);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(1000);
+  udelay(19000);
   
   // Set external crystal use ID
   printf("\tSetting external crystal use ID...\n");
@@ -111,7 +111,9 @@ void imuInit()
   // Set operating mode to NDOF (nine degree of freedom) FUSION
   printf("\tSetting operation mode 0x%02x... \n", OPERATION_MODE_NDOF);
   result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
+  udelay(19000);
+  
 }
 
 /*
@@ -301,6 +303,36 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   return result;
 }
 
+uint8_t writeMultiToRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress, uint8_t numBytes, uint8_t* data){
+
+  uint8_t result;
+  uint8_t msg[numBytes + 1];
+  msg[0] = registerAddress;
+
+  for (int i = 0; i < numBytes; i++){
+    msg[i + 1] = data[i];
+  }
+
+  if ((uint32_t) port == SPI1_BASE)
+  {
+    //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+
+    // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
+    //   (int)port, address, numBytes);
+    result = writeBytesSPI(port, address, msg, numBytes + 1, 0);
+  }
+  else
+  {
+    //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+
+    // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
+    //   (int)port, address, numBytes);
+    result = writeBytesI2C(port, address, msg, numBytes + 1, 0);
+  }
+  return result;
+
+}
+
 // Used in loadCalData
 void setCalibrationData(uint8_t* buffer){ 
   int i, j;
@@ -317,6 +349,7 @@ void setCalibrationData(uint8_t* buffer){
     }
     printf("[%d],", buffer_display[i]);
   }
+  printf("\n");
 
   for(i = 0; i < NUM_IMUS; i++){ 
 
@@ -324,12 +357,15 @@ void setCalibrationData(uint8_t* buffer){
       setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
       // Switching time from Other Modes to CONFIG Mode
       delay_ms(19);
+      
       // Set each of the 22 calibration data registers
       for (j = 0; j < NUM_BNO055_OFFSET_REGISTERS; j++){     
         // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register
         printf("IMU %d: 0x%x - [%d]\n", i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
-        setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);   
+        setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
       }
+
+
       // After calibration data registers set, set operation mode to NDOF (type of fusion mode)
       setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
       // Switching time from CONFIG Mode to Other Modes
@@ -341,23 +377,25 @@ void setCalibrationData(uint8_t* buffer){
 
 uint8_t readCalibrationData(uint32_t* port, uint8_t address, uint8_t* values){
 
+  int i;
   uint8_t result;
 
-  int i;
   for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS; i++){
+
+    writeRegisterIMU(port, address, ACCEL_OFFSET_X_LSB_ADDR + i);
+
+    uint8_t temp[1];
 
     if ((uint32_t) port == SPI1_BASE)
     {
-      // printf("IMU_READING_BYTES by SPI READ: ADDR %x: \n", ACCEL_OFFSET_X_LSB_ADDR + i);
-
-      writeRegisterIMU(port, address, ACCEL_OFFSET_X_LSB_ADDR + i);
-
-      result = readBytesSPI(port, address, 1, values + i);
+      result = readBytesSPI(port, address, 1, temp);
     }
     else
     {
-      result = readBytesI2C(port, address, 1, values + i);
+      result = readBytesI2C(port, address, 1, temp);
     }
+
+    values[i] = temp[0];
 
   }
 
@@ -493,8 +531,8 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           // Switching time from Other Modes to CONFIG Mode
           delay_ms(19);
 
-          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], NUM_BNO055_OFFSET_REGISTERS, values);
-          // result = readCalibrationData(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], values);
+          // result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], NUM_BNO055_OFFSET_REGISTERS, values);
+          result = readCalibrationData(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], values);
 
           setRegisterIMU(imuNumber, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);  
           // Switching time from CONFIG Mode to Other Modes
@@ -506,10 +544,15 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
               handState.imus_calibration_data[imuNumber * 11 + i] = 
                   ((uint16_t)(values[i * 2 + 1] << 8)) | ((uint16_t)(values[i * 2]));
             }
+
             imu_cal_values_read[imuNumber] = 1;
 
+            printf("Byte Data for IMU: %d\n", imuNumber);
+            for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS; i++){
+              printf("[%d],", values[i]);
+            }
             printf("Calibration Data for IMU: %d\n", imuNumber);
-            for (i = 0; i <11; i++){
+            for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS / 2; i++){
               printf("[%d],", handState.imus_calibration_data[imuNumber * NUM_BNO055_OFFSET_REGISTERS + i]);
             }
             printf("\n");
