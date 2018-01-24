@@ -201,7 +201,7 @@ void ReflexHand::initIMUCal() {
 */
 void ReflexHand::loadIMUCalData(uint8_t data[88]) { //22 Registers * 4 IMUs
   uint8_t msg[89];
-  msg[0] = 4;
+  msg[0] = 4; //Cmd byte on firmware to set calibration data
 
   for (int i = 0; i < 88; i++){
     msg[i + 1] = data[i];

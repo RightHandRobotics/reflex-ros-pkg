@@ -719,13 +719,25 @@ bool loadIMUCalData(reflex_hand::ReflexHand *rh,
 
   }
 
-  // // For Debugging
-  // uint16_t *buffer_display = (uint16_t *)buffer;
 
-  // ROS_INFO("Buffer_Display: ");
-  // for (int i = 0; i < 44; i++){
-  //   ROS_INFO("[%d],", buffer_display[i]);
-  // }
+  //Print Buffered Calibration Data Through Console
+  ostringstream f1, f2, f3, palm;
+  f1 << "imu_calibration_data_f1: ";
+  f2 << "imu_calibration_data_f2: ";
+  f3 << "imu_calibration_data_f3: ";
+  palm << "imu_calibration_data_palm: ";
+
+  for (int i = 0; i < 11; i++){
+    f1 << "[" << buffer[i] << "] ";
+    f2 << "[" << buffer[i + 11] << "] ";
+    f3 << "[" << buffer[i + 22] << "] ";
+    palm << "[" << buffer[i + 33] << "] ";
+  }
+
+  ROS_INFO_STREAM(f1.str());
+  ROS_INFO_STREAM(f2.str());
+  ROS_INFO_STREAM(f3.str());
+  ROS_INFO_STREAM(palm.str());
 
   //Cast 16-bit int array to 8-bit int array to send over ethernet
   rh->loadIMUCalData((uint8_t *)buffer);
