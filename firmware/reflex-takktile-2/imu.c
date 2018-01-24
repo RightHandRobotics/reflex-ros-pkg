@@ -12,6 +12,7 @@ uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 
 // Flag that is set in IMU_CAL_OFFSETS. Indicates if the calibration values are read. Never set back to zero.
 uint8_t imu_cal_values_read[NUM_QUATERNIONS] = {0, 0, 0, 0};
+uint8_t imu_cal_status_count[NUM_IMUS] = {0, 0, 0, 0};
 
 // Flag indiciates if calibration values are set.
 uint8_t imu_cal_values_set[NUM_QUATERNIONS] = {0, 0, 0, 0};
@@ -530,10 +531,14 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
             handState.imus_calibration_status[imuNumber] = values[0];
     
           if (handState.imus_calibration_status[imuNumber] == 0xFF && !imu_cal_values_set[imuNumber]){
-            imu_poll_type[imuNumber] = IMU_CAL_OFFSETS;
-            *state = IMU_STATE_SET_REGISTER;
+            imu_cal_status_count[imuNumber]++;
+            if (imu_cal_status_count[imuNumber] >= 1000){
+              imu_poll_type[imuNumber] = IMU_CAL_OFFSETS;
+              *state = IMU_STATE_SET_REGISTER;
+            }
           }
           else { // Exit state machine
+            imu_cal_status_count[imuNumber] = 0;
             imu_poll_type[imuNumber] = IMU_DATA;
            *state = IMU_STATE_WAIT;
           }
@@ -579,6 +584,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           // if (handState.imus_calibration_status[imuNumber] != 0xFF){
             imu_poll_type[imuNumber] = IMU_DATA;
             *state = IMU_STATE_SET_REGISTER;
+            imu_cal_status_count[imuNumber] = 0;
           //}
 
           // else
