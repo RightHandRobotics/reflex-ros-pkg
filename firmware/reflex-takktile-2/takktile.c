@@ -132,7 +132,7 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
               updateTakktileStatus(takktileNumber, sensorNumberAux, 0);//handStatus.takktileSensor[sensorInMemory] = 0; 
             }
           //}
-          printf("Setting reg");
+          // printf("Setting reg");NUM_QUATERNIONS
         break;
       case STATE_READ_VALUES:
           if (sensorNumberAux == 0)
@@ -141,13 +141,13 @@ void takktile_poll_nonblocking_tick(const uint8_t takktileNumber)
             readValues(takktileNumber, sensorNumberAux - 1); // This is such a huge hack
           sumStatus[takktileNumber]++;
           *state = STATE_DISABLE_SENSOR;
-           printf("f: %d, s: %d\n", takktileNumber, sensorNumberAux);
+           // printf("f: %d, s: %d\n", takktileNumber, sensorNumberAux);
         break;
       case STATE_DISABLE_SENSOR:
           if (checkTakktileStatus(takktileNumber, sensorNumberAux) == 1)
             result = disableSensor(takktileNumber, sensorNumberAux);
           sensorNumber[takktileNumber]+=1;
-          printf("s[]: %d\n", sensorNumber[takktileNumber]);
+          // printf("s[]: %d\n", sensorNumber[takktileNumber]);
           if (sensorNumberAux + 2 > (SENSORS_PER_FINGER+1)) // 14 // (?)// This is such a huge hack
           {
             *state = STATE_WAIT;
@@ -314,7 +314,7 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
   }
 
   index = tp * SENSORS_PER_FINGER + sensorIndex; // - 1
-  if (index==14) printf("sensor0=%i\n",values[0]);
+  
   handState.takktile_pressures[index] = 510 - (values[0]<200 ? ((uint16_t)values[0] + 255) : ((uint16_t)values[0]));
   handState.takktile_temperatures[index] = ((uint16_t)values[2] << 2) | (values[3] >> 6);
   //udelay(SLEEP_TIME);
