@@ -532,14 +532,17 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
     
           if (handState.imus_calibration_status[imuNumber] == 0xFF && !imu_cal_values_set[imuNumber]){
             imu_cal_status_count[imuNumber]++;
+            // printf("CAL_STATUS_COUNT IMU - %d: %d\n", imuNumber, imu_cal_status_count[imuNumber]);
+          }
+          else{
+            imu_cal_status_count[imuNumber] = 0;
           }
 
-          if (imu_cal_status_count[imuNumber] >= 50){
+          if (imu_cal_status_count[imuNumber] >= 100){
             imu_poll_type[imuNumber] = IMU_CAL_OFFSETS;
             *state = IMU_STATE_SET_REGISTER;
           }
           else { // Exit state machine
-            imu_cal_status_count[imuNumber] = 0;
             imu_poll_type[imuNumber] = IMU_DATA;
            *state = IMU_STATE_WAIT;
           }
