@@ -1,0 +1,3 @@
+[submodule "dynamixel_motor"]
+	path = dynamixel_motor
+	url = https://github.com/nphoang1102/dynamixel_motor.git

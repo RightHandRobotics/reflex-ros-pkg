@@ -1,0 +1,55 @@
+"""
+Dictionary of all motor information of the reflx one hand.
+Can be expanded to include other reflex hands
+"""
+reflex_motor_information = {}
+reflex_motor_information["reflex_one_f1"] = {"name":"reflex_one_f1",
+    "ID":1,
+    "_DEFAULT_MOTOR_SPEED":4.5,
+    "_MAX_MOTOR_SPEED":6.0,
+    "_MAX_MOTOR_TRAVEL":3.0,
+    "MOTOR_TO_JOINT_INVERTED":0,
+    "_OVERLOAD_THRESHOLD":0.25,
+    "MOTOR_TO_JOINT_GEAR_RATIO":1.42,
+    "MODEL":12,
+    "PROTOCOL":1}
+reflex_motor_information["reflex_one_f2"] = {"name":"reflex_one_f2",
+    "ID":3,
+    "_DEFAULT_MOTOR_SPEED":4.5,
+    "_MAX_MOTOR_SPEED":6.0,
+    "_MAX_MOTOR_TRAVEL":3.0,
+    "MOTOR_TO_JOINT_INVERTED":1,
+    "_OVERLOAD_THRESHOLD":0.25,
+    "MOTOR_TO_JOINT_GEAR_RATIO":1.42,
+    "MODEL":12,
+    "PROTOCOL":1}
+reflex_motor_information["reflex_one_f3"] = {"name":"reflex_one_f3",
+    "ID":2,
+    "_DEFAULT_MOTOR_SPEED":4.5,
+    "_MAX_MOTOR_SPEED":6.0,
+    "_MAX_MOTOR_TRAVEL":3.0,
+    "MOTOR_TO_JOINT_INVERTED":3,
+    "_OVERLOAD_THRESHOLD":0.25,
+    "MOTOR_TO_JOINT_GEAR_RATIO":1.42,
+    "MODEL":12,
+    "PROTOCOL":1}
+reflex_motor_information["reflex_one_preshape1"] = {"name":"reflex_one_preshape1",
+    "ID":4,
+    "_DEFAULT_MOTOR_SPEED":4.5,
+    "_MAX_MOTOR_SPEED":6.0,
+    "_MAX_MOTOR_TRAVEL":1.75,
+    "MOTOR_TO_JOINT_INVERTED":1,
+    "_OVERLOAD_THRESHOLD":0.55,
+    "MOTOR_TO_JOINT_GEAR_RATIO":1.5,
+    "MODEL":350,
+    "PROTOCOL":2}
+reflex_motor_information["reflex_one_preshape2"] = {"name":"reflex_one_preshape2",
+    "ID":4,
+    "_DEFAULT_MOTOR_SPEED":4.5,
+    "_MAX_MOTOR_SPEED":6.0,
+    "_MAX_MOTOR_TRAVEL":1.75,
+    "MOTOR_TO_JOINT_INVERTED":2,
+    "_OVERLOAD_THRESHOLD":0.55,
+    "MOTOR_TO_JOINT_GEAR_RATIO":1.5,
+    "MODEL":350,
+    "PROTOCOL":2}
