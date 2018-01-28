@@ -1,3 +1,10 @@
+
+reflex-one-api
+======
+Controller for the Reflex One Hand that does require ROS. 
+Can be tested by running the file one_example_code_NoROS.py
+
+
 reflex-ros-pkg
 ======
 
