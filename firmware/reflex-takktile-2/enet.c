@@ -668,6 +668,7 @@ bool eth_dispatch_udp(const uint8_t *data, const uint16_t len)
 
     // Refresh calibration data
     else if (cmd == 5){
+      refreshCalibration();
       return true;
     }
 

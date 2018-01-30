@@ -56,6 +56,7 @@ uint8_t writeRegisterIMU(uint32_t* port, uint8_t address,
 uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, 
 					 uint8_t* values);
 void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]);
+void refreshCalibration(void);
 uint8_t setRegisterIMU(uint8_t port, uint8_t registerAddr, uint8_t data); 
 
 /*

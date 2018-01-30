@@ -385,29 +385,16 @@ void setCalibrationData(uint8_t* buffer){
 
 }
 
-uint8_t readCalibrationData(uint32_t* port, uint8_t address, uint8_t* values){
-
+void refreshCalibration(void){
   int i;
-  uint8_t result;
-
-  for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS; i++){
-
-    writeRegisterIMU(port, address, ACCEL_OFFSET_X_LSB_ADDR + i);
-
-    result = readBytesIMU(port, address, 1, values);
-
-
-    // values[i] = temp[0];
-
+  for (i = 0; i < NUM_IMUS; i++){
+    imu_cal_values_read[i] = 0;
   }
-
-  // printf("Values Array: ");
-  // for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS; i++){
-  //   printf("[%d] ", values[i]);
-  // }
-
-  return result;
-
+  for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS / 2 * NUM_IMUS; i++)
+  {
+    handState.imus_calibration_data[i] = 0;
+  }
+  return;
 }
 
 /*
