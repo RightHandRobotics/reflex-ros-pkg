@@ -45,7 +45,7 @@ class ReflexUSBHand(ReflexHand):
         self.init_namespace =  name
        
         super(ReflexUSBHand, self).__init__(self.init_namespace, ReflexUSBMotor)
-        #print("after super:" + self.namespace)
+
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
