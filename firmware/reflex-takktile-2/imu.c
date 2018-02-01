@@ -11,7 +11,12 @@ imu_poll_type_t imu_poll_type[NUM_IMUS] = {IMU_DATA, IMU_DATA, IMU_DATA, IMU_DAT
 uint8_t imu_state_count[NUM_IMUS] = {0, 0, 0, 0};
 
 // Flag that is set in IMU_CAL_OFFSETS. Indicates if the calibration values are read. Never set back to zero.
-uint8_t imu_cal_values_read = 0;
+uint8_t imu_cal_values_read[NUM_QUATERNIONS] = {0, 0, 0, 0};
+uint8_t imu_cal_status_count[NUM_IMUS] = {0, 0, 0, 0};
+
+// Flag indiciates if calibration values are set.
+uint8_t imu_cal_values_set[NUM_QUATERNIONS] = {0, 0, 0, 0};
+
 
 /*
   Description: Initializes and sets important stuff. called in main.c
@@ -51,8 +56,25 @@ void imuInit()
     }
 
     // Check if ID is correct
-    if (*id != BNO055_ID)
-      printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+    if (*id != BNO055_ID){
+      udelay(1000); // Hold on for boot
+      if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
+      {
+        result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+        result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+      }
+
+      // I2C
+      else
+      {
+        result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+        result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+      }
+      if (*id != BNO055_ID)
+        printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+      else 
+        printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
+    }
     else
       printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
   }
@@ -65,7 +87,7 @@ void imuInit()
   printf("\tSetting operation mode...\n");
   result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG); 
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(1000);
+  udelay(19000);
 
   // Reset system. Set RST_SYS bit in SYS_TRIGGER register
   printf("\tResetting...\n");
@@ -77,13 +99,13 @@ void imuInit()
   printf("\tSetting power modes...\n");
   result = setRegisterIMUs(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(1000);
+  udelay(19000);
   
-  // Set page ID. Change page to 0x00. TODO(LANCE): understand what a page id is?
+  // Set page ID. Change page to 0x00. Most registers needed are on page 0x00.
   printf("\tSetting page ID...\n");
   result = setRegisterIMUs(BNO055_PAGE_ID_ADDR, 0);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
-  udelay(1000);
+  udelay(19000);
   
   // Set external crystal use ID
   printf("\tSetting external crystal use ID...\n");
@@ -94,7 +116,9 @@ void imuInit()
   // Set operating mode to NDOF (nine degree of freedom) FUSION
   printf("\tSetting operation mode 0x%02x... \n", OPERATION_MODE_NDOF);
   result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
+  udelay(19000);
+  
 }
 
 /*
@@ -168,7 +192,7 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
 */
 uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
 {
-  printf("\t\tRegister: 0x%02x Data: 0x%02x\n", registerAddr, data);
+  // printf("\t\tRegister: 0x%02x Data: 0x%02x\n", registerAddr, data);
 
   // Set specified register to hold given byte of data
   uint8_t result = 0;
@@ -284,22 +308,93 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
   return result;
 }
 
-// Used in loadCalData
-void setCalibrationData(uint8_t buffer[22 * NUM_IMUS]){ 
-  int i, j;
+uint8_t writeMultiToRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress, uint8_t numBytes, uint8_t* data){
 
+  uint8_t result;
+  uint8_t msg[numBytes + 1];
+  msg[0] = registerAddress;
+
+  for (int i = 0; i < numBytes; i++){
+    msg[i + 1] = data[i];
+  }
+
+  if ((uint32_t) port == SPI1_BASE)
+  {
+    //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+
+    // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
+    //   (int)port, address, numBytes);
+    result = writeBytesSPI(port, address, msg, numBytes + 1, 0);
+  }
+  else
+  {
+    //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+
+    // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
+    //   (int)port, address, numBytes);
+    result = writeBytesI2C(port, address, msg, numBytes + 1, 0);
+  }
+  return result;
+
+}
+
+// Used in loadCalData
+void setCalibrationData(uint8_t* buffer){ 
+  int i, j;
+  printf("\nSetting Calibration Data...\n\n");
   // Iterate for each IMU
+
+  // Debugging Buffer Data, For Loops Need Due to UART Buffer Capacity
+  uint16_t *buffer_display = (uint16_t *)buffer;
+
+  printf("Buffer_Display:");
+  for (i = 0; i < (NUM_BNO055_OFFSET_REGISTERS / 2) * NUM_IMUS; i++){
+    if (i % (NUM_BNO055_OFFSET_REGISTERS / 2) == 0){
+      printf("\n");
+    }
+    printf("[%d],", buffer_display[i]);
+  }
+  printf("\n");
+
   for(i = 0; i < NUM_IMUS; i++){ 
+
       // Set operation mode to CONFIG_MODE
-      setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);                    
+      setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
+      // Switching time from Other Modes to CONFIG Mode
+      delay_ms(25);
+      
       // Set each of the 22 calibration data registers
-      for (j = 0; j < 22; j++){     
-        // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register                                                     
-        setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[22 * i + j]);   
+      for (j = 0; j < NUM_BNO055_OFFSET_REGISTERS; j++){     
+        // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register
+        printf("IMU %d: 0x%x - [%d]\n", i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
+        setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
       }
+
+      imu_cal_values_set[i] = 1;
+
       // After calibration data registers set, set operation mode to NDOF (type of fusion mode)
       setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
+      // Switching time from CONFIG Mode to Other Modes
+      delay_ms(10);
+
   }
+
+  memcpy((void *)handState.imus_calibration_data, (void *)buffer, 88);
+
+  printf("\n\nLoaded Calibration Data\n");
+
+}
+
+void refreshCalibration(void){
+  int i;
+  for (i = 0; i < NUM_IMUS; i++){
+    imu_cal_values_read[i] = 0;
+  }
+  for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS / 2 * NUM_IMUS; i++)
+  {
+    handState.imus_calibration_data[i] = 0;
+  }
+  return;
 }
 
 /*
@@ -323,7 +418,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
   
   uint8_t result = 0;
   uint8_t registerAddress;
-  printf("IMU NUMBER: %d STATE: \n", imuNumber);
+  // printf("IMU NUMBER: %d STATE: \n", imuNumber);
 
   if (checkIMUStatus(imuNumber) == 0)
     *state = IMU_STATE_WAIT;
@@ -343,7 +438,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
     // Selects register to read from
     case IMU_STATE_SET_REGISTER: 
       imu_state_count[imuNumber]++;
-      printf("IMU_STATE_SET_REGISTER\n");
+      // printf("IMU_STATE_SET_REGISTER\n");
 
       if (handPorts.multiplexer)
         selectMultiplexerPort(imuNumber);
@@ -359,107 +454,140 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
         case IMU_CAL_OFFSETS:
           registerAddress = ACCEL_OFFSET_X_LSB_ADDR;
           break;
-        /////// TODO create new state? 9/22/2017 Lance
         default:
           registerAddress = BNO055_QUATERNION_DATA_W_LSB_ADDR;
           break;
       }
 
-      // Write to register. WHY?
+      // Writes register address
       result = writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddress);
 
-      // Check if register write worked
+      // Check if register write worked. Redundant
       if (result) 
         *state = IMU_STATE_READ_VALUES;
 
-      // Set state to this. Doesn't this make the if statement above redundant?
+      // TODO: Failed register write to result in fix attempt, possibly repeating set register state but may induce blocking
+
       *state = IMU_STATE_READ_VALUES;
       break;
 
     case IMU_STATE_READ_VALUES:
-      printf("IMU_STATE_READ_VALUES\n");
+      // printf("IMU_STATE_READ_VALUES\n");
       
       if (handPorts.multiplexer)
         selectMultiplexerPort(imuNumber);
 
-      //result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
-      
-      /*  Switch case to read n number of bytes from IMU dependent on type of information being read
-          Different types of info: make enum?
-            Calibration data ->
-            Regular data ->
-      */
       switch(imu_poll_type[imuNumber]){
-       
         case IMU_DATA:
+          // printf("DATA\n");
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 8, values);
 
-          // If register read succeeds, load data
+          // If register read succeeds, load quaternion data
           if (result){
-            handState.imus[imuNumber * 4] = (((uint16_t)values[1]) << 8) | ((uint16_t)values[0]);
-            handState.imus[imuNumber * 4 + 1] = (((uint16_t)values[3]) << 8) | ((uint16_t)values[2]);
-            handState.imus[imuNumber * 4 + 2] = (((uint16_t)values[5]) << 8) | ((uint16_t)values[4]);
-            handState.imus[imuNumber * 4 + 3] = (((uint16_t)values[7]) << 8) | ((uint16_t)values[6]);
+            int imuDataBlock = imuNumber * NUM_QUATERNIONS;
+            int i;
+            for (i = 0; i < NUM_QUATERNIONS; i++)
+              handState.imus[imuDataBlock + i] = (((uint16_t)values[(i * 2) + 1]) << 8) | ((uint16_t)values[i*2]);
           }
 
-          // else, switch state
-
-          //if (handState.imus_calibration_status[imuNumber]!=0xFF){
+          // Check if calibration offsets have been read
+          if (!imu_cal_values_read[imuNumber]){
             imu_poll_type[imuNumber] = IMU_CAL_STATUS;
             *state = IMU_STATE_SET_REGISTER;
-          //}
+          }
+          else { // Exit state machine
+            imu_poll_type[imuNumber] = IMU_DATA;
+           *state = IMU_STATE_WAIT;
+          }
 
-          //else
-           // *state = IMU_STATE_WAIT;
+          // writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], ACCEL_OFFSET_X_LSB_ADDR);
+
+          // result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 22, values);
+          // // result = readCalibrationData(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], values);
+
+          // printf("IMU %d: (%d),(%d)\n", imuNumber, values[0], values[1]);
+
           break;
 
-        // There is a single calibration status register
-        case IMU_CAL_STATUS:  
-          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, values);
+        // Read single calibration status register
+        case IMU_CAL_STATUS:
           
+          result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, values);
+          // printf("CAL_STAT for IMU %d: %d\n", imuNumber, values[0]);
           if (result)
             handState.imus_calibration_status[imuNumber] = values[0];
     
-          //if ((handState.imus_calibration_status[imuNumber] == 0xFF) && (imu_cal_values_read == 0)){
+          if (handState.imus_calibration_status[imuNumber] == 0xFF && !imu_cal_values_set[imuNumber]){
+            imu_cal_status_count[imuNumber]++;
+            // printf("CAL_STATUS_COUNT IMU - %d: %d\n", imuNumber, imu_cal_status_count[imuNumber]);
+          }
+          else{
+            imu_cal_status_count[imuNumber] = 0;
+          }
+
+          if (imu_cal_status_count[imuNumber] >= 100){
             imu_poll_type[imuNumber] = IMU_CAL_OFFSETS;
             *state = IMU_STATE_SET_REGISTER;
-          //}
-
-          //else
-          //  *state = IMU_STATE_WAIT;
-
+          }
+          else { // Exit state machine
+            imu_poll_type[imuNumber] = IMU_DATA;
+           *state = IMU_STATE_WAIT;
+          }
           break;
 
-
-/////////// MAKE NEW COMMAND THING THAT REFRESHES/COMBINES IMU_CAL_STATUS AND IMU_CALL OFSEETS CASES
-        
-
         case IMU_CAL_OFFSETS:  // There are 22 offset AND radius registers
+          printf("-----------CAL_OFFSETS--------------------------\n");
+          setRegisterIMU(imuNumber, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
+          // Switching time from Other Modes to CONFIG Mode
+          delay_ms(25);
+
+          writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], ACCEL_OFFSET_X_LSB_ADDR);
+
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 22, values);
-          
-          if (result){ 
+          // result = readCalibrationData(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], values);
+
+          printf("\n(%x)\n", values[0]);
+
+          setRegisterIMU(imuNumber, BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
+          // Switching time from CONFIG Mode to Other Modes
+          delay_ms(10);
+
+          if (result){
             int i = 0;
-            for (i = 0; i < 11; i++)
+            for (i = 0; i < 11; i++){
               handState.imus_calibration_data[imuNumber * 11 + i] = 
-                  ((uint16_t)(values[i * 2 + 1] << 8)) | ((uint16_t)(values[i * 2]));
-            imu_cal_values_read = 1;
+                  ((uint16_t)values[i * 2 + 1] << 8) | ((uint16_t)values[i * 2]);
+            }
+
+            imu_cal_values_read[imuNumber] = 1;
+
+            printf("\nByte Data for IMU: %d\n", imuNumber);
+            for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS; i++){
+              printf("[%d],", values[i]);
+            }
+            printf("\nCalibration Data for IMU: %d\n", imuNumber);
+            for (i = 0; i < NUM_BNO055_OFFSET_REGISTERS / 2; i++){
+              printf("[%d],", handState.imus_calibration_data[imuNumber * 11 + i]);
+            }
+            printf("\n");
           }
           
           // if (handState.imus_calibration_status[imuNumber] != 0xFF){
             imu_poll_type[imuNumber] = IMU_DATA;
             *state = IMU_STATE_SET_REGISTER;
+            imu_cal_status_count[imuNumber] = 0;
           //}
 
           // else
           //   *state = IMU_STATE_WAIT;
-          //break;
+          break;
           
         default:  // Do nothing as this should never occur
           *state = IMU_STATE_WAIT;
           break;
       }
 
-      if (!result)
+      if (!result)  
         printf("ERROR. IMU %d\n", imuNumber);
         //handState.imus[imuNumber] = 0; // TODO: Change from handState.imus to handStatus.imus[]
       break;
@@ -468,8 +596,6 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
       imu_state_count[imuNumber] = 0;
       imu_poll_type[imuNumber] = IMU_DATA;
       break;
-
-    // Switch back to IMU_STATE_WAIT. Isn't this REDUNDANT?
     default:
       *state = IMU_STATE_WAIT;
       break;

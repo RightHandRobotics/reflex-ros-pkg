@@ -75,9 +75,10 @@ uint8_t readConverterRegister(uint8_t registerAddress, uint8_t *data)
   for (int i = 0; i < 3; ++i)
   {
     spiPort->DR = msg[i];      // send write register command 
-    while (!(spiPort->SR & SPI_SR_TXE) && (SYSTIME - startTime < SPI_TIMEOUT));       // wait for buffer room
-    while (!(spiPort->SR & SPI_SR_RXNE) && (SYSTIME - startTime < SPI_TIMEOUT));
-    while ((spiPort->SR & SPI_SR_BSY)  && (SYSTIME - startTime < SPI_TIMEOUT));
+    // while (!(spiPort->SR & SPI_SR_TXE) && (SYSTIME - startTime < SPI_TIMEOUT));       // wait for buffer room
+    // while (!(spiPort->SR & SPI_SR_RXNE) && (SYSTIME - startTime < SPI_TIMEOUT));
+    // while ((spiPort->SR & SPI_SR_BSY)  && (SYSTIME - startTime < SPI_TIMEOUT));
+    udelay(15);
     if (i == 2)
       data[0] = spiPort->DR; 
     else
@@ -125,6 +126,7 @@ uint8_t writeRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddres
 
 uint8_t setRegisterSPI(uint32_t* port, uint8_t address, uint8_t registerAddress, uint8_t data){
   uint8_t msg[2] = {registerAddress, data};
+  // printf("SPI: %x - %d\n", msg[0], msg[1]);
   return writeBytesSPI(port, address, msg, 2, 0);
 }
 
@@ -178,7 +180,7 @@ uint8_t writeBytesSPI(uint32_t* port, uint8_t address, uint8_t* data, int len, i
   return 1;
 }
 
-uint8_t readCommmand(SPI_TypeDef* spiPort, uint8_t address, uint8_t numBytes)
+uint8_t readCommand(SPI_TypeDef* spiPort, uint8_t address, uint8_t numBytes)
 {
   GPIO_TypeDef *cs_gpio = GPIOA;
   uint32_t cs_pin_mask = 1 << PORTA_BRIDGE0_CS;
@@ -187,7 +189,10 @@ uint8_t readCommmand(SPI_TypeDef* spiPort, uint8_t address, uint8_t numBytes)
   udelay(4);
   
   spiPort->DR = 0x01;                         // send read command
-  // while((spiPort->SR & (SPI_SR_TXE)));        //while((spiPort->SR & (SPI_SR_BSY)));
+  // while(!(spiPort->SR & (SPI_SR_TXE)));
+  // while(!(spiPort->SR & (SPI_SR_RXNE)));
+  // while(spiPort->SR & SPI_SR_BSY);
+
   udelay(15);
   
   spiPort->DR = (uint8_t) numBytes;           // send data len                            
@@ -216,16 +221,22 @@ uint8_t readBytesSPI(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 
   GPIO_TypeDef *cs_gpio = GPIOA;
   uint32_t cs_pin_mask = 1 << PORTA_BRIDGE0_CS;
-  // uint8_t status;
+  uint8_t status[1] = {0};
 
-  readCommmand(spiPort, address, numBytes);
+  readCommand(spiPort, address, numBytes);
+  readConverterRegister(SC18IS601_REGISTER_I2C_STATUS, status);
+
+  //Check if I2C-line encountered NACK
+  if (status[0] == 0xF0){
+    return 0;
+  }
 
   uint32_t wait = 180 + 110 * numBytes;
   udelay(wait);
 
   if (numBytes == 0 || values == NULL)
     return 1;
-  
+
   cs_gpio->BSRRH = cs_pin_mask;               // assert CS
   udelay(4);
 
