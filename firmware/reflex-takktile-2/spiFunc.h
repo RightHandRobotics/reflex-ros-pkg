@@ -28,6 +28,11 @@
 #define SC18IS601_READ_BUFFER_COMMAND              0x06
 #define PORTC_I2C_BRIDGE_RESET                     14
 
+#define SC18IS601_REGISTER_I2C_STATUS_SUCCESS			 0xF0
+#define SC18IS601_REGISTER_I2C_STATUS_NACK_RW			 0xF1
+#define SC18IS601_REGISTER_I2C_STATUS_NACK_BYTE		 0xF2
+#define SC18IS601_REGISTER_I2C_STATUS_BUSY				 0xF3
+
 
 // SPI to I2C Converter Functions
 void resetConverter(void);
