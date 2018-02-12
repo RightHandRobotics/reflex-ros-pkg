@@ -831,8 +831,16 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
     motor_step = MOTOR_TO_JOINT_INVERTED[i] * calibration_dyn_increase[i];
     servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_step;
   }
-  
-  raw_pub.publish(servo_pos);
+
+  if (state->dynamixel_angles_[0] == 0 && state->dynamixel_angles_[1] == 0 && 
+      state->dynamixel_angles_[3] == 0 && state->dynamixel_angles_[4] == 0){
+    ROS_FATAL("ERROR! Encoder malfunction, prevented motor catastrophe, please check finger connections!");
+    g_done = true;
+  }
+  else{
+    raw_pub.publish(servo_pos);
+  }
+
 }
 
 
