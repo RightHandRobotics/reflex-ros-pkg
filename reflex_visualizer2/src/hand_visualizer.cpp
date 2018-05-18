@@ -32,7 +32,6 @@
 
 using namespace std;
 
-
 ros::Publisher joint_pub;
 ros::Publisher sensor_pub;
 sensor_msgs::JointState joint_state;
@@ -175,9 +174,9 @@ void publish_finger_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::Service
     {
       for (int i = 0; i < (NUM_FLEX_STEPS+1); i++)
       {
-        joint_state.position[index] = srv.response.rotation[0]/((float) (NUM_FLEX_STEPS+1)); //roll
-        joint_state.position[index + 1] = srv.response.rotation[1]/((float) (NUM_FLEX_STEPS+1)); //pitch
-        joint_state.position[index + 2] = srv.response.rotation[2]/((float) (NUM_FLEX_STEPS+1)); //yaw
+        joint_state.position[index] = srv.response.rotation[0]/((float) (NUM_FLEX_STEPS+1)) + ROLL_OFFSET; //roll
+        joint_state.position[index + 1] = srv.response.rotation[1]/((float) (NUM_FLEX_STEPS+1)) + PITCH_OFFSET; //pitch
+        joint_state.position[index + 2] = srv.response.rotation[2]/((float) (NUM_FLEX_STEPS+1)) + YAW_OFFSET; //yaw
         index += 3;
       }
     }

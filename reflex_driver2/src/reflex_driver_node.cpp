@@ -701,45 +701,48 @@ bool saveIMUCalData(std_srvs::Empty::Request &req,
   Loads yaml file to firmware
   Takes in: uint16 array
   Returns: bool
-    --- Fix comments
-    --- Determine if bool is the correct return type
-  Inspiration from:
-    --- https://stackoverflow.com/questions/6499183/converting-a-uint32-value-into-a-uint8-array4
 */
 bool loadIMUCalData(reflex_hand::ReflexHand *rh, 
                     std_srvs::Empty::Request &req, 
                     std_srvs::Empty::Response &res) {
   ROS_INFO("Loading IMU calibration data...");
-  uint8_t buffer[reflex_hand::ReflexHandState::NUM_IMUS * 22]; // 88
+  
+  uint16_t buffer[reflex_hand::ReflexHandState::NUM_IMUS * 11];
 
-  for (int i = 0; i < 11; i++) { // 44
-    int x = i * 2;
-    
-    // Convert uint16_t to uint8_t  
-    buffer[x]           = (imu_calibration_data_f1[i] & 0xff00) >> 8;
-    buffer[x + 1]       = imu_calibration_data_f1[i] & 0x00ff;
-    buffer[22 + x]      = (imu_calibration_data_f2[i] & 0xff00) >> 8;
-    buffer[22 + x + 1]  = imu_calibration_data_f2[i] & 0x00ff;
-    buffer[44 + x]      = (imu_calibration_data_f3[i] & 0xff00) >> 8;
-    buffer[44 + x + 1]  = imu_calibration_data_f3[i] & 0x00ff;
-    buffer[66 + x]      = (imu_calibration_data_palm[i] & 0xff00) >> 8;
-    buffer[66 + x + 1]  = imu_calibration_data_palm[i] & 0x00ff;
+  //Collect calibration data into single array
+  for (int i = 0; i < 11; i++){
+
+    buffer[i] = imu_calibration_data_f1[i];
+    buffer[i + 11] = imu_calibration_data_f2[i];
+    buffer[i + 22] = imu_calibration_data_f3[i];
+    buffer[i + 33] = imu_calibration_data_palm[i];
+
   }
 
-  rh->loadIMUCalData(buffer);
+
+  //Print Buffered Calibration Data Through Console
+  ostringstream f1, f2, f3, palm;
+  f1 << "imu_calibration_data_f1: ";
+  f2 << "imu_calibration_data_f2: ";
+  f3 << "imu_calibration_data_f3: ";
+  palm << "imu_calibration_data_palm: ";
+
+  for (int i = 0; i < 11; i++){
+    f1 << "[" << buffer[i] << "] ";
+    f2 << "[" << buffer[i + 11] << "] ";
+    f3 << "[" << buffer[i + 22] << "] ";
+    palm << "[" << buffer[i + 33] << "] ";
+  }
+
+  ROS_INFO_STREAM(f1.str());
+  ROS_INFO_STREAM(f2.str());
+  ROS_INFO_STREAM(f3.str());
+  ROS_INFO_STREAM(palm.str());
+
+  //Cast 16-bit int array to 8-bit int array to send over ethernet
+  rh->loadIMUCalData((uint8_t *)buffer);
+
   return true;
-
-  // For debugging
-  // for (int i = 0; i < 11; i++) {
-  //   ROS_INFO("imu_calibration_data_f1[%d]: %d", i, imu_calibration_data_f1[i]);
-  //   ROS_INFO("imu_calibration_data_f2[%d]: %d", i, imu_calibration_data_f2[i]);
-  //   ROS_INFO("imu_calibration_data_f3[%d]: %d", i, imu_calibration_data_f3[i]);
-  //   ROS_INFO("imu_calibration_data_palm[%d]: %d", i, imu_calibration_data_palm[i]);
-  // }
-
-  // For debugging
-  // for (int i = 66; i < 88; i++)
-  //     ROS_INFO("buffer[%d]: %d", i, buffer[i]);
 }
 
 
@@ -828,8 +831,17 @@ void move_fingers_in(const reflex_hand::ReflexHandState* const state) {
     motor_step = MOTOR_TO_JOINT_INVERTED[i] * calibration_dyn_increase[i];
     servo_pos.raw_positions[i] = state->dynamixel_angles_[i] + motor_step;
   }
-  
-  raw_pub.publish(servo_pos);
+
+  if (state->dynamixel_angles_[0] == 0 || state->dynamixel_angles_[1] == 0 || 
+      state->dynamixel_angles_[2] == 0 || state->dynamixel_angles_[3] == 0){
+
+      ROS_FATAL("ERROR! Encoder malfunction, prevented motor catastrophe.\nPlease check finger connections!");
+      g_done = true;
+
+  }
+  else{
+    raw_pub.publish(servo_pos);
+  }
 }
 
 

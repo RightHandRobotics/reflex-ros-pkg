@@ -26,6 +26,10 @@
 #define NUM_FLEX_STEPS      9
 #define SENSORS_PER_FINGER  14
 
+#define ROLL_OFFSET			0.0
+#define PITCH_OFFSET		0.0
+#define YAW_OFFSET			0.0
+
 void publish_takktile_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::ServiceClient* client);
 void publish_sf_to_rviz(const reflex_msgs2::HandConstPtr& hand);
 void publish_finger_to_rviz(const reflex_msgs2::HandConstPtr& hand, ros::ServiceClient* client);

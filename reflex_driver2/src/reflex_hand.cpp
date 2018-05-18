@@ -199,12 +199,13 @@ void ReflexHand::initIMUCal() {
     Takes in: uint8_t array 
     Returns: Nothing
 */
-void ReflexHand::loadIMUCalData(uint8_t data[88]) {
+void ReflexHand::loadIMUCalData(uint8_t data[88]) { //22 Registers * 4 IMUs
   uint8_t msg[89];
-  msg[0] = 4;
+  msg[0] = 4; //Cmd byte on firmware to set calibration data
 
-  for (int i = 0; i < 88; i++)
+  for (int i = 0; i < 88; i++){
     msg[i + 1] = data[i];
+  }
 
   tx(msg, sizeof(msg), PORT_BASE); 
 }
