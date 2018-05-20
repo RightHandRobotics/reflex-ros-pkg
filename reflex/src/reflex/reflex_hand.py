@@ -37,10 +37,18 @@ class ReflexHand(object):
         self.namespace = name
         rospy.init_node('reflex_hand')
         rospy.loginfo('Starting up the hand')
-        self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
-                       self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
-                       self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
-                       self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
+        if self.namespace == '/reflex_one':
+        # adding conditional check to make sure the correct motors are launched for reflex_one
+        # can accommate future models with different motor types with extra conditions
+            self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
+                           self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
+                           # self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
+                           self.namespace + '_preshape1': MotorClass(self.namespace + '_preshape1')}
+        else:
+            self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
+                           self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
+                           self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
+                           self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
         rospy.Subscriber(self.namespace + '/command',
                          reflex_msgs.msg.Command, self._receive_cmd_cb)
         rospy.Subscriber(self.namespace + '/command_position',
