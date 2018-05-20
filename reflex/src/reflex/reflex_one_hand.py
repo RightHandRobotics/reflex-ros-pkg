@@ -37,13 +37,13 @@ from reflex_hand import ReflexHand
 from reflex_usb_motor import ReflexUSBMotor
 import reflex_msgs.msg
 
-motor_names = ['_f1', '_f2', '_preshape1']
+motor_names = ['_f1', '_f2', '_f3', '_preshape1', '_preshape2']
 
-class ReflexUSBHand(ReflexHand):
+class ReflexOneHand(ReflexHand):
     def __init__(self):
         self.usb_hand_type = rospy.get_param('usb_hand_type')
         self.init_namespace = '/' + self.usb_hand_type
-        super(ReflexUSBHand, self).__init__(self.init_namespace, ReflexUSBMotor)
+        super(ReflexOneHand, self).__init__(self.init_namespace, ReflexUSBMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
@@ -64,30 +64,30 @@ class ReflexUSBHand(ReflexHand):
     def set_angles(self, pose):
         self.motors[self.namespace + '_f1'].set_motor_angle(pose.f1)
         self.motors[self.namespace + '_f2'].set_motor_angle(pose.f2)
-        # self.motors[self.namespace + '_f3'].set_motor_angle(pose.f3)
+        self.motors[self.namespace + '_f3'].set_motor_angle(pose.f3)
         self.motors[self.namespace + '_preshape1'].set_motor_angle(pose.preshape1)
-        # self.motors[self.namespace + '_preshape2'].set_motor_angle(pose.preshape2)
+        self.motors[self.namespace + '_preshape2'].set_motor_angle(pose.preshape2)
 
     def set_velocities(self, velocity):
         self.motors[self.namespace + '_f1'].set_motor_velocity(velocity.f1)
         self.motors[self.namespace + '_f2'].set_motor_velocity(velocity.f2)
-        # self.motors[self.namespace + '_f3'].set_motor_velocity(velocity.f3)
+        self.motors[self.namespace + '_f3'].set_motor_velocity(velocity.f3)
         self.motors[self.namespace + '_preshape1'].set_motor_velocity(velocity.preshape1)
-        # self.motors[self.namespace + '_preshape2'].set_motor_velocity(velocity.preshape2)
+        self.motors[self.namespace + '_preshape2'].set_motor_velocity(velocity.preshape2)
 
     def set_speeds(self, speed):
         self.motors[self.namespace + '_f1'].set_motor_speed(speed.f1)
         self.motors[self.namespace + '_f2'].set_motor_speed(speed.f2)
-        # self.motors[self.namespace + '_f3'].set_motor_speed(speed.f3)
+        self.motors[self.namespace + '_f3'].set_motor_speed(speed.f3)
         self.motors[self.namespace + '_preshape1'].set_motor_speed(speed.preshape1)
-        # self.motors[self.namespace + '_preshape2'].set_motor_speed(speed.preshape2)
+        self.motors[self.namespace + '_preshape2'].set_motor_speed(speed.preshape2)
 
     def set_force_cmds(self, torque):
         self.motors[self.namespace + '_f1'].set_force_cmd(torque.f1)
         self.motors[self.namespace + '_f2'].set_force_cmd(torque.f2)
-        # self.motors[self.namespace + '_f3'].set_force_cmd(torque.f3)
+        self.motors[self.namespace + '_f3'].set_force_cmd(torque.f3)
         self.motors[self.namespace + '_preshape1'].set_force_cmd(torque.preshape1)
-        # self.motors[self.namespace + '_preshape2'].set_force_cmd(torque.preshape2)
+        self.motors[self.namespace + '_preshape2'].set_force_cmd(torque.preshape2)
 
     def _receive_enc_state_cb(self, data):
         #Receives and processes the encoder state
@@ -133,7 +133,8 @@ class ReflexUSBHand(ReflexHand):
 
     def _publish_hand_state(self):
         state = reflex_msgs.msg.Hand()
-        motor_names = ('_f1', '_f2', '_preshape1')
+        # motor_names = ('_f1', '_f2', '_preshape1')
+        motor_names = ('_f1', '_f2', '_f3', '_preshape1', '_preshape2')
         for i in range(len(motor_names)):
             state.motor[i] = self.motors[self.namespace + motor_names[i]].get_motor_msg()
         for i in range(3):
@@ -166,7 +167,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
     def calibrate_auto(self, data=None):
         #Auto calibrates the hand using encoder data and moving until motion is detected
-        for i in range(3):
+        for i in range(len(motor_names)):
             time.sleep(0.125)
             j=0
             while(1):
@@ -185,9 +186,9 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         print "Calibration complete, writing data to file"
         self._zero_current_pose()
         self.calibrate_encoders_locally(self.encoder_last_value)
-        for i in range(3):
+        for i in range(len(motor_names)):
             self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.5)
-        for i in range(3):
+        for i in range(len(motor_names)):
             self.motors[self.namespace + motor_names[i]].set_motor_angle(goal_pos = 0.0)
         return []
 
@@ -203,7 +204,9 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         data = dict(
             reflex_one_f1=dict(zero_point=self.motors[self.namespace + '_f1'].get_current_raw_motor_angle()),
             reflex_one_f2=dict(zero_point=self.motors[self.namespace + '_f2'].get_current_raw_motor_angle()),
-            reflex_one_preshape1=dict(zero_point=self.motors[self.namespace + '_preshape1'].get_current_raw_motor_angle())
+            reflex_one_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
+            reflex_one_preshape1=dict(zero_point=self.motors[self.namespace + '_preshape1'].get_current_raw_motor_angle()),
+            reflex_one_preshape2=dict(zero_point=self.motors[self.namespace + '_preshape2'].get_current_raw_motor_angle())
         )
         self._write_zero_point_data_to_file(self.usb_hand_type + '_motor_zero_points.yaml', data)
 
@@ -252,7 +255,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
 def main():
     rospy.sleep(4.0)  # To allow services and parameters to load
-    hand = ReflexUSBHand()
+    hand = ReflexOneHand()
     rospy.on_shutdown(hand.disable_torque)
     r = rospy.Rate(20)
     while not rospy.is_shutdown():

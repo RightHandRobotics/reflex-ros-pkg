@@ -42,8 +42,9 @@ class ReflexHand(object):
         # can accommate future models with different motor types with extra conditions
             self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
                            self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
-                           # self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
-                           self.namespace + '_preshape1': MotorClass(self.namespace + '_preshape1')}
+                           self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
+                           self.namespace + '_preshape1': MotorClass(self.namespace + '_preshape1'),
+                           self.namespace + '_preshape2': MotorClass(self.namespace + '_preshape2')}
         else:
             self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
                            self.namespace + '_f2': MotorClass(self.namespace + '_f2'),

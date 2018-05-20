@@ -11,7 +11,7 @@
                     port_name: "/dev/ttyUSB0"
                     baud_rate: 1000000
                     min_motor_id: 1
-                    max_motor_id: 3
+                    max_motor_id: 5
                     update_rate: 20
         </rosparam>
     </node>
@@ -20,7 +20,7 @@
     <node name="reflex_one_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
           args="--manager=dxl_manager
                 --port reflex_one_port
-                reflex_one_f1 reflex_one_f2 reflex_one_preshape1"
+                reflex_one_f1 reflex_one_f2 reflex_one_f3 reflex_one_preshape1 reflex_one_preshape2"
           output="screen"/>
     <node name="reflex_one_hand" pkg="reflex" type="reflex_one_hand.py" required="true" output="screen"/>
 </launch>

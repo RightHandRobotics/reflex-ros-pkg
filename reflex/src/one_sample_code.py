@@ -47,7 +47,7 @@ def main():
     raw_input("== When ready to wiggle fingers with position control, hit [Enter]\n")
     for i in range(60):
         setpoint = (-cos(i / 5.0) + 1) * 1.75
-        pos_pub.publish(PoseCommand(f1=setpoint, f2=setpoint, preshape1=setpoint))
+        pos_pub.publish(PoseCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=setpoint, preshape2=setpoint))
         rospy.sleep(0.25)
     raw_input("...\n")
 
@@ -67,7 +67,7 @@ def main():
         pos_pub.publish(PoseCommand(f1=i, f2=i, preshape1=i))
         rospy.sleep(2.0)
         setpoint = 5.0 - (i * 2.25)
-        vel_pub.publish(VelocityCommand(f1=setpoint, f2=setpoint, preshape1=setpoint))
+        vel_pub.publish(VelocityCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=setpoint, preshape2=setpoint))
         rospy.sleep(7.0 - setpoint)
     raw_input("...\n")
     pos_pub.publish(PoseCommand())
