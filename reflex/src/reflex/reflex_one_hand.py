@@ -35,7 +35,7 @@ from std_srvs.srv import Empty
 
 from reflex_hand import ReflexHand
 from reflex_usb_motor import ReflexUSBMotor
-import reflex_msgs.msg
+import reflex_one_msgs.msg
 
 motor_names = ['_f1', '_f2', '_f3', '_preshape1', '_preshape2']
 
@@ -45,7 +45,7 @@ class ReflexOneHand(ReflexHand):
         self.init_namespace = '/' + self.usb_hand_type
         super(ReflexOneHand, self).__init__(self.init_namespace, ReflexUSBMotor)
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
-                                              reflex_msgs.msg.Hand, queue_size=10)
+                                              reflex_one_msgs.msg.Hand, queue_size=10)
         self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
         self.encoder_offset = [0, 0, 0]
         self.enc_scale = (2 * 3.141596) / 16383
@@ -132,10 +132,10 @@ class ReflexOneHand(ReflexHand):
             motor.enable_torque()
 
     def _publish_hand_state(self):
-        state = reflex_msgs.msg.Hand()
+        state = reflex_one_msgs.msg.Hand()
         # motor_names = ('_f1', '_f2', '_preshape1')
         motor_names = ('_f1', '_f2', '_f3', '_preshape1', '_preshape2')
-        for i in range(len(motor_names)):
+        for i in range(5):
             state.motor[i] = self.motors[self.namespace + motor_names[i]].get_motor_msg()
         for i in range(3):
             state.finger[i].proximal = self.proximal_angle[i]

@@ -4,6 +4,7 @@ project(reflex)
 ## Find catkin macros and libraries
 find_package(catkin REQUIRED COMPONENTS
   reflex_msgs
+  reflex_one_msgs
   rospy
   roscpp
   tf

@@ -26,6 +26,7 @@ from std_msgs.msg import Float64
 from std_srvs.srv import Empty
 
 import reflex_msgs.msg
+import reflex_one_msgs.msg
 
 
 class ReflexHand(object):
@@ -45,18 +46,26 @@ class ReflexHand(object):
                            self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
                            self.namespace + '_preshape1': MotorClass(self.namespace + '_preshape1'),
                            self.namespace + '_preshape2': MotorClass(self.namespace + '_preshape2')}
+            rospy.Subscriber(self.namespace + '/command',
+                         reflex_one_msgs.msg.Command, self._receive_cmd_cb)
+            rospy.Subscriber(self.namespace + '/command_position',
+                         reflex_one_msgs.msg.PoseCommand, self._receive_angle_cmd_cb)
+            rospy.Subscriber(self.namespace + '/command_velocity',
+                         reflex_one_msgs.msg.VelocityCommand, self._receive_vel_cmd_cb)
+            rospy.Subscriber(self.namespace + '/command_motor_force',
+                         reflex_one_msgs.msg.ForceCommand, self._receive_force_cmd_cb)
         else:
             self.motors = {self.namespace + '_f1': MotorClass(self.namespace + '_f1'),
                            self.namespace + '_f2': MotorClass(self.namespace + '_f2'),
                            self.namespace + '_f3': MotorClass(self.namespace + '_f3'),
                            self.namespace + '_preshape': MotorClass(self.namespace + '_preshape')}
-        rospy.Subscriber(self.namespace + '/command',
+            rospy.Subscriber(self.namespace + '/command',
                          reflex_msgs.msg.Command, self._receive_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_position',
+            rospy.Subscriber(self.namespace + '/command_position',
                          reflex_msgs.msg.PoseCommand, self._receive_angle_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_velocity',
+            rospy.Subscriber(self.namespace + '/command_velocity',
                          reflex_msgs.msg.VelocityCommand, self._receive_vel_cmd_cb)
-        rospy.Subscriber(self.namespace + '/command_motor_force',
+            rospy.Subscriber(self.namespace + '/command_motor_force',
                          reflex_msgs.msg.ForceCommand, self._receive_force_cmd_cb)
         rospy.loginfo('ReFlex hand has started, waiting for commands...')
 
