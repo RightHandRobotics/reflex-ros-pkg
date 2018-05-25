@@ -9,11 +9,11 @@ from math import pi, cos
 import rospy
 from std_srvs.srv import Empty
 
-from reflex_msgs.msg import Command
-from reflex_msgs.msg import PoseCommand
-from reflex_msgs.msg import VelocityCommand
+from reflex_one_msgs.msg import Command
+from reflex_one_msgs.msg import PoseCommand
+from reflex_one_msgs.msg import VelocityCommand
 # from reflex_msgs.msg import ForceCommand
-from reflex_msgs.msg import Hand
+from reflex_one_msgs.msg import Hand
 
 
 hand_state = Hand()
