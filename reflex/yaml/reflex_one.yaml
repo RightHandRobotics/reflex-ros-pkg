@@ -69,7 +69,7 @@ reflex_one_preshape1:
     max_motor_travel: 1.75
     overload_threshold: 0.8  # preshape threshold is higher due to different gearing
     motor:
-        id: 3
+        id: 4
         init: 0
         min: 0
         max: 28672
