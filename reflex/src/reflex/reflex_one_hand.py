@@ -89,19 +89,19 @@ class ReflexOneHand(ReflexHand):
         self.motors[self.namespace + '_preshape1'].set_force_cmd(torque.preshape1)
         self.motors[self.namespace + '_preshape2'].set_force_cmd(torque.preshape2)
 
-    def _receive_enc_state_cb(self, data):
-        #Receives and processes the encoder state
-        #print("encoder 1: " + str(data.encoders[0]) + " encoder 2: " + str(data.encoders[1]) + " encoder 3: " + str(data.encoders[2]))
-        self.update_encoder_offset(data.encoders)
-        self.encoder_last_value = data.encoders[:]
-        motor_angles = [0, 0, 0]
-        for i in range(3):
-            self.proximal_angle[i] = self.calc_proximal_angle(data.encoders[i], self.encoder_zero_point[i], self.encoder_offset[i])
-            raw_motor_angle = self.motors[self.namespace + motor_names[i]].get_current_raw_motor_angle()
-            motor_joint_angle = self.motors[self.namespace + motor_names[i]].get_current_joint_angle() #self.calc_motor_angle(self.MOTOR_TO_JOINT_INVERTED[i], raw_motor_angle, self.MOTOR_TO_JOINT_GEAR_RATIO[i], self.motor_zero_point[i])
-            #motor_angles[i] = raw_motor_angle
-            self.distal_approx[i] = self.calc_distal_angle(motor_joint_angle, self.proximal_angle[i])
-        #print motor_angles
+    # def _receive_enc_state_cb(self, data):
+    #     #Receives and processes the encoder state
+    #     #print("encoder 1: " + str(data.encoders[0]) + " encoder 2: " + str(data.encoders[1]) + " encoder 3: " + str(data.encoders[2]))
+    #     self.update_encoder_offset(data.encoders)
+    #     self.encoder_last_value = data.encoders[:]
+    #     motor_angles = [0, 0, 0]
+    #     for i in range(3):
+    #         self.proximal_angle[i] = self.calc_proximal_angle(data.encoders[i], self.encoder_zero_point[i], self.encoder_offset[i])
+    #         raw_motor_angle = self.motors[self.namespace + motor_names[i]].get_current_raw_motor_angle()
+    #         motor_joint_angle = self.motors[self.namespace + motor_names[i]].get_current_joint_angle() #self.calc_motor_angle(self.MOTOR_TO_JOINT_INVERTED[i], raw_motor_angle, self.MOTOR_TO_JOINT_GEAR_RATIO[i], self.motor_zero_point[i])
+    #         #motor_angles[i] = raw_motor_angle
+    #         self.distal_approx[i] = self.calc_distal_angle(motor_joint_angle, self.proximal_angle[i])
+    #     #print motor_angles
 
     def _receive_cmd_cb(self, data):
         self.disable_force_control()
@@ -212,30 +212,30 @@ motor, or 'q' to indicate that the zero point has been reached\n")
 
     #Encoder data processing functions are based off encoder functions used
     #For the reflex_takktile hand as in reflex_driver_node.cpp
-    def calibrate_encoders_locally(self, data):
-        #Capture the current encoder position locally as zero and save to file
-        for i in range(0, 3):
-            self.encoder_zero_point[i] = data[i]*self.enc_scale
-            self.encoder_offset[i] = 0;
-        data = dict(enc_zero_points = self.encoder_zero_point)
-        self._write_zero_point_data_to_file('reflex_one_zero_points.yaml', data)
+    # def calibrate_encoders_locally(self, data):
+    #     #Capture the current encoder position locally as zero and save to file
+    #     for i in range(0, 3):
+    #         self.encoder_zero_point[i] = data[i]*self.enc_scale
+    #         self.encoder_offset[i] = 0;
+    #     data = dict(enc_zero_points = self.encoder_zero_point)
+    #     self._write_zero_point_data_to_file('reflex_one_zero_points.yaml', data)
 
-    def update_encoder_offset(self, raw_value):
-        #Given a raw and past (self.encoder_last_value) value, track encoder wrapes (self.enc_offset)
-        offset = self.encoder_offset[:]
+    # def update_encoder_offset(self, raw_value):
+    #     #Given a raw and past (self.encoder_last_value) value, track encoder wrapes (self.enc_offset)
+    #     offset = self.encoder_offset[:]
 
-        for i in range(0,3):
-            if (offset[i]==-1):
-                #This happens at start up
-                offset[i] = 0
-            else:
-                #If the encoder jumps, that means it wrapped a revolution
-                if (self.encoder_last_value[i] - raw_value[i] > 5000):
-                    offset[i] = offset[i] + 16383
-                elif (self.encoder_last_value[i] - raw_value[i] < -5000):
-                    offset[i] = offset[i] - 16383
+    #     for i in range(0,3):
+    #         if (offset[i]==-1):
+    #             #This happens at start up
+    #             offset[i] = 0
+    #         else:
+    #             #If the encoder jumps, that means it wrapped a revolution
+    #             if (self.encoder_last_value[i] - raw_value[i] > 5000):
+    #                 offset[i] = offset[i] + 16383
+    #             elif (self.encoder_last_value[i] - raw_value[i] < -5000):
+    #                 offset[i] = offset[i] - 16383
 
-        self.encoder_offset = offset[:]
+    #     self.encoder_offset = offset[:]
 
     def calc_proximal_angle(self, raw_value, zero, offset):
         #Calculates actual proximal angle using raw sensor data, and

@@ -9,11 +9,11 @@ from math import pi, cos
 import rospy
 from std_srvs.srv import Empty
 
-from reflex_msgs.msg import Command
-from reflex_msgs.msg import PoseCommand
-from reflex_msgs.msg import VelocityCommand
-# from reflex_msgs.msg import ForceCommand
-from reflex_msgs.msg import Hand
+from reflex_one_msgs.msg import Command
+from reflex_one_msgs.msg import PoseCommand
+from reflex_one_msgs.msg import VelocityCommand
+# from reflex_one_msgs.msg import ForceCommand
+from reflex_one_msgs.msg import Hand
 
 
 hand_state = Hand()
@@ -47,43 +47,43 @@ def main():
     raw_input("== When ready to wiggle fingers with position control, hit [Enter]\n")
     for i in range(60):
         setpoint = (-cos(i / 5.0) + 1) * 1.75
-        pos_pub.publish(PoseCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=setpoint, preshape2=setpoint))
+        pos_pub.publish(PoseCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=0, preshape2=0))
         rospy.sleep(0.25)
     raw_input("...\n")
 
     ##################################################################################################################
-    # Demonstration of preshape joint
-    # raw_input("== When ready to test preshape joint, hit [Enter]\n")
-    # pos_pub.publish(PoseCommand(preshape=1.57))
-    # rospy.sleep(2.0)
-    # pos_pub.publish(PoseCommand())
-    # rospy.sleep(2.0)
-    # raw_input("...\n")
+     #Demonstration of preshape joint
+    raw_input("== When ready to test preshape joint, hit [Enter]\n")
+    pos_pub.publish(PoseCommand(preshape1=1.57, preshape2=1.57))
+    rospy.sleep(2.0)
+    pos_pub.publish(PoseCommand())
+    rospy.sleep(2.0)
+    raw_input("...\n")
 
     ##################################################################################################################
     # Demonstration of velocity control - variable closing speed
     raw_input("== When ready to open and close fingers with velocity control, hit [Enter]\n")
     for i in range(3):
-        pos_pub.publish(PoseCommand(f1=i, f2=i, preshape1=i))
+        pos_pub.publish(PoseCommand(f1=i, f2=i, f3=i))
         rospy.sleep(2.0)
         setpoint = 5.0 - (i * 2.25)
-        vel_pub.publish(VelocityCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=setpoint, preshape2=setpoint))
+        vel_pub.publish(VelocityCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=0, preshape2=0))
         rospy.sleep(7.0 - setpoint)
     raw_input("...\n")
     pos_pub.publish(PoseCommand())
 
     ##################################################################################################################
     # # Demonstration of blended control - asymptotic approach to goal - uses hand_state
-    # raw_input("== When ready to approach target positions with blended control, hit [Enter]\n")
-    # pose = PoseCommand(f1=3.5, f2=2.25, f3=1.0, preshape=0.0)
-    # velocity = VelocityCommand()
+    raw_input("== When ready to approach target positions with blended control, hit [Enter]\n")
+    pose = PoseCommand(f1=3.5, f2=2.25, f3=1.0, preshape1=0.0, preshape2=0.0)
+    velocity = VelocityCommand(f1=1.0, f2=0.5, f3=0.25, preshape1=0.0, preshape2=0.0)
     # for i in range(1, 5):
     #     velocity.f1 = round(pose.f1 - hand_state.motor[0].joint_angle, 1) + 0.5
     #     velocity.f2 = round(pose.f2 - hand_state.motor[1].joint_angle, 1) + 0.5
     #     velocity.f3 = round(pose.f3 - hand_state.motor[2].joint_angle, 1) + 0.5
-    #     command_pub.publish(Command(pose, velocity))
-    #     rospy.sleep(0.75)
-    # raw_input("...\n")
+    command_pub.publish(Command(pose, velocity))
+    rospy.sleep(0.75)
+    raw_input("...\n")
 
     ##################################################################################################################
     # # Demonstration of force control - square wave
