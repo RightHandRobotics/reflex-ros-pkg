@@ -26,6 +26,7 @@
 
 void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand);
 void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand);
+void publish_one_to_rviz(const reflex_msgs::HandConstPtr& hand);
 void publish_plus_to_rviz(const reflex_msgs::HandConstPtr& hand);
 void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, bool takktile);
 void publish_sensors_to_rviz(const reflex_msgs::HandConstPtr& hand);
