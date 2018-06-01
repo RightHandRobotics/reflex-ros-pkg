@@ -22,7 +22,6 @@ __license__ = 'Apache License 2.0'
 __maintainer__ = 'RightHand Robotics'
 __email__ = 'reflex-support@righthandrobotics.com'
 
-
 from os.path import join
 import yaml
 import time
@@ -135,7 +134,7 @@ class ReflexOneHand(ReflexHand):
         state = reflex_one_msgs.msg.Hand()
         # motor_names = ('_f1', '_f2', '_preshape1')
         motor_names = ('_f1', '_f2', '_f3', '_preshape1', '_preshape2')
-        for i in range(5):
+        for i in range(len(motor_names)):
             state.motor[i] = self.motors[self.namespace + motor_names[i]].get_motor_msg()
         for i in range(3):
             state.finger[i].proximal = self.proximal_angle[i]

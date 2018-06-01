@@ -72,6 +72,7 @@ int main(int argc, char **argv)
   ros::Publisher pub = n.advertise<reflex_msgs::Hand>("/reflex_sf/hand_state", 10);
   ros::Subscriber takktile_sub = n.subscribe("/reflex_takktile/hand_state", 10, publish_takktile_to_rviz);
   ros::Subscriber sf_sub = n.subscribe("/reflex_sf/hand_state", 10, publish_sf_to_rviz);
+  ros::Subscriber one_sub = n.subscribe("/reflex_one/hand_state", 10, publish_one_to_rviz);
   ros::Subscriber plus_sub = n.subscribe("/reflex_plus/hand_state", 10, publish_plus_to_rviz);
 
   // Zero the hand and make it appear open. The sleeps are to let RVIZ start
@@ -94,6 +95,10 @@ void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand) {
 
 
 void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+    publish_finger_to_rviz(hand, false);
+}
+
+void publish_one_to_rviz(const reflex_msgs::HandConstPtr& hand) {
     publish_finger_to_rviz(hand, false);
 }
 
