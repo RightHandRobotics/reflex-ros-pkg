@@ -43,6 +43,9 @@ class ReflexUSBMotor(Motor):
         self.state_subscriber = rospy.Subscriber(name + '/state', JointState, self._receive_state_cb)
         self.reset_motor_speed()
 
+
+
+
     def get_inversion(self):
         return self.MOTOR_TO_JOINT_INVERTED
 
@@ -76,7 +79,12 @@ class ReflexUSBMotor(Motor):
         else:
             bounded_command = min(max(angle_command, self.zero_point),
                                   self.zero_point + self._MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO)
+            if "reflex_one" in self.name:
+                bounded_command = min (bounded_command, 5.2)
+        print self.zero_point        
+        print bounded_command        
         return bounded_command
+
 
     def set_motor_speed(self, goal_speed):
         '''

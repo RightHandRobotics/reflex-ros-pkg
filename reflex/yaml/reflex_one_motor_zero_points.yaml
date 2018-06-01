@@ -1,5 +1,5 @@
-reflex_one_f1: {zero_point: 1.564660403643354}
-reflex_one_f2: {zero_point: 1.262977515359178}
-reflex_one_f3: {zero_point: 2.132233295161041}
-reflex_one_preshape1: {zero_point: 2.132233295161041}
-reflex_one_preshape2: {zero_point: 3.9218775476942893}
+reflex_one_f1: {zero_point: 1.5800002115222105}
+reflex_one_f2: {zero_point: 4.755340442445488}
+reflex_one_f3: {zero_point: 4.438317746282455}
+reflex_one_preshape1: {zero_point: 3.932104086280194}
+reflex_one_preshape2: {zero_point: 1.1965050145508003}
