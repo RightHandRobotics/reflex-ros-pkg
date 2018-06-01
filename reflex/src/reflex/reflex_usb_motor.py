@@ -79,10 +79,8 @@ class ReflexUSBMotor(Motor):
         else:
             bounded_command = min(max(angle_command, self.zero_point),
                                   self.zero_point + self._MAX_MOTOR_TRAVEL * self.MOTOR_TO_JOINT_GEAR_RATIO)
-            # if "reflex_one" in self.name:
-            #     bounded_command = min (bounded_command, 5.2)
-        print self.zero_point        
-        print bounded_command
+            if "reflex_one" in self.name:
+                bounded_command = min (bounded_command, 5.2)
         return bounded_command
 
 
