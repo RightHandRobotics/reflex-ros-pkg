@@ -82,6 +82,7 @@ def main():
     #     velocity.f2 = round(pose.f2 - hand_state.motor[1].joint_angle, 1) + 0.5
     #     velocity.f3 = round(pose.f3 - hand_state.motor[2].joint_angle, 1) + 0.5
     command_pub.publish(Command(pose, velocity))
+    rospy.sleep(10.0)
     pos_pub.publish(PoseCommand())
 
     rospy.sleep(0.75)

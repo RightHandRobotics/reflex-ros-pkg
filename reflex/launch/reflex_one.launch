@@ -16,7 +16,7 @@
         </rosparam>
     </node>
     <rosparam file="$(find reflex)/yaml/reflex_one.yaml" command="load"/>
-    <rosparam file="$(find reflex)/yaml/reflex_one_zero_points.yaml" command="load"/>
+    <rosparam file="$(find reflex)/yaml/reflex_one_motor_zero_points.yaml" command="load"/>
     <node name="reflex_one_controller_spawner" pkg="dynamixel_controllers" type="controller_spawner.py"
           args="--manager=dxl_manager
                 --port reflex_one_port
