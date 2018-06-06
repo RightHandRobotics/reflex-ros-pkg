@@ -66,7 +66,7 @@ def main():
     for i in range(3):
         pos_pub.publish(PoseCommand(f1=i, f2=i, f3=i))
         rospy.sleep(2.0)
-        setpoint = 5.0 - (i * 2.25)
+        setpoint = 3.0 - (i * 1)
         vel_pub.publish(VelocityCommand(f1=setpoint, f2=setpoint, f3=setpoint, preshape1=0, preshape2=0))
         rospy.sleep(7.0 - setpoint)
     raw_input("...\n")
@@ -82,6 +82,8 @@ def main():
     #     velocity.f2 = round(pose.f2 - hand_state.motor[1].joint_angle, 1) + 0.5
     #     velocity.f3 = round(pose.f3 - hand_state.motor[2].joint_angle, 1) + 0.5
     command_pub.publish(Command(pose, velocity))
+    pos_pub.publish(PoseCommand())
+
     rospy.sleep(0.75)
     raw_input("...\n")
 
