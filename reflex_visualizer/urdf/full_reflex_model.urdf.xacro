@@ -3,6 +3,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="${tf_prefix}rhr_flex_model">
 
 	<xacro:arg name="attached" default="true"/>
+
 	<xacro:property name="has_parent" value="$(arg attached)"/>
 
 <!-- ################ ################ ################ ################ ################ ################ -->
@@ -85,7 +86,7 @@
 		</joint>
 	</xacro:macro>
 
-	<xacro:macro name="reflex_xacro" params="tf_prefix='' parent='' *origin">
+	<xacro:macro name="reflex_xacro" params="tf_prefix='' parent='' twist=0">
 
 		<xacro:flex_link finger_id="1" flex_id="1"/>
 	  <xacro:flex_link finger_id="1" flex_id="2"/>
@@ -147,8 +148,8 @@
 
 
 		<xacro:if value="${has_parent}">
-			<joint name="${tf_prefix}_to_hand_joint" type="fixed">
-				<xacro:insert_block name="origin"/>
+			<joint name="${tf_prefix}to_hand_joint" type="fixed">
+				<origin rpy="0 0 ${twist}" xyz="0 0 0"/>
 				<parent link="${parent}"/>
 				<child link="${tf_prefix}hand_base"/>
 			</joint>
