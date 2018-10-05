@@ -25,7 +25,7 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include <reflex_msgs/Hand.h>
+#include <reflex_one_msgs/Hand.h>
 #include "./hand_visualizer.h"
 
 using namespace std;
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     }
   }
 
-  ros::Publisher pub = n.advertise<reflex_msgs::Hand>("/reflex_sf/hand_state", 10);
+  ros::Publisher pub = n.advertise<reflex_one_msgs::Hand>("/reflex_sf/hand_state", 10);
   ros::Subscriber takktile_sub = n.subscribe("/reflex_takktile/hand_state", 10, publish_takktile_to_rviz);
   ros::Subscriber sf_sub = n.subscribe("/reflex_sf/hand_state", 10, publish_sf_to_rviz);
   ros::Subscriber one_sub = n.subscribe("/reflex_one/hand_state", 10, publish_one_to_rviz);
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
   // Zero the hand and make it appear open. The sleeps are to let RVIZ start
   ros::Duration(2.0).sleep();
-  reflex_msgs::Hand base_hand_state;
+  reflex_one_msgs::Hand base_hand_state;
   for (int i=0; i<10; i++) {
     pub.publish(base_hand_state);
     ros::Duration(0.5).sleep();
@@ -88,25 +88,25 @@ int main(int argc, char **argv)
 }
 
 
-void publish_takktile_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_takktile_to_rviz(const reflex_one_msgs::HandConstPtr& hand) {
   publish_finger_to_rviz(hand, true);
   publish_sensors_to_rviz(hand);
 }
 
 
-void publish_sf_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_sf_to_rviz(const reflex_one_msgs::HandConstPtr& hand) {
     publish_finger_to_rviz(hand, false);
 }
 
-void publish_one_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_one_to_rviz(const reflex_one_msgs::HandConstPtr& hand) {
     publish_finger_to_rviz(hand, false);
 }
 
-void publish_plus_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_plus_to_rviz(const reflex_one_msgs::HandConstPtr& hand) {
     publish_finger_to_rviz(hand, true);
 }
 
-void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, bool takktile) {
+void publish_finger_to_rviz(const reflex_one_msgs::HandConstPtr& hand, bool takktile) {
   joint_state.header.stamp = ros::Time::now();
   if (takktile) {
     joint_state.position[0] = hand->finger[0].proximal;
@@ -118,7 +118,7 @@ void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, bool takktile
     joint_state.position[2] = hand->motor[2].joint_angle;
   }
   joint_state.position[3] = hand->motor[3].joint_angle;
-  joint_state.position[4] = -hand->motor[3].joint_angle;
+  joint_state.position[4] = hand->motor[4].joint_angle;
 
   int index = NUM_FIXED_STEPS;
   for (int finger = 0; finger<3; finger++)
@@ -133,7 +133,7 @@ void publish_finger_to_rviz(const reflex_msgs::HandConstPtr& hand, bool takktile
 }
 
 
-void publish_sensors_to_rviz(const reflex_msgs::HandConstPtr& hand) {
+void publish_sensors_to_rviz(const reflex_one_msgs::HandConstPtr& hand) {
   bool contact_val;
   float pressure_val;
   visualization_msgs::MarkerArray marker_array;

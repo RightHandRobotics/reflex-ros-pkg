@@ -1,0 +1,94 @@
+reflex_one_f1:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_f1
+    manual_calibrate: False
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1.1
+    default_motor_speed: 3.0
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.75
+    motor:
+        id: 1
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_f2:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_f2
+    manual_calibrate: True
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1.1
+    default_motor_speed: 3.0
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.75
+    motor:
+        id: 2
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_f3:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_f3
+    manual_calibrate: True
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1.1
+    default_motor_speed: 3.0
+    max_motor_speed: 6.0
+    max_motor_travel: 3.75
+    overload_threshold: 0.75
+    motor:
+        id: 3
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_preshape1:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_preshape1
+    manual_calibrate: True
+    motor_to_joint_inverted: True
+    motor_to_joint_gear_ratio: 1
+    default_motor_speed: 3.0
+    max_motor_speed: 6.0
+    max_motor_travel: 1.75
+    overload_threshold: 0.5  
+    motor:
+        id: 4
+        init: 0
+        min: 0
+        max: 28672
+
+reflex_one_preshape2:
+    controller:
+        package: dynamixel_controllers
+        module: joint_position_controller
+        type: JointPositionController
+    joint_name: reflex_one_preshape2
+    manual_calibrate: True
+    motor_to_joint_inverted: False
+    motor_to_joint_gear_ratio: 1
+    default_motor_speed: 3.0
+    max_motor_speed: 6.0
+    max_motor_travel: 1.75
+    overload_threshold: 0.5  # direct drive finger
+    motor:
+        id: 5
+        init: 0
+        min: 0
+        max: 28672
