@@ -17,7 +17,7 @@ void encInit()
     ENCODER_STATE_WAIT: skips the encoder while other state machines are not finished
 
   Returns: void
-  
+
   Encoder connections:
     0 -> Port I2C1
     1 -> Port SPI
@@ -26,7 +26,7 @@ void encInit()
 void enc_poll_nonblocking_tick(const uint8_t encoderNumber)
 {
   enc_async_poll_state_t* state = (enc_async_poll_state_t*)&(enc_poll_state[encoderNumber]);
-  
+
   switch(*state)
   {
     case ENCODER_STATE_SET_REGISTER:
@@ -54,12 +54,21 @@ uint8_t setEncoderRegister(uint8_t encoderNumber, uint8_t encoderRegister,int ti
   {
     case I2C1_BASE: // Finger 1
       result = writeRegisterI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case I2C3_BASE: // Finger 3
       result = writeRegisterI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case SPI1_BASE: // Finger 2
       result = writeRegisterSPI(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
+	if (0 == result){
+		converterInit();
+	}
     break;
   }
 
@@ -76,16 +85,25 @@ uint8_t readEncoderValues(uint8_t encoderNumber, int timeout)
   {
     case I2C1_BASE: // Finger 1
       result = readBytesI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case I2C3_BASE: // Finger 3
       result = readBytesI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case SPI1_BASE: // Finger 2
       result = readBytesSPI(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
+	if (0 == result){
+		converterInit();
+	}
     break;
   }
 
   handState.encoders[encoderNumber] = (((uint16_t) valueRead[0] << 6) + ((uint16_t) (valueRead[1] & 0x3F)));
-  
+
   return result;
 }

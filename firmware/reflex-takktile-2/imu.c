@@ -25,13 +25,13 @@ uint8_t imu_cal_values_set[NUM_QUATERNIONS] = {0, 0, 0, 0};
 void imuInit()
 {
   uint8_t id[1] = {0}; // This initializes the variable in one line. {} is for a pointer. No need to make memory and stuff
-  
+
   uint8_t result;
 
   printf("Initializing IMU state: \n");
 
   // For each IMU
-  for (int i = 0; i < NUM_IMUS; i++) 
+  for (int i = 0; i < NUM_IMUS; i++)
   {
     if (handPorts.multiplexer) // multiplexer is an attribute of ports_t struct
     {
@@ -45,14 +45,26 @@ void imuInit()
     if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
       result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+	if (0 == result){
+		converterInit();
+	}
       result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+	if (0 == result){
+		converterInit();
+	}
     }
 
     // I2C
     else
     {
       result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+	  if (0 == result){
+		  resetI2C(handPorts.imu[i]);
+	  }
       result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+	  if (0 == result){
+		  resetI2C(handPorts.imu[i]);
+	  }
     }
 
     // Check if ID is correct
@@ -61,18 +73,30 @@ void imuInit()
       if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
       {
         result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+	if (0 == result){
+		converterInit();
+	}
         result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+	if (0 == result){
+		converterInit();
+	}
       }
 
       // I2C
       else
       {
         result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+		  if (0 == result){
+			  resetI2C(handPorts.imu[i]);
+		  }
         result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+		  if (0 == result){
+			  resetI2C(handPorts.imu[i]);
+		  }
       }
       if (*id != BNO055_ID)
         printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
-      else 
+      else
         printf("IMU %d found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
     }
     else
@@ -85,40 +109,40 @@ void imuInit()
 
   // Set operation mode to CONFIG_MODE
   printf("\tSetting operation mode...\n");
-  result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG); 
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
   udelay(19000);
 
   // Reset system. Set RST_SYS bit in SYS_TRIGGER register
   printf("\tResetting...\n");
   result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x20);
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
   udelay(1000000); // Takes a while to reset the IMUs
-  
+
    // Set power mode to normal
   printf("\tSetting power modes...\n");
   result = setRegisterIMUs(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
   udelay(19000);
-  
+
   // Set page ID. Change page to 0x00. Most registers needed are on page 0x00.
   printf("\tSetting page ID...\n");
   result = setRegisterIMUs(BNO055_PAGE_ID_ADDR, 0);
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
   udelay(19000);
-  
+
   // Set external crystal use ID
   printf("\tSetting external crystal use ID...\n");
   result = setRegisterIMUs(BNO055_SYS_TRIGGER_ADDR, 0x80);
-  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");  
+  printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
   udelay(1000000); //500000); // Takes a while to set this configuration
-    
+
   // Set operating mode to NDOF (nine degree of freedom) FUSION
   printf("\tSetting operation mode 0x%02x... \n", OPERATION_MODE_NDOF);
   result = setRegisterIMUs(BNO055_OPR_MODE_ADDR, OPERATION_MODE_NDOF);
   printf("\t\tResult: %s\n", result ? "SUCCESS" : "FAILED\n");
   udelay(19000);
-  
+
 }
 
 /*
@@ -140,8 +164,9 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
 
   // Set specified register to hold the given byte of data
   uint8_t result = 0;
+  uint8_t res = 0;
   uint8_t resultOp = 0;       // Used for writeRegisterSPI
-  uint8_t response[1] = {0}; 
+  uint8_t response[1] = {0};
 
   // Loop through each IMU
   for (int i = 0; i < NUM_IMUS; i++)
@@ -158,28 +183,40 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
     if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
       resultOp = setRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
+	if (0 == resultOp){
+		converterInit();
+	}
       //resultOp = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
 
     else
     {
       resultOp = setRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
-      //resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
+ 	  if (0 == resultOp){
+		  resetI2C(handPorts.imu[i]);
+	  }
+     //resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
-    
+
     // Check to make sure data is sent correctly
     if (registerAddr != BNO055_SYS_TRIGGER_ADDR) // If not a reset command, check
     {
       if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
-        readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+        res = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+	if (0 == res){
+		converterInit();
+	}
       else
-        readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+        res = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+		  if (0 == res){
+			  resetI2C(handPorts.imu[i]);
+		  }
       result += (response[0] == data);
     }
 
     else
       result += resultOp;
-    
+
   }
 
   return result;
@@ -197,7 +234,8 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
   // Set specified register to hold given byte of data
   uint8_t result = 0;
   uint8_t resultOp = 0;
-  uint8_t response[1] = {0}; 
+  uint8_t response[1] = {0};
+  uint8_t res = 0;
 
   if (handPorts.multiplexer)
   {
@@ -211,22 +249,35 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
   if ((uint32_t) handPorts.imu[num] == SPI1_BASE)
   {
     resultOp = setRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
-    //resultOp = writeRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
+	if (0 == resultOp){
+		converterInit();
+	}
+   //resultOp = writeRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
   }
 
   else
   {
     resultOp = setRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
+	  if (0 == resultOp){
+		  resetI2C(handPorts.imu[num]);
+	  }
     //resultOp = writeRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
   }
-  
+
   // Check to make sure data is sent correctly
   if (registerAddr != BNO055_SYS_TRIGGER_ADDR) // If not a reset command, check
   {
     if ((uint32_t) handPorts.imu[num] == SPI1_BASE)
-      readBytesSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
-    else
-      readBytesI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
+      res = readBytesSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
+	if (0 == res){
+		converterInit();
+	}
+    else {
+      res = readBytesI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
+		if (0 == res){
+			resetI2C(handPorts.imu[num]);
+		}
+    }
     result += (response[0] == data);
   }
 
@@ -243,17 +294,27 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
 */
 uint8_t selectMultiplexerPort(uint8_t port)
 {
+	uint8_t result = 0;
+
   if ((uint32_t) handPorts.imu[port] == SPI1_BASE)
   {
     printf("SELECTING IMU MULTIPLEXER PORT by SPI WRITE_REGISTER: IMU_NUM %d, PORT %d, ADDR 0x70, REG_ADDR %x",
       port, (int)handPorts.imu[port], 1 << port);
-    return writeRegisterSPI(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+    result = writeRegisterSPI(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+	if (0 == result){
+		converterInit();
+	}
+    return result;
   }
   else
   {
     printf("SELECTING IMU MULTIPLEXER PORT by I2C WRITE_REGISTER: IMU_NUM %d, PORT %d, ADDR 0x70, REG_ADDR %x",
       port, (int)handPorts.imu[port], 1 << port);
-    return writeRegisterI2C(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+	  result = writeRegisterI2C(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+	  if (0 == result){
+		  resetI2C(handPorts.imu[port]);
+	  }
+	  return result;
   }
 }
 
@@ -271,12 +332,18 @@ uint8_t checkIMUStatus(uint8_t imuNumber){
 */
 uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress)
 {
-  uint8_t result;
+  uint8_t result = 0;
 
   if ((uint32_t) port == SPI1_BASE)
     result = writeRegisterSPI(port, address, registerAddress);
+	if (0 == result){
+		converterInit();
+	}
   else
     result = writeRegisterI2C(port, address, registerAddress);
+	  if (0 == result){
+		  resetI2C(port);
+	  }
   return result;
 }
 
@@ -291,19 +358,25 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
 
   if ((uint32_t) port == SPI1_BASE)
   {
-    //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+    //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ",
 
-    // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
+    // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n",
     //   (int)port, address, numBytes);
     result = readBytesSPI(port, address, numBytes, values);
+	if (0 == result){
+		converterInit();
+	}
   }
   else
   {
-    //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+    //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ",
 
-    // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
+    // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n",
     //   (int)port, address, numBytes);
     result = readBytesI2C(port, address, numBytes, values);
+	  if (0 == result){
+		  resetI2C(port);
+	  }
   }
   return result;
 }
@@ -320,26 +393,33 @@ uint8_t writeMultiToRegisterIMU(uint32_t* port, uint8_t address, uint8_t registe
 
   if ((uint32_t) port == SPI1_BASE)
   {
-    //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+    //printf("IMU_READING_BYTES by SPI READ: IMU Number %d, PORT %d, ADDR %x, length 8. ",
 
-    // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
+    // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n",
     //   (int)port, address, numBytes);
     result = writeBytesSPI(port, address, msg, numBytes + 1, 0);
+	if (0 == result){
+		converterInit();
+	}
   }
   else
   {
-    //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ", 
+    //printf("IMU_READING_BYTES by I2C READ: IMU Number %d, PORT %d, ADDR %x, length 8. ",
 
-    // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
+    // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n",
     //   (int)port, address, numBytes);
     result = writeBytesI2C(port, address, msg, numBytes + 1, 0);
+	if (0 == result){
+	  resetI2C(port);
+	}
+
   }
   return result;
 
 }
 
 // Used in loadCalData
-void setCalibrationData(uint8_t* buffer){ 
+void setCalibrationData(uint8_t* buffer){
   int i, j;
   printf("\nSetting Calibration Data...\n\n");
   // Iterate for each IMU
@@ -356,15 +436,15 @@ void setCalibrationData(uint8_t* buffer){
   }
   printf("\n");
 
-  for(i = 0; i < NUM_IMUS; i++){ 
+  for(i = 0; i < NUM_IMUS; i++){
 
       // Set operation mode to CONFIG_MODE
       setRegisterIMU(i, BNO055_OPR_MODE_ADDR, OPERATION_MODE_CONFIG);
       // Switching time from Other Modes to CONFIG Mode
       delay_ms(25);
-      
+
       // Set each of the 22 calibration data registers
-      for (j = 0; j < NUM_BNO055_OFFSET_REGISTERS; j++){     
+      for (j = 0; j < NUM_BNO055_OFFSET_REGISTERS; j++){
         // ACCEL_OFFSET_X_LSB_ADDR is 0x55 and is the first calibration data register
         printf("IMU %d: 0x%x - [%d]\n", i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
         setRegisterIMU(i, ACCEL_OFFSET_X_LSB_ADDR + j, buffer[NUM_BNO055_OFFSET_REGISTERS * i + j]);
@@ -399,9 +479,9 @@ void refreshCalibration(void){
 
 /*
   Description: Updates IMU state machine
-  Takes in: imuNumber 
+  Takes in: imuNumber
   Returns: void
-  
+
   IMU connections:
     0 -> Port 0 on the I2C Multiplexer
     1 -> Port 1 on the I2C Multiplexer
@@ -413,36 +493,36 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
   imu_async_poll_state_t* state = (imu_async_poll_state_t*) & (imu_poll_state[imuNumber]);
   uint8_t values[32] = {0}; // 32 byte buffer for reads
-  
+
   //uint8_t numBytesToRead;
-  
+
   uint8_t result = 0;
   uint8_t registerAddress;
   // printf("IMU NUMBER: %d STATE: \n", imuNumber);
 
   if (checkIMUStatus(imuNumber) == 0)
     *state = IMU_STATE_WAIT;
-  
+
   /*
   States:
-    #1 IMU_STATE_SET_REGISTER -> 
-    #2 IMU_STATE_READ_VALUES  -> 
+    #1 IMU_STATE_SET_REGISTER ->
+    #2 IMU_STATE_READ_VALUES  ->
         #2a IMU_DATA           ->
         #2b IMU_CAL_STATUS            ->
         #2c IMU_CAL_OFFSETS           ->
     #3 IMU_STATE_WAIT         ->
-    DEFAULT                ->  
+    DEFAULT                ->
   */
   switch(*state)
   {
     // Selects register to read from
-    case IMU_STATE_SET_REGISTER: 
+    case IMU_STATE_SET_REGISTER:
       imu_state_count[imuNumber]++;
       // printf("IMU_STATE_SET_REGISTER\n");
 
       if (handPorts.multiplexer)
         selectMultiplexerPort(imuNumber);
-      
+
       // Switch case to select register address to read data from
       switch(imu_poll_type[imuNumber]){
         case IMU_DATA:
@@ -463,7 +543,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
       result = writeRegisterIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], registerAddress);
 
       // Check if register write worked. Redundant
-      if (result) 
+      if (result)
         *state = IMU_STATE_READ_VALUES;
 
       // TODO: Failed register write to result in fix attempt, possibly repeating set register state but may induce blocking
@@ -473,7 +553,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
     case IMU_STATE_READ_VALUES:
       // printf("IMU_STATE_READ_VALUES\n");
-      
+
       if (handPorts.multiplexer)
         selectMultiplexerPort(imuNumber);
 
@@ -511,12 +591,12 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
 
         // Read single calibration status register
         case IMU_CAL_STATUS:
-          
+
           result = readBytesIMU(handPorts.imu[imuNumber], handPorts.imuI2CAddress[imuNumber], 1, values);
           // printf("CAL_STAT for IMU %d: %d\n", imuNumber, values[0]);
           if (result)
             handState.imus_calibration_status[imuNumber] = values[0];
-    
+
           if (handState.imus_calibration_status[imuNumber] == 0xFF && !imu_cal_values_set[imuNumber]){
             imu_cal_status_count[imuNumber]++;
             // printf("CAL_STATUS_COUNT IMU - %d: %d\n", imuNumber, imu_cal_status_count[imuNumber]);
@@ -555,7 +635,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           if (result){
             int i = 0;
             for (i = 0; i < 11; i++){
-              handState.imus_calibration_data[imuNumber * 11 + i] = 
+              handState.imus_calibration_data[imuNumber * 11 + i] =
                   ((uint16_t)values[i * 2 + 1] << 8) | ((uint16_t)values[i * 2]);
             }
 
@@ -571,7 +651,7 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
             }
             printf("\n");
           }
-          
+
           // if (handState.imus_calibration_status[imuNumber] != 0xFF){
             imu_poll_type[imuNumber] = IMU_DATA;
             *state = IMU_STATE_SET_REGISTER;
@@ -581,13 +661,13 @@ void imu_poll_nonblocking_tick(const uint8_t imuNumber)
           // else
           //   *state = IMU_STATE_WAIT;
           break;
-          
+
         default:  // Do nothing as this should never occur
           *state = IMU_STATE_WAIT;
           break;
       }
 
-      if (!result)  
+      if (!result)
         printf("ERROR. IMU %d\n", imuNumber);
         //handState.imus[imuNumber] = 0; // TODO: Change from handState.imus to handStatus.imus[]
       break;
