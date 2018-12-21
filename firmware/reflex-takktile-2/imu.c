@@ -45,14 +45,26 @@ void imuInit()
     if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
       result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+	if (0 == result){
+		converterInit();
+	}
       result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+	if (0 == result){
+		converterInit();
+	}
     }
 
     // I2C
     else
     {
       result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+	  if (0 == result){
+		  resetI2C(handPorts.imu[i]);
+	  }
       result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+	  if (0 == result){
+		  resetI2C(handPorts.imu[i]);
+	  }
     }
 
     // Check if ID is correct
@@ -61,14 +73,26 @@ void imuInit()
       if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
       {
         result = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+	if (0 == result){
+		converterInit();
+	}
         result = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+	if (0 == result){
+		converterInit();
+	}
       }
 
       // I2C
       else
       {
         result = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], BNO055_CHIP_ID_ADDR);
+		  if (0 == result){
+			  resetI2C(handPorts.imu[i]);
+		  }
         result = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, id);
+		  if (0 == result){
+			  resetI2C(handPorts.imu[i]);
+		  }
       }
       if (*id != BNO055_ID)
         printf("IMU %d not found. ID: %d, Address: 0x%x Result: %d\n", i, id[0], handPorts.imuI2CAddress[i], result);
@@ -140,6 +164,7 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
 
   // Set specified register to hold the given byte of data
   uint8_t result = 0;
+  uint8_t res = 0;
   uint8_t resultOp = 0;       // Used for writeRegisterSPI
   uint8_t response[1] = {0}; 
 
@@ -158,22 +183,36 @@ uint8_t setRegisterIMUs(uint8_t registerAddr, uint8_t data)
     if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
     {
       resultOp = setRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
+	if (0 == resultOp){
+		converterInit();
+	}
       //resultOp = writeRegisterSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
 
     else
     {
       resultOp = setRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr, data);
-      //resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
+	  if (0 == resultOp){
+		  resetI2C(handPorts.imu[i]);
+	  }
+     //resultOp = writeRegisterI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], registerAddr);
     }
     
     // Check to make sure data is sent correctly
     if (registerAddr != BNO055_SYS_TRIGGER_ADDR) // If not a reset command, check
     {
-      if ((uint32_t) handPorts.imu[i] == SPI1_BASE)
-        readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
-      else
-        readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+      if ((uint32_t) handPorts.imu[i] == SPI1_BASE){
+        res = readBytesSPI(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+	if (0 == res){
+		converterInit();
+	}
+      }
+      else {
+        res = readBytesI2C(handPorts.imu[i], handPorts.imuI2CAddress[i], 1, response);
+		  if (0 == res){
+			  resetI2C(handPorts.imu[i]);
+		  }
+      }
       result += (response[0] == data);
     }
 
@@ -197,7 +236,8 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
   // Set specified register to hold given byte of data
   uint8_t result = 0;
   uint8_t resultOp = 0;
-  uint8_t response[1] = {0}; 
+  uint8_t response[1] = {0};
+  uint8_t res = 0;
 
   if (handPorts.multiplexer)
   {
@@ -211,22 +251,36 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
   if ((uint32_t) handPorts.imu[num] == SPI1_BASE)
   {
     resultOp = setRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
-    //resultOp = writeRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
+	if (0 == resultOp){
+		converterInit();
+	}
+   //resultOp = writeRegisterSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
   }
 
   else
   {
     resultOp = setRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr, data);
+	  if (0 == resultOp){
+		  resetI2C(handPorts.imu[num]);
+	  }
     //resultOp = writeRegisterI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], registerAddr);
   }
   
   // Check to make sure data is sent correctly
   if (registerAddr != BNO055_SYS_TRIGGER_ADDR) // If not a reset command, check
   {
-    if ((uint32_t) handPorts.imu[num] == SPI1_BASE)
-      readBytesSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
-    else
-      readBytesI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
+    if ((uint32_t) handPorts.imu[num] == SPI1_BASE){
+      res = readBytesSPI(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
+	if (0 == res){
+		converterInit();
+	}
+    }
+    else {
+      res = readBytesI2C(handPorts.imu[num], handPorts.imuI2CAddress[num], 1, response);
+		if (0 == res){
+			resetI2C(handPorts.imu[num]);
+		}
+    }
     result += (response[0] == data);
   }
 
@@ -243,17 +297,27 @@ uint8_t setRegisterIMU(uint8_t num, uint8_t registerAddr, uint8_t data)
 */
 uint8_t selectMultiplexerPort(uint8_t port)
 {
+	uint8_t result = 0;
+
   if ((uint32_t) handPorts.imu[port] == SPI1_BASE)
   {
     printf("SELECTING IMU MULTIPLEXER PORT by SPI WRITE_REGISTER: IMU_NUM %d, PORT %d, ADDR 0x70, REG_ADDR %x",
       port, (int)handPorts.imu[port], 1 << port);
-    return writeRegisterSPI(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+    result = writeRegisterSPI(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+	if (0 == result){
+		converterInit();
+	}
+    return result;
   }
   else
   {
     printf("SELECTING IMU MULTIPLEXER PORT by I2C WRITE_REGISTER: IMU_NUM %d, PORT %d, ADDR 0x70, REG_ADDR %x",
       port, (int)handPorts.imu[port], 1 << port);
-    return writeRegisterI2C(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+	  result = writeRegisterI2C(handPorts.imu[port], I2C_MULTIPLEXER_ADDRESS, 1 << port);
+	  if (0 == result){
+		  resetI2C(handPorts.imu[port]);
+	  }
+	  return result;
   }
 }
 
@@ -271,12 +335,20 @@ uint8_t checkIMUStatus(uint8_t imuNumber){
 */
 uint8_t writeRegisterIMU(uint32_t* port, uint8_t address, uint8_t registerAddress)
 {
-  uint8_t result;
+  uint8_t result = 0;
 
-  if ((uint32_t) port == SPI1_BASE)
+  if ((uint32_t) port == SPI1_BASE) {
     result = writeRegisterSPI(port, address, registerAddress);
-  else
+	if (0 == result){
+		converterInit();
+	}
+  }
+  else {
     result = writeRegisterI2C(port, address, registerAddress);
+	  if (0 == result){
+		  resetI2C(port);
+	  }
+  }
   return result;
 }
 
@@ -296,6 +368,9 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
     // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
     //   (int)port, address, numBytes);
     result = readBytesSPI(port, address, numBytes, values);
+	if (0 == result){
+		converterInit();
+	}
   }
   else
   {
@@ -304,6 +379,9 @@ uint8_t readBytesIMU(uint32_t* port, uint8_t address, uint8_t numBytes, uint8_t*
     // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
     //   (int)port, address, numBytes);
     result = readBytesI2C(port, address, numBytes, values);
+	  if (0 == result){
+		  resetI2C(port);
+	  }
   }
   return result;
 }
@@ -325,6 +403,9 @@ uint8_t writeMultiToRegisterIMU(uint32_t* port, uint8_t address, uint8_t registe
     // printf("IMU_READING_BYTES by SPI READ: PORT %d, ADDR %x, length %d. \n", 
     //   (int)port, address, numBytes);
     result = writeBytesSPI(port, address, msg, numBytes + 1, 0);
+	if (0 == result){
+		converterInit();
+	}
   }
   else
   {
@@ -333,6 +414,10 @@ uint8_t writeMultiToRegisterIMU(uint32_t* port, uint8_t address, uint8_t registe
     // printf("IMU_READING_BYTES by I2C READ: PORT %d, ADDR %x, length %d. \n", 
     //   (int)port, address, numBytes);
     result = writeBytesI2C(port, address, msg, numBytes + 1, 0);
+	if (0 == result){
+	  resetI2C(port);
+	}
+
   }
   return result;
 

@@ -131,3 +131,36 @@ uint8_t isBusyI2CPort(uint32_t* port)
   I2C_TypeDef *i2cPort = (I2C_TypeDef *) port;
   return i2cPort->SR2 & I2C_SR2_BUSY;
 }
+
+uint8_t resetI2C(uint32_t* port)
+{
+	switch ((uint32_t) port)
+	{
+	case I2C1_BASE:
+		I2C1->CR1 |= (1<<15);
+		delay_ms(1);
+		I2C1->CR1 = 0;
+		delay_ms(1);
+
+		I2C1->CR2   |= APB_MHZ; // 42MHz -> 101010
+		I2C1->CCR   |= I2C_CCR; // I2C_CCR = 210
+		I2C1->TRISE &= ~0x3f; // 0x3f = 0b00111111 -> 0b11000000, clearing register
+		I2C1->TRISE |= I2C_TRISE; // = I2C_TRISE = (APB_MHZ * 200 / 1000 + 1), maximum rise time
+		I2C1->CR1   |= I2C_CR1_PE; // peripheral enable
+		break;
+
+	case I2C3_BASE:
+		I2C3->CR1 |= (1<<15);
+		delay_ms(1);
+		I2C3->CR1 = 0;
+		delay_ms(1);
+
+		I2C3->CR2   |= APB_MHZ;
+		I2C3->CCR   |= I2C_CCR;
+		I2C3->TRISE &= ~0x3f;
+		I2C3->TRISE |= I2C_TRISE;
+		I2C3->CR1   |= I2C_CR1_PE;
+		break;
+	}
+	return 1;
+}
