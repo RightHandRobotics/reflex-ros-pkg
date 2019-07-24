@@ -1,4 +1,4 @@
-reflex_sf_f1: {zero_point: 3.226472923852799}
-reflex_sf_f2: {zero_point: 0.8130098175793898}
-reflex_sf_f3: {zero_point: 2.423689644859313}
-reflex_sf_preshape: {zero_point: 2.5873142622337815}
+reflex_sf_f1: {zero_point: 25.634352946356948}
+reflex_sf_f2: {zero_point: 22.4666826193731}
+reflex_sf_f3: {zero_point: 24.654139222898024}
+reflex_sf_preshape: {zero_point: 23.42081866943797}

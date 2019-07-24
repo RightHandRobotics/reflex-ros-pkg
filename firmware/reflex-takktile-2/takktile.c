@@ -190,10 +190,16 @@ uint8_t enableAllSensors(uint8_t takktileNumber)
   switch ((uint32_t) handPorts.takktile[takktileNumber])
   {
     case I2C1_BASE:
-      result = writeBytesI2C(handPorts.takktile[takktileNumber], BCAST_ENABLE_ADDR, NULL, 0, 1);  // enable all sensors  
+      result = writeBytesI2C(handPorts.takktile[takktileNumber], BCAST_ENABLE_ADDR, NULL, 0, 1);  // enable all sensors
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
-      result = writeBytesI2C(handPorts.takktile[takktileNumber], BCAST_ENABLE_ADDR, NULL, 0, 1);  // enable all sensors  
+      result = writeBytesI2C(handPorts.takktile[takktileNumber], BCAST_ENABLE_ADDR, NULL, 0, 1);  // enable all sensors
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = writeBytesSPI(handPorts.takktile[takktileNumber], BCAST_ENABLE_ADDR, NULL, 0, 1);  // enable all sensors  
@@ -211,9 +217,15 @@ uint8_t startConversionSequence(uint8_t takktileNumber)
   {
     case I2C1_BASE:
       result = writeBytesI2C(handPorts.takktile[takktileNumber], BAROM_ADDR, data, 2, 1);         // send Start Conversion Sequence
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
       result = writeBytesI2C(handPorts.takktile[takktileNumber], BAROM_ADDR, data, 2, 1);         // send Start Conversion Sequence
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = writeBytesSPI(handPorts.takktile[takktileNumber], BAROM_ADDR, data, 2, 1);         // send Start Conversion Sequence
@@ -231,9 +243,15 @@ uint8_t disableAllSensors(uint8_t takktileNumber)
     uint8_t aux[1] = {0};
     case I2C1_BASE:
       result = readBytesI2C(handPorts.takktile[takktileNumber], BCAST_DISABLE_ADDR >> 1, 1, aux); // disable all sensors
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
       result = readBytesI2C(handPorts.takktile[takktileNumber], BCAST_DISABLE_ADDR >> 1, 1, aux); // disable all sensors
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = readBytesSPI(handPorts.takktile[takktileNumber], BCAST_DISABLE_ADDR >> 1, 1, aux); // disable all sensors
@@ -252,9 +270,15 @@ uint8_t enableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
   {
     case I2C1_BASE:
       result = writeBytesI2C(handPorts.takktile[takktileNumber], addresses[sensorIndex], NULL, 0, 1); // enable sensor i
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
       result = writeBytesI2C(handPorts.takktile[takktileNumber], addresses[sensorIndex], NULL, 0, 1); // enable sensor i
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = writeBytesSPI(handPorts.takktile[takktileNumber], addresses[sensorIndex], NULL, 0, 1); // enable sensor i
@@ -272,9 +296,15 @@ uint8_t setRegister(uint8_t takktileNumber)
   {
     case I2C1_BASE:
       result = writeBytesI2C(handPorts.takktile[takktileNumber], BAROM_ADDR, msg, 1, 1);       // choose register 0x00
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
       result = writeBytesI2C(handPorts.takktile[takktileNumber], BAROM_ADDR, msg, 1, 1);       // choose register 0x00
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = writeBytesSPI(handPorts.takktile[takktileNumber], BAROM_ADDR, msg, 1, 1);       // choose register 0x00
@@ -294,9 +324,15 @@ uint8_t readValues(uint8_t takktileNumber, uint8_t sensorIndex)
   {
     case I2C1_BASE:
       result = readBytesI2C(handPorts.takktile[takktileNumber], BAROM_ADDR >> 1, 4, values);      // read 4 bytes
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
       result = readBytesI2C(handPorts.takktile[takktileNumber], BAROM_ADDR >> 1, 4, values);      // read 4 bytes
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = readBytesSPI(handPorts.takktile[takktileNumber], BAROM_ADDR >> 1, 4, values);      // read 4 bytes
@@ -332,9 +368,15 @@ uint8_t disableSensor(uint8_t takktileNumber, uint8_t sensorIndex)
   {
     case I2C1_BASE:
       result = readBytesI2C(handPorts.takktile[takktileNumber], addresses[sensorIndex] >> 1, 1, aux);
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case I2C3_BASE:
       result = readBytesI2C(handPorts.takktile[takktileNumber], addresses[sensorIndex] >> 1, 1, aux);
+	  if (0 == result){
+		  resetI2C(handPorts.takktile[takktileNumber]);
+	  }
     break;
     case SPI1_BASE:
       result = readBytesSPI(handPorts.takktile[takktileNumber], addresses[sensorIndex] >> 1, 1, aux);

@@ -54,12 +54,21 @@ uint8_t setEncoderRegister(uint8_t encoderNumber, uint8_t encoderRegister,int ti
   {
     case I2C1_BASE: // Finger 1
       result = writeRegisterI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case I2C3_BASE: // Finger 3
       result = writeRegisterI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case SPI1_BASE: // Finger 2
       result = writeRegisterSPI(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], encoderRegister);
+	if (0 == result){
+		converterInit();
+	}
     break;
   }
 
@@ -76,12 +85,21 @@ uint8_t readEncoderValues(uint8_t encoderNumber, int timeout)
   {
     case I2C1_BASE: // Finger 1
       result = readBytesI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case I2C3_BASE: // Finger 3
       result = readBytesI2C(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
+	  if (0 == result){
+		  resetI2C(handPorts.encoder[encoderNumber]);
+	  }
     break;
     case SPI1_BASE: // Finger 2
       result = readBytesSPI(handPorts.encoder[encoderNumber], handPorts.encoderI2CAddress[encoderNumber], 2, valueRead);
+	if (0 == result){
+		converterInit();
+	}
     break;
   }
 
