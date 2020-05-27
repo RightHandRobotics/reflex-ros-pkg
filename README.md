@@ -1,3 +1,8 @@
+# OAkyildiz/reflex-ros-pkg
+fork of RightHandRobotics/reflex-ros-pkg
+This fork aims to fix the catkin build order problems and namespace issues 
+
+
 reflex-ros-pkg
 ======
 

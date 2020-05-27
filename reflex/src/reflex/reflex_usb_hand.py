@@ -40,10 +40,12 @@ import reflex_msgs.msg
 motor_names = ['_f1', '_f2', '_f3', '_preshape']
 
 class ReflexUSBHand(ReflexHand):
-    def __init__(self):
-        self.usb_hand_type = rospy.get_param('usb_hand_type')  
-        self.init_namespace = '/' + self.usb_hand_type
+    def __init__(self,name):
+        self.usb_hand_type = rospy.get_param('usb_hand_type')
+        self.init_namespace =  name
+
         super(ReflexUSBHand, self).__init__(self.init_namespace, ReflexUSBMotor)
+
         self.hand_state_pub = rospy.Publisher(self.namespace + '/hand_state',
                                               reflex_msgs.msg.Hand, queue_size=10)
         self.encoder_last_value = [0, 0, 0]  #This will be updated constantly in _receive_enc_state_cb()
@@ -57,10 +59,10 @@ class ReflexUSBHand(ReflexHand):
         if (self.usb_hand_type == "reflex_plus"):
             self.enc_subscriber = rospy.Subscriber('/encoder_states', Encoder, self._receive_enc_state_cb)
             rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_auto)
-            self.encoder_zero_point = rospy.get_param('/enc_zero_points')
+            self.encoder_zero_point = rospy.get_param('/enc_zero_points') #remove slash?
         else:
             rospy.Service(self.namespace + '/calibrate_fingers', Empty, self.calibrate_manual)
-    
+
     def _receive_enc_state_cb(self, data):
         #Receives and processes the encoder state
         #print("encoder 1: " + str(data.encoders[0]) + " encoder 2: " + str(data.encoders[1]) + " encoder 3: " + str(data.encoders[2]))
@@ -74,7 +76,7 @@ class ReflexUSBHand(ReflexHand):
             #motor_angles[i] = raw_motor_angle
             self.distal_approx[i] = self.calc_distal_angle(motor_joint_angle, self.proximal_angle[i])
         #print motor_angles
-    
+
     def _receive_cmd_cb(self, data):
         self.disable_force_control()
         self.set_speeds(data.velocity)
@@ -143,7 +145,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
             j=0
             while(1):
                 enc_pos = self.encoder_last_value[i]
-                if (j==0): 
+                if (j==0):
                     j=1
                     last = enc_pos
                 if ((abs(enc_pos-last) < self.calibration_error)):
@@ -172,20 +174,20 @@ motor, or 'q' to indicate that the zero point has been reached\n")
             outfile.write(yaml.dump(data))
 
     def _zero_current_pose(self):
-        data = dict(
-            reflex_sf_f1=dict(zero_point=self.motors[self.namespace + '_f1'].get_current_raw_motor_angle()),
-            reflex_sf_f2=dict(zero_point=self.motors[self.namespace + '_f2'].get_current_raw_motor_angle()),
-            reflex_sf_f3=dict(zero_point=self.motors[self.namespace + '_f3'].get_current_raw_motor_angle()),
-            reflex_sf_preshape=dict(zero_point=self.motors[self.namespace + '_preshape'].get_current_raw_motor_angle())
-        )
+        data = dict()
+        data[self.namespace+"_f1"]=dict(zero_point=self.motors[self.namespace + "_f1"].get_current_raw_motor_angle())
+        data[self.namespace+"_f2"]=dict(zero_point=self.motors[self.namespace + "_f2"].get_current_raw_motor_angle())
+        data[self.namespace+"_f3"]=dict(zero_point=self.motors[self.namespace + "_f3"].get_current_raw_motor_angle())
+        data[self.namespace+"_preshape"]=dict(zero_point=self.motors[self.namespace + "_preshape"].get_current_raw_motor_angle())
+
         if (self.usb_hand_type == 'reflex_plus'):
             data = dict(
-                reflex_plus_f1 = data['reflex_sf_f1'],
-                reflex_plus_f2 = data['reflex_sf_f2'],
-                reflex_plus_f3 = data['reflex_sf_f3'],
-                reflex_plus_preshape = data['reflex_sf_preshape']
+                reflex_plus_f1 = data[self.namespace+'_f1'],
+                reflex_plus_f2 = data[self.namespace+'_f2'],
+                reflex_plus_f3 = data[self.namespace+'_f3'],
+                reflex_plus_preshape = data[self.namespace+'_preshape']
             )
-        self._write_zero_point_data_to_file(self.usb_hand_type + '_motor_zero_points.yaml', data)
+        self._write_zero_point_data_to_file(self.namespace + '_motor_zero_points.yaml', data)
 
     #Encoder data processing functions are based off encoder functions used
     #For the reflex_takktile hand as in reflex_driver_node.cpp
@@ -195,12 +197,12 @@ motor, or 'q' to indicate that the zero point has been reached\n")
             self.encoder_zero_point[i] = data[i]*self.enc_scale
             self.encoder_offset[i] = 0;
         data = dict(enc_zero_points = self.encoder_zero_point)
-        self._write_zero_point_data_to_file('reflex_plus_encoder_zero_points.yaml', data)    
+        self._write_zero_point_data_to_file('reflex_plus_encoder_zero_points.yaml', data)
 
     def update_encoder_offset(self, raw_value):
         #Given a raw and past (self.encoder_last_value) value, track encoder wrapes (self.enc_offset)
         offset = self.encoder_offset[:]
-        
+
         for i in range(0,3):
             if (offset[i]==-1):
                 #This happens at start up
@@ -211,7 +213,7 @@ motor, or 'q' to indicate that the zero point has been reached\n")
                     offset[i] = offset[i] + 16383
                 elif (self.encoder_last_value[i] - raw_value[i] < -5000):
                     offset[i] = offset[i] - 16383
-        
+
         self.encoder_offset = offset[:]
 
     def calc_proximal_angle(self, raw_value, zero, offset):
@@ -230,9 +232,9 @@ motor, or 'q' to indicate that the zero point has been reached\n")
         else:
             return diff
 
-def main():
+def main(name):
     rospy.sleep(4.0)  # To allow services and parameters to load
-    hand = ReflexUSBHand()
+    hand = ReflexUSBHand(name)
     rospy.on_shutdown(hand.disable_torque)
     r = rospy.Rate(20)
     while not rospy.is_shutdown():
@@ -241,4 +243,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+    #this needs to be slightly revised as and empty 'args' parameter in roslaunch causes problems
+    nm='reflex_sf' if len(sys.argv)<=1 else sys.argv[1]
+    main(nm)
